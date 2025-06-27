@@ -8,6 +8,8 @@ import {
   BET_MANAGEMENT_ENGINE_ABI,
   BET_MANAGEMENT_ENGINE_ADDRESS,
 } from "~/lib/contracts";
+import { useChainId, useSwitchChain } from "wagmi";
+import { base } from "wagmi/chains";
 
 interface User {
   fid: number;
@@ -177,6 +179,9 @@ export default function CreateBet({
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
 
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
+
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
       setUsers([]);
@@ -327,6 +332,18 @@ export default function CreateBet({
     if (!isConnected) {
       console.error("Wallet not connected");
       return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return; // Let the user try again after switching
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
     }
 
     if (!selectedUser || !selectedToken || !betAmount || !selectedTimeOption) {
