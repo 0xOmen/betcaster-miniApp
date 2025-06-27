@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/Button";
-import { useSendTransaction } from "wagmi";
+import { useSendTransaction, useAccount } from "wagmi";
 import { encodeFunctionData } from "viem";
 import {
   BET_MANAGEMENT_ENGINE_ABI,
@@ -161,6 +161,7 @@ export default function CreateBet() {
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
 
+  const { address, isConnected } = useAccount();
   const { sendTransaction, isPending: isTransactionPending } =
     useSendTransaction();
 
@@ -311,6 +312,11 @@ export default function CreateBet() {
   };
 
   const handleCreateBet = async () => {
+    if (!isConnected) {
+      console.error("Wallet not connected");
+      return;
+    }
+
     if (!selectedUser || !selectedToken || !betAmount || !selectedTimeOption) {
       console.error("Missing required fields for bet creation");
       return;
@@ -670,6 +676,7 @@ export default function CreateBet() {
 
         <Button
           disabled={
+            !isConnected ||
             !selectedUser ||
             !selectedToken ||
             !betAmount ||
@@ -681,7 +688,11 @@ export default function CreateBet() {
           isLoading={isTransactionPending}
           className="w-full"
         >
-          {isTransactionPending ? "Creating Bet..." : "Create Bet"}
+          {!isConnected
+            ? "Connect Wallet"
+            : isTransactionPending
+              ? "Creating Bet..."
+              : "Create Bet"}
         </Button>
       </div>
     </div>
