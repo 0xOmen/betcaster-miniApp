@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/Button";
-import { useSendTransaction, useAccount } from "wagmi";
 import { encodeFunctionData } from "viem";
 import {
   BET_MANAGEMENT_ENGINE_ABI,
@@ -148,7 +147,17 @@ function TokenSelectDropdown({
   );
 }
 
-export default function CreateBet() {
+interface CreateBetProps {
+  isConnected: boolean;
+  sendTransaction: any; // You can type this more specifically if needed
+  isTransactionPending: boolean;
+}
+
+export default function CreateBet({
+  isConnected,
+  sendTransaction,
+  isTransactionPending,
+}: CreateBetProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -161,10 +170,6 @@ export default function CreateBet() {
   const [customDays, setCustomDays] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
-
-  const { address, isConnected } = useAccount();
-  const { sendTransaction, isPending: isTransactionPending } =
-    useSendTransaction();
 
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
@@ -390,12 +395,12 @@ export default function CreateBet() {
 
       // Send the transaction
       sendTransaction(transaction, {
-        onSuccess: (hash) => {
+        onSuccess: (hash: `0x${string}`) => {
           console.log("Transaction sent successfully:", hash);
           // You can add success notification here
           // For example: toast.success(`Bet created! Transaction: ${hash}`);
         },
-        onError: (error) => {
+        onError: (error: Error) => {
           console.error("Transaction failed:", error);
           // You can add error notification here
           // For example: toast.error(`Transaction failed: ${error.message}`);
