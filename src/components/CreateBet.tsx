@@ -112,18 +112,33 @@ export default function CreateBet() {
                   onClick={() => handleUserSelect(user)}
                   className="w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3 border-b border-gray-200 dark:border-gray-600 last:border-b-0"
                 >
-                  {user.pfp_url && (
-                    <img
-                      src={user.pfp_url}
-                      alt={user.display_name || user.username}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">
+                  <div className="flex-shrink-0">
+                    {user.pfp_url ? (
+                      <img
+                        src={user.pfp_url}
+                        alt={user.display_name || user.username}
+                        className="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-600"
+                        onError={(e) => {
+                          // Fallback to a default avatar if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          target.nextElementSibling?.classList.remove("hidden");
+                        }}
+                      />
+                    ) : null}
+                    {!user.pfp_url && (
+                      <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center border-2 border-gray-200 dark:border-gray-600">
+                        <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">
+                          {user.username.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
                       {user.display_name || user.username}
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
                       @{user.username}
                     </div>
                   </div>
@@ -136,18 +151,32 @@ export default function CreateBet() {
         {selectedUser && (
           <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <div className="flex items-center space-x-3">
-              {selectedUser.pfp_url && (
-                <img
-                  src={selectedUser.pfp_url}
-                  alt={selectedUser.display_name || selectedUser.username}
-                  className="w-12 h-12 rounded-full"
-                />
-              )}
-              <div>
-                <div className="font-medium text-gray-900 dark:text-gray-100">
+              <div className="flex-shrink-0">
+                {selectedUser.pfp_url ? (
+                  <img
+                    src={selectedUser.pfp_url}
+                    alt={selectedUser.display_name || selectedUser.username}
+                    className="w-12 h-12 rounded-full border-2 border-gray-200 dark:border-gray-600"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      target.nextElementSibling?.classList.remove("hidden");
+                    }}
+                  />
+                ) : null}
+                {!selectedUser.pfp_url && (
+                  <div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center border-2 border-gray-200 dark:border-gray-600">
+                    <span className="text-gray-600 dark:text-gray-400 text-lg font-medium">
+                      {selectedUser.username.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
                   {selectedUser.display_name || selectedUser.username}
                 </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
                   @{selectedUser.username}
                 </div>
               </div>
