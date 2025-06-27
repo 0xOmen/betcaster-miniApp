@@ -153,6 +153,7 @@ export default function CreateBet() {
   const [selectedTimeOption, setSelectedTimeOption] = useState<string>("");
   const [customDays, setCustomDays] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
 
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
@@ -184,6 +185,26 @@ export default function CreateBet() {
     }
   };
 
+  const fetchUserDetails = async (fid: number) => {
+    setIsLoadingUserDetails(true);
+    try {
+      const response = await fetch(`/api/user-details/${fid}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log("User details fetched:", data);
+        return data.user;
+      } else {
+        console.error("Failed to fetch user details");
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+      return null;
+    } finally {
+      setIsLoadingUserDetails(false);
+    }
+  };
+
   useEffect(() => {
     if (searchTerm.length > 0) {
       searchUsers(searchTerm);
@@ -193,10 +214,18 @@ export default function CreateBet() {
     }
   }, [searchTerm]);
 
-  const handleUserSelect = (user: User) => {
-    setSelectedUser(user);
+  const handleUserSelect = async (user: User) => {
     setSearchTerm(user.displayName);
     setShowDropdown(false);
+
+    // Fetch detailed user information including wallet addresses
+    const detailedUser = await fetchUserDetails(user.fid);
+    if (detailedUser) {
+      setSelectedUser(detailedUser);
+    } else {
+      // Fallback to the basic user info if detailed fetch fails
+      setSelectedUser(user);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -384,6 +413,28 @@ export default function CreateBet() {
                 <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
                   @{selectedUser.username}
                 </div>
+                {isLoadingUserDetails && (
+                  <div className="text-xs text-gray-500 dark:text-gray-500">
+                    Loading wallet addresses...
+                  </div>
+                )}
+                {!isLoadingUserDetails && selectedUser.primaryEthAddress && (
+                  <div className="text-xs text-gray-500 dark:text-gray-500 truncate">
+                    ETH: {selectedUser.primaryEthAddress}
+                  </div>
+                )}
+                {!isLoadingUserDetails && selectedUser.primarySolanaAddress && (
+                  <div className="text-xs text-gray-500 dark:text-gray-500 truncate">
+                    SOL: {selectedUser.primarySolanaAddress}
+                  </div>
+                )}
+                {!isLoadingUserDetails &&
+                  !selectedUser.primaryEthAddress &&
+                  !selectedUser.primarySolanaAddress && (
+                    <div className="text-xs text-gray-500 dark:text-gray-500">
+                      No wallet addresses found
+                    </div>
+                  )}
               </div>
             </div>
           </div>
