@@ -192,7 +192,26 @@ export default function CreateBet() {
       if (response.ok) {
         const data = await response.json();
         console.log("User details fetched:", data);
-        return data.users?.[0] || null;
+
+        const user = data.users?.[0];
+        if (!user) {
+          return null;
+        }
+
+        // Transform the user data to match our User interface
+        const transformedUser: User = {
+          fid: user.fid,
+          username: user.username,
+          displayName: user.display_name || user.username,
+          pfpUrl: user.pfp_url || "",
+          primaryEthAddress:
+            user.verified_addresses?.primary?.eth_address || null,
+          primarySolanaAddress:
+            user.verified_addresses?.primary?.sol_address || null,
+        };
+
+        console.log("Transformed user:", transformedUser);
+        return transformedUser;
       } else {
         console.error("Users API returned error status:", response.status);
         const errorData = await response.json();
