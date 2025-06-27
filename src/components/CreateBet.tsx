@@ -149,7 +149,13 @@ function TokenSelectDropdown({
 
 interface CreateBetProps {
   isConnected: boolean;
-  sendTransaction: any; // You can type this more specifically if needed
+  sendTransaction: (
+    transaction: { to: string; data: string },
+    callbacks?: {
+      onSuccess?: (hash: `0x${string}`) => void;
+      onError?: (error: Error) => void;
+    }
+  ) => void;
   isTransactionPending: boolean;
 }
 
