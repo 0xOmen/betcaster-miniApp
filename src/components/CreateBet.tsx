@@ -161,7 +161,7 @@ export default function CreateBet() {
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
 
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
   const { sendTransaction, isPending: isTransactionPending } =
     useSendTransaction();
 
