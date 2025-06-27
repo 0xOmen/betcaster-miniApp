@@ -188,14 +188,13 @@ export default function CreateBet() {
   const fetchUserDetails = async (fid: number) => {
     setIsLoadingUserDetails(true);
     try {
-      const response = await fetch(`/api/user-details-bulk?fids=${fid}`);
+      const response = await fetch(`/api/users?fids=${fid}`);
       if (response.ok) {
         const data = await response.json();
-        console.log("User bulk details fetched:", data);
-        // Return the first user from the bulk response
+        console.log("User details fetched:", data);
         return data.users?.[0] || null;
       } else {
-        console.error("Bulk API returned error status:", response.status);
+        console.error("Users API returned error status:", response.status);
         const errorData = await response.json();
         console.error("Error data:", errorData);
         return null;
