@@ -16,6 +16,7 @@ import {
   useAccount,
 } from "wagmi";
 import { base } from "wagmi/chains";
+import { supabase } from "~/lib/supabase";
 
 interface User {
   fid: number;
@@ -602,15 +603,50 @@ export default function CreateBet({
 
       // Send the transaction
       sendTransaction(transaction, {
-        onSuccess: (hash: `0x${string}`) => {
+        onSuccess: async (hash: `0x${string}`) => {
           console.log("Transaction sent successfully:", hash);
-          // You can add success notification here
-          // For example: toast.success(`Bet created! Transaction: ${hash}`);
+
+          // Store bet data in Supabase
+          try {
+            const betData = {
+              maker_address: address, // Current user's address
+              taker_address: selectedUser.primaryEthAddress,
+              arbiter_address: selectedArbiter?.primaryEthAddress || null,
+              bet_token_address:
+                selectedToken.address ||
+                "0x0000000000000000000000000000000000000000",
+              bet_amount: parseFloat(betAmount),
+              timestamp: Math.floor(Date.now() / 1000),
+              end_time: endTimestamp,
+              protocol_fee: 100,
+              arbiter_fee: arbiterFeePercent,
+              bet_agreement: betDescription,
+              transaction_hash: hash,
+            };
+
+            const response = await fetch("/api/bets", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(betData),
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              console.log("Bet stored successfully:", result);
+              // You can add success notification here
+            } else {
+              console.error("Failed to store bet data");
+              // You can add error notification here
+            }
+          } catch (error) {
+            console.error("Error storing bet data:", error);
+          }
         },
         onError: (error: Error) => {
           console.error("Transaction failed:", error);
           // You can add error notification here
-          // For example: toast.error(`Transaction failed: ${error.message}`);
         },
       });
     } catch (error) {
