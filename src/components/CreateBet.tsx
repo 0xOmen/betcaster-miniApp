@@ -8,7 +8,13 @@ import {
   BET_MANAGEMENT_ENGINE_ABI,
   BET_MANAGEMENT_ENGINE_ADDRESS,
 } from "~/lib/contracts";
-import { useChainId, useSwitchChain } from "wagmi";
+import {
+  useChainId,
+  useSwitchChain,
+  useReadContract,
+  useWriteContract,
+  useAccount,
+} from "wagmi";
 import { base } from "wagmi/chains";
 
 interface User {
@@ -161,6 +167,33 @@ interface CreateBetProps {
   isTransactionPending: boolean;
 }
 
+// Add ERC20 ABI for allowance and approve functions
+const ERC20_ABI = [
+  {
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    name: "allowance",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "approve",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
+
+const SPENDER_ADDRESS =
+  "0x117E1b87bb6bb98Be6e2a72F5E860e7F94D3e7f8" as `0x${string}`;
+
 export default function CreateBet({
   isConnected,
   sendTransaction,
@@ -178,9 +211,24 @@ export default function CreateBet({
   const [customDays, setCustomDays] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
 
+  const { address } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
+  const { writeContract: writeApprove } = useWriteContract();
+
+  // Read allowance for the selected token
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: selectedToken?.address as `0x${string}`,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: [address as `0x${string}`, SPENDER_ADDRESS],
+    query: {
+      enabled:
+        !!selectedToken?.address && !!address && selectedToken.address !== "",
+    },
+  });
 
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
@@ -339,7 +387,7 @@ export default function CreateBet({
       console.log("Switching to Base network...");
       try {
         await switchChain({ chainId: base.id });
-        return; // Let the user try again after switching
+        return;
       } catch (error) {
         console.error("Failed to switch to Base network:", error);
         return;
@@ -349,6 +397,40 @@ export default function CreateBet({
     if (!selectedUser || !selectedToken || !betAmount || !selectedTimeOption) {
       console.error("Missing required fields for bet creation");
       return;
+    }
+
+    // Check token allowance for ERC20 tokens (skip for native ETH)
+    if (selectedToken.address !== "") {
+      const decimals = selectedToken.decimals || 18;
+      const betAmountWei = BigInt(
+        Math.floor(parseFloat(betAmount) * Math.pow(10, decimals))
+      );
+
+      if (!allowance || allowance < betAmountWei) {
+        console.log("Insufficient token allowance. Requesting approval...");
+
+        try {
+          setIsApproving(true);
+          await writeApprove({
+            address: selectedToken.address as `0x${string}`,
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [SPENDER_ADDRESS, betAmountWei],
+          });
+
+          // Wait a moment then refetch allowance
+          setTimeout(() => {
+            refetchAllowance();
+            setIsApproving(false);
+          }, 2000);
+
+          return;
+        } catch (error) {
+          console.error("Failed to approve token allowance:", error);
+          setIsApproving(false);
+          return;
+        }
+      }
     }
 
     const endTimestamp = getEndDateTimestamp();
@@ -711,17 +793,20 @@ export default function CreateBet({
             !betAmount ||
             !selectedTimeOption ||
             (selectedTimeOption === "custom" && !customDays) ||
-            isTransactionPending
+            isTransactionPending ||
+            isApproving
           }
           onClick={handleCreateBet}
-          isLoading={isTransactionPending}
+          isLoading={isTransactionPending || isApproving}
           className="w-full"
         >
           {!isConnected
             ? "Connect Wallet"
-            : isTransactionPending
-              ? "Creating Bet..."
-              : "Create Bet"}
+            : isApproving
+              ? "Approving Tokens..."
+              : isTransactionPending
+                ? "Creating Bet..."
+                : "Create Bet"}
         </Button>
       </div>
     </div>
