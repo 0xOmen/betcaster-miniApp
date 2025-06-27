@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { fid: string } }
+  { params }: { params: Promise<{ fid: string }> }
 ) {
-  const { fid } = params;
+  const { fid } = await params;
 
   if (!fid || isNaN(Number(fid))) {
     return NextResponse.json({ error: "Invalid FID" }, { status: 400 });
