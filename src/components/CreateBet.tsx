@@ -191,7 +191,8 @@ export default function CreateBet() {
       const response = await fetch(`/api/user-details/bulk?fids=${fid}`);
       if (response.ok) {
         const data = await response.json();
-        console.log("User details fetched:", data);
+        console.log("Bulk called", response);
+        console.log("User bulk details fetched:", data);
         // Return the first user from the bulk response
         return data.users?.[0] || null;
       }
