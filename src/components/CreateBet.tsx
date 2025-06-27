@@ -150,7 +150,7 @@ function TokenSelectDropdown({
 interface CreateBetProps {
   isConnected: boolean;
   sendTransaction: (
-    transaction: { to: string; data: string },
+    variables: { to: `0x${string}`; data: `0x${string}` },
     callbacks?: {
       onSuccess?: (hash: `0x${string}`) => void;
       onError?: (error: Error) => void;
@@ -393,8 +393,8 @@ export default function CreateBet({
 
       // Create the transaction object
       const transaction = {
-        to: BET_MANAGEMENT_ENGINE_ADDRESS,
-        data: encodedData,
+        to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+        data: encodedData as `0x${string}`,
       };
 
       console.log("Transaction object:", transaction);
