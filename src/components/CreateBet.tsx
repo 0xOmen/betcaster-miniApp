@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -161,7 +162,7 @@ export default function CreateBet() {
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
 
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const { sendTransaction, isPending: isTransactionPending } =
     useSendTransaction();
 
