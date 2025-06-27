@@ -8,6 +8,8 @@ interface User {
   username: string;
   displayName: string;
   pfpUrl: string;
+  primaryEthAddress?: string;
+  primarySolanaAddress?: string;
 }
 
 interface Token {
@@ -147,6 +149,10 @@ export default function CreateBet() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [betAmount, setBetAmount] = useState("");
+  const [betDescription, setBetDescription] = useState("");
+  const [selectedTimeOption, setSelectedTimeOption] = useState<string>("");
+  const [customDays, setCustomDays] = useState("");
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
@@ -162,6 +168,7 @@ export default function CreateBet() {
       );
       if (response.ok) {
         const data = await response.json();
+        console.log("API response:", data);
         setUsers(data.users || []);
         setShowDropdown(true);
       } else {
@@ -208,6 +215,70 @@ export default function CreateBet() {
   const handleInputBlur = () => {
     setTimeout(() => setShowDropdown(false), 200);
   };
+
+  const handleTimeOptionSelect = (option: string) => {
+    setSelectedTimeOption(option);
+    setShowCustomInput(option === "custom");
+    if (option !== "custom") {
+      setCustomDays("");
+    }
+  };
+
+  const getEndDateTimestamp = (): number => {
+    const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+
+    switch (selectedTimeOption) {
+      case "24h":
+        return now + 24 * 60 * 60; // 24 hours in seconds
+      case "1week":
+        return now + 7 * 24 * 60 * 60; // 1 week in seconds
+      case "1month":
+        return now + 30 * 24 * 60 * 60; // 30 days in seconds
+      case "custom":
+        const days = parseInt(customDays);
+        if (days > 0 && days <= 365) {
+          return now + days * 24 * 60 * 60; // Custom days in seconds
+        }
+        return 0;
+      default:
+        return 0;
+    }
+  };
+
+  const formatEndDate = (timestamp: number): string => {
+    if (timestamp === 0) return "Invalid date";
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString();
+  };
+
+  const handleCreateBet = () => {
+    if (!selectedUser || !selectedToken || !betAmount || !selectedTimeOption) {
+      return;
+    }
+
+    const endTimestamp = getEndDateTimestamp();
+
+    console.log("=== CREATE BET SUBMISSION ===");
+    console.log(
+      "Selected User Primary ETH Address:",
+      selectedUser.primaryEthAddress || "Not available"
+    );
+    console.log(
+      "Selected User Primary Solana Address:",
+      selectedUser.primarySolanaAddress || "Not available"
+    );
+    console.log(
+      "Bet Token Contract Address:",
+      selectedToken.address || "Native ETH"
+    );
+    console.log("Number of Tokens Wagered:", betAmount);
+    console.log("Bet Description:", betDescription);
+    console.log("Bet End Time (Unix Timestamp):", endTimestamp);
+    console.log("Bet End Time (Human Readable):", formatEndDate(endTimestamp));
+    console.log("================================");
+  };
+
+  const endDateTimestamp = getEndDateTimestamp();
 
   return (
     <div className="space-y-6 px-6 w-full max-w-md mx-auto">
@@ -361,12 +432,108 @@ export default function CreateBet() {
           <textarea
             placeholder="Describe what you're betting on..."
             rows={3}
+            value={betDescription}
+            onChange={(e) => setBetDescription(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
           />
         </div>
 
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Bet End Date
+          </label>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                onClick={() => handleTimeOptionSelect("24h")}
+                className={`py-2 px-3 text-sm ${
+                  selectedTimeOption === "24h"
+                    ? "bg-purple-500 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                24 hours
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleTimeOptionSelect("1week")}
+                className={`py-2 px-3 text-sm ${
+                  selectedTimeOption === "1week"
+                    ? "bg-purple-500 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                1 week
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleTimeOptionSelect("1month")}
+                className={`py-2 px-3 text-sm ${
+                  selectedTimeOption === "1month"
+                    ? "bg-purple-500 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                1 month
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleTimeOptionSelect("custom")}
+                className={`py-2 px-3 text-sm ${
+                  selectedTimeOption === "custom"
+                    ? "bg-purple-500 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                Custom
+              </Button>
+            </div>
+
+            {showCustomInput && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  min="1"
+                  max="365"
+                  placeholder="Enter days (1-365)"
+                  value={customDays}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (value <= 365) {
+                      setCustomDays(e.target.value);
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  days
+                </span>
+              </div>
+            )}
+
+            {selectedTimeOption && endDateTimestamp > 0 && (
+              <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Bet ends: {formatEndDate(endDateTimestamp)}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  Timestamp: {endDateTimestamp}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         <Button
-          disabled={!selectedUser || !selectedToken || !betAmount}
+          disabled={
+            !selectedUser ||
+            !selectedToken ||
+            !betAmount ||
+            !selectedTimeOption ||
+            (selectedTimeOption === "custom" && !customDays)
+          }
+          onClick={handleCreateBet}
           className="w-full"
         >
           Create Bet

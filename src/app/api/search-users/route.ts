@@ -13,6 +13,8 @@ interface NeynarUserResponse {
   display_name?: string;
   pfp_url?: string;
   pfpUrl?: string;
+  primary_eth_address?: string;
+  primary_solana_address?: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -35,6 +37,8 @@ export async function GET(request: NextRequest) {
       username: user.username,
       displayName: user.display_name || user.username,
       pfpUrl: user.pfp_url || user.pfpUrl || "",
+      primaryEthAddress: user.primary_eth_address,
+      primarySolanaAddress: user.primary_solana_address,
     })) || [];
 
     console.log("Transformed users:", JSON.stringify(users, null, 2));
