@@ -187,15 +187,6 @@ export default function CreateBet() {
 
   const fetchUserDetails = async (fid: number) => {
     setIsLoadingUserDetails(true);
-    const options = {
-      method: "GET",
-      headers: { "x-api-key": process.env.NEYNAR_API_KEY! },
-    };
-
-    fetch("https://api.neynar.com/v2/farcaster/user/bulk/", options)
-      .then((response) => response.json())
-      .then((response) => console.log(response))
-      .catch((err) => console.error(err));
     try {
       const response = await fetch(`/api/user-details-bulk?fids=${fid}`);
       if (response.ok) {

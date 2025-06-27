@@ -17,6 +17,7 @@ interface NeynarBulkResponse {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const fids = searchParams.get('fids');
+  console.log("Entered Bulk Route");
 
   if (!fids) {
     return NextResponse.json({ error: "Missing fids parameter" }, { status: 400 });
