@@ -338,7 +338,7 @@ export default function CreateBet({
   };
 
   const handleInputBlur = () => {
-    setTimeout(() => setShowDropdown(false), 200);
+    setTimeout(() => setShowDropdown(false), 300);
   };
 
   const handleTimeOptionSelect = (option: string) => {
@@ -548,7 +548,13 @@ export default function CreateBet({
               {users.map((user) => (
                 <button
                   key={user.fid}
-                  onClick={() => handleUserSelect(user)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleUserSelect(user);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                  }}
                   className="w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3 border-b border-gray-200 dark:border-gray-600 last:border-b-0"
                 >
                   <div className="flex-shrink-0">
