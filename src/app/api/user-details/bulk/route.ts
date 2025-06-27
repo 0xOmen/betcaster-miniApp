@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
+interface NeynarUserResponse {
+  fid: number;
+  username: string;
+  display_name?: string;
+  pfp_url?: string;
+  pfpUrl?: string;
+  primary_eth_address?: string;
+  primary_solana_address?: string;
+}
+
+interface NeynarBulkResponse {
+  users: NeynarUserResponse[];
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const fids = searchParams.get('fids');
@@ -22,18 +36,18 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const data = await response.json();
+    const data: NeynarBulkResponse = await response.json();
     console.log("Bulk user details API response:", JSON.stringify(data, null, 2));
     
     if (!data.users || data.users.length === 0) {
       return NextResponse.json({ error: "No users found" }, { status: 404 });
     }
 
-    const users = data.users.map((user: any) => ({
+    const users = data.users.map((user: NeynarUserResponse) => ({
       fid: user.fid,
       username: user.username,
       displayName: user.display_name || user.username,
-      pfpUrl: user.pfp_url || "",
+      pfpUrl: user.pfp_url || user.pfpUrl || "",
       primaryEthAddress: user.primary_eth_address,
       primarySolanaAddress: user.primary_solana_address,
     }));
