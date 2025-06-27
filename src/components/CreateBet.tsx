@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/Button";
+import { useSendTransaction } from "wagmi";
+import { encodeFunctionData } from "viem";
+import {
+  BET_MANAGEMENT_ENGINE_ABI,
+  BET_MANAGEMENT_ENGINE_ADDRESS,
+} from "~/lib/contracts";
 
 interface User {
   fid: number;
@@ -155,6 +161,9 @@ export default function CreateBet() {
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
 
+  const { sendTransaction, isPending: isTransactionPending } =
+    useSendTransaction();
+
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
       setUsers([]);
@@ -301,8 +310,9 @@ export default function CreateBet() {
     return date.toLocaleString();
   };
 
-  const handleCreateBet = () => {
+  const handleCreateBet = async () => {
     if (!selectedUser || !selectedToken || !betAmount || !selectedTimeOption) {
+      console.error("Missing required fields for bet creation");
       return;
     }
 
@@ -326,6 +336,67 @@ export default function CreateBet() {
     console.log("Bet End Time (Unix Timestamp):", endTimestamp);
     console.log("Bet End Time (Human Readable):", formatEndDate(endTimestamp));
     console.log("================================");
+
+    try {
+      // Check if user has an ETH address
+      if (!selectedUser.primaryEthAddress) {
+        console.error("Selected user does not have a primary ETH address");
+        return;
+      }
+
+      // Convert bet amount to wei (using token decimals)
+      const decimals = selectedToken.decimals || 18;
+      const betAmountWei = BigInt(
+        Math.floor(parseFloat(betAmount) * Math.pow(10, decimals))
+      );
+
+      // Prepare the transaction parameters for createBet function
+      const createBetParams = [
+        selectedUser.primaryEthAddress as `0x${string}`, // _taker
+        "0x0000000000000000000000000000000000000000" as `0x${string}`, // _arbiter (zero address)
+        selectedToken.address as `0x${string}`, // _betTokenAddress (zero address for native ETH)
+        betAmountWei, // _betAmount
+        BigInt(endTimestamp), // _endTime
+        BigInt(100), // _protocolFee
+        BigInt(0), // _arbiterFee
+        betDescription, // _betAgreement
+      ] as const;
+
+      console.log("Transaction parameters:", createBetParams);
+
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: BET_MANAGEMENT_ENGINE_ABI,
+        functionName: "createBet",
+        args: createBetParams,
+      });
+
+      console.log("Encoded transaction data:", encodedData);
+
+      // Create the transaction object
+      const transaction = {
+        to: BET_MANAGEMENT_ENGINE_ADDRESS,
+        data: encodedData,
+      };
+
+      console.log("Transaction object:", transaction);
+
+      // Send the transaction
+      sendTransaction(transaction, {
+        onSuccess: (hash) => {
+          console.log("Transaction sent successfully:", hash);
+          // You can add success notification here
+          // For example: toast.success(`Bet created! Transaction: ${hash}`);
+        },
+        onError: (error) => {
+          console.error("Transaction failed:", error);
+          // You can add error notification here
+          // For example: toast.error(`Transaction failed: ${error.message}`);
+        },
+      });
+    } catch (error) {
+      console.error("Error creating bet:", error);
+    }
   };
 
   const endDateTimestamp = getEndDateTimestamp();
@@ -603,12 +674,14 @@ export default function CreateBet() {
             !selectedToken ||
             !betAmount ||
             !selectedTimeOption ||
-            (selectedTimeOption === "custom" && !customDays)
+            (selectedTimeOption === "custom" && !customDays) ||
+            isTransactionPending
           }
           onClick={handleCreateBet}
+          isLoading={isTransactionPending}
           className="w-full"
         >
-          Create Bet
+          {isTransactionPending ? "Creating Bet..." : "Create Bet"}
         </Button>
       </div>
     </div>
