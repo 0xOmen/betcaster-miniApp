@@ -35,7 +35,7 @@ import { Footer } from "~/components/ui/Footer";
 import { USE_WALLET, APP_NAME } from "~/lib/constants";
 import CreateBet from "~/components/CreateBet";
 
-export type Tab = "home" | "actions" | "context" | "wallet" | "leaderboard";
+export type Tab = "create" | "bets" | "arbitrate" | "wallet" | "leaderboard";
 
 interface NeynarUser {
   fid: number;
@@ -71,10 +71,10 @@ export default function Demo(
   const solanaWallet = useSolanaWallet();
   const { publicKey: solanaPublicKey } = solanaWallet;
 
-  // Set initial tab to home on page load
+  // Set initial tab to bets (Pending Bets) on page load
   useEffect(() => {
     if (isSDKLoaded) {
-      setInitialTab("home");
+      setInitialTab("bets");
     }
   }, [isSDKLoaded, setInitialTab]);
 
@@ -279,7 +279,7 @@ export default function Demo(
 
         <h1 className="text-2xl font-bold text-center mb-4">{title}</h1>
 
-        {currentTab === "home" && (
+        {currentTab === "create" && (
           <CreateBet
             isConnected={isConnected}
             sendTransaction={sendTransaction}
@@ -287,7 +287,7 @@ export default function Demo(
           />
         )}
 
-        {currentTab === "actions" && (
+        {currentTab === "bets" && (
           <div className="space-y-3 px-6 w-full max-w-md mx-auto">
             <ShareButton
               buttonText="Share Mini App"
@@ -383,7 +383,7 @@ export default function Demo(
           </div>
         )}
 
-        {currentTab === "context" && (
+        {currentTab === "arbitrate" && (
           <div className="mx-6">
             <h2 className="text-lg font-semibold mb-2">Context</h2>
             <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">

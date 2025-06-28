@@ -11,9 +11,9 @@ export const Footer: React.FC<FooterProps> = ({ activeTab, setActiveTab }) => (
   <div className="fixed bottom-0 left-0 right-0 mx-4 mb-4 bg-gray-100 dark:bg-gray-800 border-[3px] border-double border-purple-500 px-2 py-2 rounded-lg z-50">
     <div className="flex justify-around items-center h-14">
       <button
-        onClick={() => setActiveTab("home")}
+        onClick={() => setActiveTab("create")}
         className={`flex flex-col items-center justify-center w-full h-full ${
-          activeTab === "home"
+          activeTab === "create"
             ? "text-purple-500 dark:text-purple-400"
             : "text-gray-500 dark:text-gray-400"
         }`}
@@ -22,9 +22,9 @@ export const Footer: React.FC<FooterProps> = ({ activeTab, setActiveTab }) => (
         <span className="text-xs mt-1">Create</span>
       </button>
       <button
-        onClick={() => setActiveTab("actions")}
+        onClick={() => setActiveTab("bets")}
         className={`flex flex-col items-center justify-center w-full h-full ${
-          activeTab === "actions"
+          activeTab === "bets"
             ? "text-purple-500 dark:text-purple-400"
             : "text-gray-500 dark:text-gray-400"
         }`}
@@ -33,9 +33,9 @@ export const Footer: React.FC<FooterProps> = ({ activeTab, setActiveTab }) => (
         <span className="text-xs mt-1">Pending Bets</span>
       </button>
       <button
-        onClick={() => setActiveTab("context")}
+        onClick={() => setActiveTab("arbitrate")}
         className={`flex flex-col items-center justify-center w-full h-full ${
-          activeTab === "context"
+          activeTab === "arbitrate"
             ? "text-purple-500 dark:text-purple-400"
             : "text-gray-500 dark:text-gray-400"
         }`}
