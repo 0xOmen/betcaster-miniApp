@@ -65,6 +65,15 @@ const tokenOptions: Token[] = [
     chainId: 8453,
   },
   {
+    name: "Clanker",
+    address: "0x1bc0c42215582d5a085795f4badbac3ff36d1bcb",
+    symbol: "CLANKER",
+    decimals: 18,
+    image:
+      "https://assets.coingecko.com/coins/images/51440/standard/CLANKER.png?1731232869",
+    chainId: 8453,
+  },
+  {
     name: "Ethereum",
     address: "",
     symbol: "ETH",
