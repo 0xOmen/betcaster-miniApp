@@ -8,6 +8,14 @@ import { useEffect, useState } from "react";
 import { useConnect, useAccount } from "wagmi";
 import React from "react";
 
+// Extend Window interface to include Farcaster-specific properties
+declare global {
+  interface Window {
+    farcaster?: unknown;
+    warpcast?: unknown;
+  }
+}
+
 // Custom hook for wallet auto-connection
 function useWalletAutoConnect() {
   const [isAutoConnecting, setIsAutoConnecting] = useState(false);
@@ -39,8 +47,8 @@ function useWalletAutoConnect() {
     const checkFarcasterEnvironment = () => {
       // Check for Farcaster-specific environment indicators
       const hasFarcasterContext =
-        (typeof window !== "undefined" && (window as any).farcaster) ||
-        (window as any).warpcast ||
+        (typeof window !== "undefined" && window.farcaster) ||
+        window.warpcast ||
         document.referrer.includes("warpcast.com") ||
         document.referrer.includes("farcaster.xyz");
 
