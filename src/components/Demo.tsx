@@ -63,6 +63,7 @@ export default function Demo(
   const [neynarUser, setNeynarUser] = useState<NeynarUser | null>(null);
   const [hapticIntensity, setHapticIntensity] =
     useState<Haptics.ImpactOccurredType>("medium");
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -83,7 +84,40 @@ export default function Demo(
     console.log("address", address);
     console.log("isConnected", isConnected);
     console.log("chainId", chainId);
-  }, [context, address, isConnected, chainId, isSDKLoaded]);
+    console.log("connectionAttempts", connectionAttempts);
+  }, [context, address, isConnected, chainId, isSDKLoaded, connectionAttempts]);
+
+  // Enhanced wallet connection logic
+  const { connect, connectors } = useConnect();
+
+  // Auto-connect when context is available and wallet is not connected
+  useEffect(() => {
+    if (isSDKLoaded && context && !isConnected && connectionAttempts < 3) {
+      const attemptConnection = async () => {
+        try {
+          console.log(
+            "Attempting auto-connection with Farcaster Frame connector..."
+          );
+          await connect({ connector: connectors[0] });
+          setConnectionAttempts((prev) => prev + 1);
+        } catch (error) {
+          console.warn("Auto-connection failed:", error);
+          setConnectionAttempts((prev) => prev + 1);
+        }
+      };
+
+      // Delay to ensure everything is properly initialized
+      const timeoutId = setTimeout(attemptConnection, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [
+    isSDKLoaded,
+    context,
+    isConnected,
+    connect,
+    connectors,
+    connectionAttempts,
+  ]);
 
   // Fetch Neynar user object when context is available
   useEffect(() => {
@@ -124,7 +158,6 @@ export default function Demo(
   } = useSignTypedData();
 
   const { disconnect } = useDisconnect();
-  const { connect, connectors } = useConnect();
 
   const {
     switchChain,
@@ -218,6 +251,15 @@ export default function Demo(
   const toggleContext = useCallback(() => {
     setIsContextOpen((prev) => !prev);
   }, []);
+
+  const handleManualConnect = useCallback(async () => {
+    try {
+      console.log("Manual connection attempt...");
+      await connect({ connector: connectors[0] });
+    } catch (error) {
+      console.error("Manual connection failed:", error);
+    }
+  }, [connect, connectors]);
 
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
@@ -367,17 +409,28 @@ export default function Demo(
               </div>
             )}
 
+            {/* Enhanced connection status display */}
+            <div className="text-xs w-full p-2 bg-gray-100 dark:bg-gray-800 rounded">
+              <div>SDK Loaded: {isSDKLoaded ? "✅" : "❌"}</div>
+              <div>Context Available: {context ? "✅" : "❌"}</div>
+              <div>Wallet Connected: {isConnected ? "✅" : "❌"}</div>
+              <div>Connection Attempts: {connectionAttempts}</div>
+            </div>
+
             {isConnected ? (
               <Button onClick={() => disconnect()} className="w-full">
                 Disconnect
               </Button>
             ) : context ? (
-              <Button
-                onClick={() => connect({ connector: connectors[0] })}
-                className="w-full"
-              >
-                Connect
-              </Button>
+              <div className="space-y-2">
+                <Button onClick={handleManualConnect} className="w-full">
+                  Connect Wallet
+                </Button>
+                <p className="text-xs text-gray-500 text-center">
+                  If connection fails, try refreshing the page or check your
+                  wallet settings.
+                </p>
+              </div>
             ) : (
               <div className="space-y-3 w-full">
                 <Button
