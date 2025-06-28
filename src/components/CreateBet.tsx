@@ -193,7 +193,7 @@ const ERC20_ABI = [
 ] as const;
 
 const SPENDER_ADDRESS =
-  "0x117E1b87bb6bb98Be6e2a72F5E860e7F94D3e7f8" as `0x${string}`;
+  "0xEA358a9670a4f2113AA17e8d6C9A0dE68c2a0aEa" as `0x${string}`; //Betcaster contract on Base
 
 export default function CreateBet({
   isConnected,
