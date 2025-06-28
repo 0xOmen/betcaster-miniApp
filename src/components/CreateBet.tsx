@@ -974,61 +974,59 @@ export default function CreateBet({
           </div>
         )}
 
-        {selectedArbiter && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Arbiter Fee
-            </label>
-            <div className="flex space-x-2">
-              <Button
-                type="button"
-                onClick={() => handleArbiterFeeSelect(1)}
-                className={`flex-1 py-2 px-3 text-sm ${
-                  arbiterFeePercent === 1 && !showCustomArbiterFee
-                    ? "bg-purple-500 text-white"
-                    : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
-                }`}
-              >
-                1%
-              </Button>
-              <Button
-                type="button"
-                onClick={handleCustomArbiterFee}
-                className={`flex-1 py-2 px-3 text-sm ${
-                  showCustomArbiterFee
-                    ? "bg-purple-500 text-white"
-                    : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
-                }`}
-              >
-                Custom %
-              </Button>
-            </div>
-
-            {showCustomArbiterFee && (
-              <div className="mt-2 flex items-center space-x-2">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  placeholder="Enter percentage (0-100)"
-                  value={customArbiterFee}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value);
-                    if (value >= 0 && value <= 100) {
-                      setCustomArbiterFee(e.target.value);
-                      setArbiterFeePercent(value);
-                    }
-                  }}
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  %
-                </span>
-              </div>
-            )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Arbiter Fee
+          </label>
+          <div className="flex space-x-2">
+            <Button
+              type="button"
+              onClick={() => handleArbiterFeeSelect(1)}
+              className={`flex-1 py-2 px-3 text-sm ${
+                arbiterFeePercent === 1 && !showCustomArbiterFee
+                  ? "bg-purple-500 text-white"
+                  : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+              }`}
+            >
+              1%
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCustomArbiterFee}
+              className={`flex-1 py-2 px-3 text-sm ${
+                showCustomArbiterFee
+                  ? "bg-purple-500 text-white"
+                  : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+              }`}
+            >
+              Custom %
+            </Button>
           </div>
-        )}
+
+          {showCustomArbiterFee && (
+            <div className="mt-2 flex items-center space-x-2">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                placeholder="Enter percentage (0-100)"
+                value={customArbiterFee}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (value >= 0 && value <= 100) {
+                    setCustomArbiterFee(e.target.value);
+                    setArbiterFeePercent(value);
+                  }
+                }}
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                %
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div>
