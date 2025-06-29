@@ -20,10 +20,10 @@ export async function POST(request: NextRequest) {
       bet_number,
     } = body;
 
-    // Validate required fields
-    if (!maker_address || !taker_address || !bet_token_address || !bet_amount || !timestamp || !end_time || !protocol_fee || !arbiter_fee || !bet_agreement) {
+    // Validate required fields including bet_number since it's now the primary key
+    if (!maker_address || !taker_address || !bet_token_address || !bet_amount || !timestamp || !end_time || !protocol_fee || !arbiter_fee || !bet_agreement || !bet_number) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields including bet_number" },
         { status: 400 }
       );
     }
@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('bets')
       .insert([{
+        bet_number: body.bet_number, // Now required as primary key
         maker_address: body.maker_address,
         taker_address: body.taker_address,
         arbiter_address: body.arbiter_address || null,
@@ -44,7 +45,6 @@ export async function POST(request: NextRequest) {
         arbiter_fee: body.arbiter_fee,
         bet_agreement: body.bet_agreement,
         transaction_hash: body.transaction_hash || null,
-        bet_number: body.bet_number || null,
       }])
       .select()
       .single();

@@ -264,64 +264,113 @@ export default function CreateBet({
 
   // Parse BetCreated event when receipt is available
   useEffect(() => {
-    if (receipt && isReceiptSuccess) {
-      try {
-        // Parse all events from the transaction receipt
-        const parsedEvents = parseEventLogs({
-          abi: BET_MANAGEMENT_ENGINE_ABI,
-          logs: receipt.logs,
-        });
+    const handleTransactionReceipt = async () => {
+      if (receipt && isReceiptSuccess && selectedUser && selectedToken) {
+        try {
+          // Parse all events from the transaction receipt
+          const parsedEvents = parseEventLogs({
+            abi: BET_MANAGEMENT_ENGINE_ABI,
+            logs: receipt.logs,
+          });
 
-        console.log("=== TRANSACTION RECEIPT ===");
-        console.log("Transaction Hash:", receipt.transactionHash);
-        console.log("Block Number:", receipt.blockNumber);
-        console.log("Gas Used:", receipt.gasUsed.toString());
-        console.log(
-          "Status:",
-          receipt.status === "success" ? "Success" : "Failed"
-        );
-        console.log("All Parsed Events:", parsedEvents);
-
-        // Find the BetCreated event specifically
-        const betCreatedEvent = parsedEvents.find(
-          (event) => event.eventName === "BetCreated"
-        );
-
-        if (betCreatedEvent) {
-          console.log("=== BET CREATED EVENT ===");
-          console.log("Event Name:", betCreatedEvent.eventName);
+          console.log("=== TRANSACTION RECEIPT ===");
+          console.log("Transaction Hash:", receipt.transactionHash);
+          console.log("Block Number:", receipt.blockNumber);
+          console.log("Gas Used:", receipt.gasUsed.toString());
           console.log(
-            "Bet Number:",
-            betCreatedEvent.args.betNumber?.toString()
+            "Status:",
+            receipt.status === "success" ? "Success" : "Failed"
+          );
+          console.log("All Parsed Events:", parsedEvents);
+
+          // Find the BetCreated event specifically
+          const betCreatedEvent = parsedEvents.find(
+            (event) => event.eventName === "BetCreated"
           );
 
-          // Fix: Access the bet object properties directly
-          const betData = betCreatedEvent.args.bet;
-          console.log("Bet Details:", {
-            maker: betData?.maker,
-            taker: betData?.taker,
-            arbiter: betData?.arbiter,
-            betTokenAddress: betData?.betTokenAddress,
-            betAmount: betData?.betAmount?.toString(),
-            timestamp: betData?.timestamp?.toString(),
-            endTime: betData?.endTime?.toString(),
-            status: betData?.status,
-            protocolFee: betData?.protocolFee?.toString(),
-            arbiterFee: betData?.arbiterFee?.toString(),
-            betAgreement: betData?.betAgreement,
-          });
-          console.log("Raw Event Args:", betCreatedEvent.args);
-          console.log("Raw Bet Tuple:", betData);
-        } else {
-          console.log("No BetCreated event found in transaction");
-        }
+          if (betCreatedEvent) {
+            console.log("=== BET CREATED EVENT ===");
+            console.log("Event Name:", betCreatedEvent.eventName);
+            const betNumber = betCreatedEvent.args.betNumber?.toString();
+            console.log("Bet Number:", betNumber);
 
-        console.log("================================");
-      } catch (error) {
-        console.error("Error parsing transaction events:", error);
+            // Fix: Access the bet object properties directly
+            const betData = betCreatedEvent.args.bet;
+            console.log("Bet Details:", {
+              maker: betData?.maker,
+              taker: betData?.taker,
+              arbiter: betData?.arbiter,
+              betTokenAddress: betData?.betTokenAddress,
+              betAmount: betData?.betAmount?.toString(),
+              timestamp: betData?.timestamp?.toString(),
+              endTime: betData?.endTime?.toString(),
+              status: betData?.status,
+              protocolFee: betData?.protocolFee?.toString(),
+              arbiterFee: betData?.arbiterFee?.toString(),
+              betAgreement: betData?.betAgreement,
+            });
+
+            // Store bet data in Supabase with the bet_number
+            if (betNumber) {
+              try {
+                const supabaseBetData = {
+                  bet_number: parseInt(betNumber),
+                  maker_address: address,
+                  taker_address: selectedUser.primaryEthAddress,
+                  arbiter_address: selectedArbiter?.primaryEthAddress || null,
+                  bet_token_address:
+                    selectedToken.address ||
+                    "0x0000000000000000000000000000000000000000",
+                  bet_amount: parseFloat(betAmount),
+                  timestamp: Math.floor(Date.now() / 1000),
+                  end_time: getEndDateTimestamp(),
+                  protocol_fee: 100,
+                  arbiter_fee: arbiterFeePercent,
+                  bet_agreement: betDescription,
+                  transaction_hash: receipt.transactionHash,
+                };
+
+                const response = await fetch("/api/bets", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(supabaseBetData),
+                });
+
+                if (response.ok) {
+                  const result = await response.json();
+                  console.log("Bet stored successfully:", result);
+                } else {
+                  console.error("Failed to store bet data");
+                }
+              } catch (error) {
+                console.error("Error storing bet data:", error);
+              }
+            }
+          } else {
+            console.log("No BetCreated event found in transaction");
+          }
+
+          console.log("================================");
+        } catch (error) {
+          console.error("Error parsing transaction events:", error);
+        }
       }
-    }
-  }, [receipt, isReceiptSuccess]);
+    };
+
+    handleTransactionReceipt();
+  }, [
+    receipt,
+    isReceiptSuccess,
+    address,
+    selectedUser,
+    selectedArbiter,
+    selectedToken,
+    betAmount,
+    betDescription,
+    arbiterFeePercent,
+  ]);
 
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
@@ -686,48 +735,10 @@ export default function CreateBet({
           console.log("Transaction sent successfully:", hash);
           setTxHash(hash); // Store the transaction hash for receipt tracking
 
-          // Store bet data in Supabase
-          try {
-            const betData = {
-              maker_address: address, // Current user's address
-              taker_address: selectedUser.primaryEthAddress,
-              arbiter_address: selectedArbiter?.primaryEthAddress || null,
-              bet_token_address:
-                selectedToken.address ||
-                "0x0000000000000000000000000000000000000000",
-              bet_amount: parseFloat(betAmount),
-              timestamp: Math.floor(Date.now() / 1000),
-              end_time: endTimestamp,
-              protocol_fee: 100,
-              arbiter_fee: arbiterFeePercent,
-              bet_agreement: betDescription,
-              transaction_hash: hash,
-              bet_number: null, // Will be updated when we get the event
-            };
-
-            const response = await fetch("/api/bets", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(betData),
-            });
-
-            if (response.ok) {
-              const result = await response.json();
-              console.log("Bet stored successfully:", result);
-              // You can add success notification here
-            } else {
-              console.error("Failed to store bet data");
-              // You can add error notification here
-            }
-          } catch (error) {
-            console.error("Error storing bet data:", error);
-          }
+          // Don't store bet data here anymore - wait for the event to get bet_number
         },
         onError: (error: Error) => {
           console.error("Transaction failed:", error);
-          // You can add error notification here
         },
       });
     } catch (error) {
