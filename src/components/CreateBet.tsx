@@ -294,20 +294,24 @@ export default function CreateBet({
             "Bet Number:",
             betCreatedEvent.args.betNumber?.toString()
           );
+
+          // Fix: Access the bet object properties directly
+          const betData = betCreatedEvent.args.bet;
           console.log("Bet Details:", {
-            maker: betCreatedEvent.args.bet?.maker,
-            taker: betCreatedEvent.args.bet?.taker,
-            arbiter: betCreatedEvent.args.bet?.arbiter,
-            betTokenAddress: betCreatedEvent.args.bet?.betTokenAddress,
-            betAmount: betCreatedEvent.args.bet?.betAmount?.toString(),
-            timestamp: betCreatedEvent.args.bet?.timestamp?.toString(),
-            endTime: betCreatedEvent.args.bet?.endTime?.toString(),
-            status: betCreatedEvent.args.bet?.status,
-            protocolFee: betCreatedEvent.args.bet?.protocolFee?.toString(),
-            arbiterFee: betCreatedEvent.args.bet?.arbiterFee?.toString(),
-            betAgreement: betCreatedEvent.args.bet?.betAgreement,
+            maker: betData?.maker,
+            taker: betData?.taker,
+            arbiter: betData?.arbiter,
+            betTokenAddress: betData?.betTokenAddress,
+            betAmount: betData?.betAmount?.toString(),
+            timestamp: betData?.timestamp?.toString(),
+            endTime: betData?.endTime?.toString(),
+            status: betData?.status,
+            protocolFee: betData?.protocolFee?.toString(),
+            arbiterFee: betData?.arbiterFee?.toString(),
+            betAgreement: betData?.betAgreement,
           });
           console.log("Raw Event Args:", betCreatedEvent.args);
+          console.log("Raw Bet Tuple:", betData);
         } else {
           console.log("No BetCreated event found in transaction");
         }
@@ -698,6 +702,7 @@ export default function CreateBet({
               arbiter_fee: arbiterFeePercent,
               bet_agreement: betDescription,
               transaction_hash: hash,
+              bet_number: null, // Will be updated when we get the event
             };
 
             const response = await fetch("/api/bets", {

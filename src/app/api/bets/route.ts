@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
       arbiter_fee,
       bet_agreement,
       transaction_hash,
+      bet_number,
     } = body;
 
     // Validate required fields
@@ -29,22 +30,21 @@ export async function POST(request: NextRequest) {
     // Insert the bet into the database
     const { data, error } = await supabase
       .from('bets')
-      .insert([
-        {
-          maker_address,
-          taker_address,
-          arbiter_address: arbiter_address || null,
-          bet_token_address,
-          bet_amount,
-          timestamp,
-          end_time,
-          status: 0, // Default status for new bets
-          protocol_fee,
-          arbiter_fee,
-          bet_agreement,
-          transaction_hash: transaction_hash || null,
-        }
-      ])
+      .insert([{
+        maker_address: body.maker_address,
+        taker_address: body.taker_address,
+        arbiter_address: body.arbiter_address || null,
+        bet_token_address: body.bet_token_address,
+        bet_amount: body.bet_amount,
+        timestamp: body.timestamp,
+        end_time: body.end_time,
+        status: 0,
+        protocol_fee: body.protocol_fee,
+        arbiter_fee: body.arbiter_fee,
+        bet_agreement: body.bet_agreement,
+        transaction_hash: body.transaction_hash || null,
+        bet_number: body.bet_number || null,
+      }])
       .select()
       .single();
 
