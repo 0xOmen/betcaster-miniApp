@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/Button";
-import { encodeFunctionData } from "viem";
+import { encodeFunctionData, parseEventLogs } from "viem";
 import {
   BET_MANAGEMENT_ENGINE_ABI,
   BET_MANAGEMENT_ENGINE_ADDRESS,
@@ -14,6 +14,7 @@ import {
   useReadContract,
   useWriteContract,
   useAccount,
+  useWaitForTransactionReceipt,
 } from "wagmi";
 import { base } from "wagmi/chains";
 import { supabase } from "~/lib/supabase";
@@ -252,6 +253,71 @@ export default function CreateBet({
         !!selectedToken?.address && !!address && selectedToken.address !== "",
     },
   });
+
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
+
+  // Wait for transaction receipt and parse events
+  const { data: receipt, isSuccess: isReceiptSuccess } =
+    useWaitForTransactionReceipt({
+      hash: txHash,
+    });
+
+  // Parse BetCreated event when receipt is available
+  useEffect(() => {
+    if (receipt && isReceiptSuccess) {
+      try {
+        // Parse all events from the transaction receipt
+        const parsedEvents = parseEventLogs({
+          abi: BET_MANAGEMENT_ENGINE_ABI,
+          logs: receipt.logs,
+        });
+
+        console.log("=== TRANSACTION RECEIPT ===");
+        console.log("Transaction Hash:", receipt.transactionHash);
+        console.log("Block Number:", receipt.blockNumber);
+        console.log("Gas Used:", receipt.gasUsed.toString());
+        console.log(
+          "Status:",
+          receipt.status === "success" ? "Success" : "Failed"
+        );
+        console.log("All Parsed Events:", parsedEvents);
+
+        // Find the BetCreated event specifically
+        const betCreatedEvent = parsedEvents.find(
+          (event) => event.eventName === "BetCreated"
+        );
+
+        if (betCreatedEvent) {
+          console.log("=== BET CREATED EVENT ===");
+          console.log("Event Name:", betCreatedEvent.eventName);
+          console.log(
+            "Bet Number:",
+            betCreatedEvent.args.betNumber?.toString()
+          );
+          console.log("Bet Details:", {
+            maker: betCreatedEvent.args.bet?.maker,
+            taker: betCreatedEvent.args.bet?.taker,
+            arbiter: betCreatedEvent.args.bet?.arbiter,
+            betTokenAddress: betCreatedEvent.args.bet?.betTokenAddress,
+            betAmount: betCreatedEvent.args.bet?.betAmount?.toString(),
+            timestamp: betCreatedEvent.args.bet?.timestamp?.toString(),
+            endTime: betCreatedEvent.args.bet?.endTime?.toString(),
+            status: betCreatedEvent.args.bet?.status,
+            protocolFee: betCreatedEvent.args.bet?.protocolFee?.toString(),
+            arbiterFee: betCreatedEvent.args.bet?.arbiterFee?.toString(),
+            betAgreement: betCreatedEvent.args.bet?.betAgreement,
+          });
+          console.log("Raw Event Args:", betCreatedEvent.args);
+        } else {
+          console.log("No BetCreated event found in transaction");
+        }
+
+        console.log("================================");
+      } catch (error) {
+        console.error("Error parsing transaction events:", error);
+      }
+    }
+  }, [receipt, isReceiptSuccess]);
 
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
@@ -614,6 +680,7 @@ export default function CreateBet({
       sendTransaction(transaction, {
         onSuccess: async (hash: `0x${string}`) => {
           console.log("Transaction sent successfully:", hash);
+          setTxHash(hash); // Store the transaction hash for receipt tracking
 
           // Store bet data in Supabase
           try {
