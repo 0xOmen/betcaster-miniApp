@@ -244,7 +244,7 @@ export default function CreateBet({
   const { address } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
-  const { writeContract: writeApprove } = useWriteContract();
+  const { writeContractAsync: writeApproveAsync } = useWriteContract();
 
   // Read allowance for the selected token
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
@@ -684,15 +684,18 @@ export default function CreateBet({
 
         try {
           setIsApproving(true);
-          await writeApprove({
+          const hash = await writeApproveAsync({
             address: selectedToken.address as `0x${string}`,
             abi: ERC20_ABI,
             functionName: "approve",
             args: [SPENDER_ADDRESS, betAmountWei],
           });
 
-          // The hash will be available in the transaction receipt
-          // No need to manually set it here
+          if (hash) {
+            console.log("Approval transaction sent:", hash);
+            setApprovalTxHash(hash);
+          }
+
           return;
         } catch (error) {
           console.error("Failed to approve token allowance:", error);
