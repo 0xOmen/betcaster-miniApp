@@ -176,6 +176,9 @@ interface CreateBetProps {
     }
   ) => void;
   isTransactionPending: boolean;
+  setActiveTab: (
+    tab: "create" | "bets" | "arbitrate" | "wallet" | "leaderboard"
+  ) => void;
 }
 
 // Add ERC20 ABI for allowance and approve functions
@@ -209,6 +212,7 @@ export default function CreateBet({
   isConnected,
   sendTransaction,
   isTransactionPending,
+  setActiveTab,
 }: CreateBetProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState<User[]>([]);
@@ -341,6 +345,9 @@ export default function CreateBet({
                 if (response.ok) {
                   const result = await response.json();
                   console.log("Bet stored successfully:", result);
+
+                  // Switch to the Pending Bets tab after successful bet creation
+                  setActiveTab("bets");
                 } else {
                   console.error("Failed to store bet data");
                 }
@@ -370,6 +377,7 @@ export default function CreateBet({
     betAmount,
     betDescription,
     arbiterFeePercent,
+    setActiveTab,
   ]);
 
   const searchUsers = async (query: string) => {

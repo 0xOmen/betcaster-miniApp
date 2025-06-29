@@ -284,6 +284,7 @@ export default function Demo(
             isConnected={isConnected}
             sendTransaction={sendTransaction}
             isTransactionPending={isSendTxPending}
+            setActiveTab={setActiveTab}
           />
         )}
 
