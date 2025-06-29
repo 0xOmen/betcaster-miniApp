@@ -259,11 +259,21 @@ export default function CreateBet({
   });
 
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
+  const [approvalTxHash, setApprovalTxHash] = useState<
+    `0x${string}` | undefined
+  >(undefined);
+  const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
 
   // Wait for transaction receipt and parse events
   const { data: receipt, isSuccess: isReceiptSuccess } =
     useWaitForTransactionReceipt({
       hash: txHash,
+    });
+
+  // Wait for approval transaction receipt
+  const { data: approvalReceipt, isSuccess: isApprovalReceiptSuccess } =
+    useWaitForTransactionReceipt({
+      hash: approvalTxHash,
     });
 
   // Parse BetCreated event when receipt is available
@@ -379,6 +389,37 @@ export default function CreateBet({
     arbiterFeePercent,
     setActiveTab,
   ]);
+
+  // Handle approval transaction receipt
+  useEffect(() => {
+    if (approvalReceipt && isApprovalReceiptSuccess) {
+      console.log("=== APPROVAL TRANSACTION RECEIPT ===");
+      console.log("Transaction Hash:", approvalReceipt.transactionHash);
+      console.log(
+        "Status:",
+        approvalReceipt.status === "success" ? "Success" : "Failed"
+      );
+
+      if (approvalReceipt.status === "success") {
+        console.log("Token approval successful!");
+        setShowApprovalSuccess(true);
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setShowApprovalSuccess(false);
+        }, 3000);
+
+        // Refetch allowance after successful approval
+        setTimeout(() => {
+          refetchAllowance();
+          setIsApproving(false);
+        }, 1000);
+      } else {
+        console.log("Token approval failed!");
+        setIsApproving(false);
+      }
+    }
+  }, [approvalReceipt, isApprovalReceiptSuccess, refetchAllowance]);
 
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
@@ -650,12 +691,8 @@ export default function CreateBet({
             args: [SPENDER_ADDRESS, betAmountWei],
           });
 
-          // Wait a moment then refetch allowance
-          setTimeout(() => {
-            refetchAllowance();
-            setIsApproving(false);
-          }, 2000);
-
+          // The hash will be available in the transaction receipt
+          // No need to manually set it here
           return;
         } catch (error) {
           console.error("Failed to approve token allowance:", error);
@@ -759,6 +796,13 @@ export default function CreateBet({
   return (
     <div className="space-y-6 px-6 w-full max-w-md mx-auto">
       <h2 className="text-xl font-semibold text-center">Create New Bet</h2>
+
+      {/* Approval Success Message */}
+      {showApprovalSuccess && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
+          ✅ Token approval successful!
+        </div>
+      )}
 
       <div className="space-y-4">
         <div className="relative">
