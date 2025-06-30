@@ -65,6 +65,8 @@ export default function Demo(
     useState<Haptics.ImpactOccurredType>("medium");
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [betsTab, setBetsTab] = useState<"you" | "open">("you");
+  const [userBets, setUserBets] = useState<any[]>([]);
+  const [isLoadingBets, setIsLoadingBets] = useState(false);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -138,6 +140,73 @@ export default function Demo(
 
     fetchNeynarUserObject();
   }, [context?.user?.fid]);
+
+  // Fetch user bets when wallet is connected
+  useEffect(() => {
+    const fetchUserBets = async () => {
+      if (!address) return;
+
+      setIsLoadingBets(true);
+      try {
+        const response = await fetch(`/api/bets?address=${address}`);
+        if (response.ok) {
+          const data = await response.json();
+          const bets = data.bets || [];
+
+          // Fetch profile data for each bet's maker and taker
+          const betsWithProfiles = await Promise.all(
+            bets.map(async (bet: any) => {
+              const makerFid = bet.maker_fid;
+              const takerFid = bet.taker_fid;
+
+              let makerProfile = null;
+              let takerProfile = null;
+
+              if (makerFid) {
+                try {
+                  const makerResponse = await fetch(
+                    `/api/users?fids=${makerFid}`
+                  );
+                  const makerData = await makerResponse.json();
+                  makerProfile = makerData.users?.[0] || null;
+                } catch (error) {
+                  console.error("Failed to fetch maker profile:", error);
+                }
+              }
+
+              if (takerFid) {
+                try {
+                  const takerResponse = await fetch(
+                    `/api/users?fids=${takerFid}`
+                  );
+                  const takerData = await takerResponse.json();
+                  takerProfile = takerData.users?.[0] || null;
+                } catch (error) {
+                  console.error("Failed to fetch taker profile:", error);
+                }
+              }
+
+              return {
+                ...bet,
+                makerProfile,
+                takerProfile,
+              };
+            })
+          );
+
+          setUserBets(betsWithProfiles);
+        } else {
+          console.error("Failed to fetch user bets");
+        }
+      } catch (error) {
+        console.error("Error fetching user bets:", error);
+      } finally {
+        setIsLoadingBets(false);
+      }
+    };
+
+    fetchUserBets();
+  }, [address]);
 
   const {
     sendTransaction,
@@ -314,6 +383,79 @@ export default function Demo(
                 Open
               </button>
             </div>
+
+            {/* You Tab Content */}
+            {betsTab === "you" && (
+              <div className="space-y-3">
+                {isLoadingBets ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    Loading your bets...
+                  </div>
+                ) : userBets.length > 0 ? (
+                  userBets.map((bet) => (
+                    <div
+                      key={bet.bet_number}
+                      className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex items-center space-x-3">
+                        {/* Profile Pictures */}
+                        <div className="flex -space-x-2">
+                          {bet.makerProfile && (
+                            <img
+                              src={bet.makerProfile.pfp_url || ""}
+                              alt={bet.makerProfile.display_name || "Maker"}
+                              className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = "none";
+                              }}
+                            />
+                          )}
+                          {bet.takerProfile && (
+                            <img
+                              src={bet.takerProfile.pfp_url || ""}
+                              alt={bet.takerProfile.display_name || "Taker"}
+                              className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = "none";
+                              }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Bet Details */}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            Bet #{bet.bet_number}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                            {bet.bet_agreement && bet.bet_agreement.length > 25
+                              ? `${bet.bet_agreement.substring(0, 25)}...`
+                              : bet.bet_agreement || "No description"}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            {bet.makerProfile?.display_name || "Unknown"} vs{" "}
+                            {bet.takerProfile?.display_name || "Unknown"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    No bets found for your wallet
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Open Tab Content */}
+            {betsTab === "open" && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                Open bets coming soon...
+              </div>
+            )}
 
             <ShareButton
               buttonText="Share Mini App"

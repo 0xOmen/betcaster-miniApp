@@ -93,7 +93,47 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ bets: data });
+    // Add FID information for maker and taker addresses
+    const betsWithFids = await Promise.all(
+      (data || []).map(async (bet) => {
+        let makerFid = null;
+        let takerFid = null;
+
+        // Fetch FID for maker address
+        if (bet.maker_address) {
+          try {
+            const makerResponse = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/users?address=${bet.maker_address}`);
+            if (makerResponse.ok) {
+              const makerData = await makerResponse.json();
+              makerFid = makerData.users?.[0]?.fid || null;
+            }
+          } catch (error) {
+            console.error("Failed to fetch maker FID:", error);
+          }
+        }
+
+        // Fetch FID for taker address
+        if (bet.taker_address) {
+          try {
+            const takerResponse = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/users?address=${bet.taker_address}`);
+            if (takerResponse.ok) {
+              const takerData = await takerResponse.json();
+              takerFid = takerData.users?.[0]?.fid || null;
+            }
+          } catch (error) {
+            console.error("Failed to fetch taker FID:", error);
+          }
+        }
+
+        return {
+          ...bet,
+          maker_fid: makerFid,
+          taker_fid: takerFid,
+        };
+      })
+    );
+
+    return NextResponse.json({ bets: betsWithFids });
   } catch (error) {
     console.error("API error:", error);
     return NextResponse.json(
