@@ -308,62 +308,85 @@ export default function CreateBet({
             const betNumber = betCreatedEvent.args.betNumber?.toString();
             console.log("Bet Number:", betNumber);
 
-            // Fix: Access the bet object properties directly
+            // Fix: Access the bet struct components properly
+            // The bet struct is returned as a tuple, so we need to access by index
             const betData = betCreatedEvent.args.bet;
-            console.log("Bet Details:", {
-              maker: betData?.maker,
-              taker: betData?.taker,
-              arbiter: betData?.arbiter,
-              betTokenAddress: betData?.betTokenAddress,
-              betAmount: betData?.betAmount?.toString(),
-              timestamp: betData?.timestamp?.toString(),
-              endTime: betData?.endTime?.toString(),
-              status: betData?.status,
-              protocolFee: betData?.protocolFee?.toString(),
-              arbiterFee: betData?.arbiterFee?.toString(),
-              betAgreement: betData?.betAgreement,
-            });
 
-            // Store bet data in Supabase with the bet_number
-            if (betNumber) {
-              try {
-                const supabaseBetData = {
-                  bet_number: parseInt(betNumber),
-                  maker_address: address,
-                  taker_address: selectedUser.primaryEthAddress,
-                  arbiter_address: selectedArbiter?.primaryEthAddress || null,
-                  bet_token_address:
-                    selectedToken.address ||
-                    "0x0000000000000000000000000000000000000000",
-                  bet_amount: parseFloat(betAmount),
-                  timestamp: Math.floor(Date.now() / 1000),
-                  end_time: getEndDateTimestamp(),
-                  protocol_fee: 100,
-                  arbiter_fee: arbiterFeePercent,
-                  bet_agreement: betDescription,
-                  transaction_hash: receipt.transactionHash,
-                };
+            // Type-safe way to access the struct components
+            if (Array.isArray(betData) && betData.length >= 11) {
+              const [
+                maker,
+                taker,
+                arbiter,
+                betTokenAddress,
+                betAmount,
+                timestamp,
+                endTime,
+                status,
+                protocolFee,
+                arbiterFee,
+                betAgreement,
+              ] = betData;
 
-                const response = await fetch("/api/bets", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify(supabaseBetData),
-                });
+              console.log("Bet Details:", {
+                maker: maker as string,
+                taker: taker as string,
+                arbiter: arbiter as string,
+                betTokenAddress: betTokenAddress as string,
+                betAmount: betAmount?.toString(),
+                timestamp: timestamp?.toString(),
+                endTime: endTime?.toString(),
+                status: status,
+                protocolFee: protocolFee?.toString(),
+                arbiterFee: arbiterFee?.toString(),
+                betAgreement: betAgreement as string,
+              });
 
-                if (response.ok) {
-                  const result = await response.json();
-                  console.log("Bet stored successfully:", result);
+              // Store bet data in Supabase with the bet_number
+              if (betNumber) {
+                try {
+                  const supabaseBetData = {
+                    bet_number: parseInt(betNumber),
+                    maker_address: maker as string,
+                    taker_address: taker as string,
+                    arbiter_address:
+                      (arbiter as string) !==
+                      "0x0000000000000000000000000000000000000000"
+                        ? (arbiter as string)
+                        : null,
+                    bet_token_address: betTokenAddress as string,
+                    bet_amount: parseFloat(betAmount?.toString() || "0"),
+                    timestamp: parseInt(timestamp?.toString() || "0"),
+                    end_time: parseInt(endTime?.toString() || "0"),
+                    protocol_fee: parseInt(protocolFee?.toString() || "0"),
+                    arbiter_fee: parseInt(arbiterFee?.toString() || "0"),
+                    bet_agreement: betAgreement as string,
+                    transaction_hash: receipt.transactionHash,
+                  };
 
-                  // Switch to the Pending Bets tab after successful bet creation
-                  setActiveTab("bets");
-                } else {
-                  console.error("Failed to store bet data");
+                  const response = await fetch("/api/bets", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(supabaseBetData),
+                  });
+
+                  if (response.ok) {
+                    const result = await response.json();
+                    console.log("Bet stored successfully:", result);
+
+                    // Switch to the Pending Bets tab after successful bet creation
+                    setActiveTab("bets");
+                  } else {
+                    console.error("Failed to store bet data");
+                  }
+                } catch (error) {
+                  console.error("Error storing bet data:", error);
                 }
-              } catch (error) {
-                console.error("Error storing bet data:", error);
               }
+            } else {
+              console.error("Invalid bet data structure:", betData);
             }
           } else {
             console.log("No BetCreated event found in transaction");
