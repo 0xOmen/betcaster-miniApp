@@ -67,8 +67,10 @@ interface Bet {
   transaction_hash: string | null;
   maker_fid?: number | null;
   taker_fid?: number | null;
+  arbiter_fid?: number | null;
   makerProfile?: UserProfile | null;
   takerProfile?: UserProfile | null;
+  arbiterProfile?: UserProfile | null;
 }
 
 export default function Demo(
@@ -189,12 +191,14 @@ export default function Demo(
             bets.map(async (bet: Bet) => {
               let makerFid = bet.maker_fid;
               let takerFid = bet.taker_fid;
+              let arbiterFid = bet.arbiter_fid;
 
               console.log(`🎯 Processing bet #${bet.bet_number}:`, {
                 maker_address: bet.maker_address,
                 taker_address: bet.taker_address,
                 makerFid,
                 takerFid,
+                arbiterFid,
               });
 
               // If maker_fid doesn't exist, fetch it using the address
@@ -235,8 +239,28 @@ export default function Demo(
                 }
               }
 
+              // If arbiter_fid doesn't exist, fetch it using the address
+              if (!arbiterFid && bet.arbiter_address) {
+                try {
+                  console.log(
+                    `🔍 Fetching arbiter FID for address: ${bet.arbiter_address}`
+                  );
+                  const arbiterFidResponse = await fetch(
+                    `/api/users?address=${bet.arbiter_address}`
+                  );
+                  if (arbiterFidResponse.ok) {
+                    const arbiterFidData = await arbiterFidResponse.json();
+                    arbiterFid = arbiterFidData.users?.[0]?.fid || null;
+                    console.log(`✅ Found arbiter FID: ${arbiterFid}`);
+                  }
+                } catch (error) {
+                  console.error("❌ Failed to fetch arbiter FID:", error);
+                }
+              }
+
               let makerProfile = null;
               let takerProfile = null;
+              let arbiterProfile = null;
 
               if (makerFid) {
                 try {
@@ -278,10 +302,29 @@ export default function Demo(
                 );
               }
 
+              // Fetch arbiter profile if arbiter_fid exists
+              if (arbiterFid) {
+                try {
+                  console.log(
+                    `👤 Fetching arbiter profile for FID: ${arbiterFid}`
+                  );
+                  const arbiterResponse = await fetch(
+                    `/api/users?fids=${arbiterFid}`
+                  );
+                  const arbiterData = await arbiterResponse.json();
+                  console.log("👤 Arbiter API response:", arbiterData);
+                  arbiterProfile = arbiterData.users?.[0] || null;
+                  console.log("👤 Arbiter profile:", arbiterProfile);
+                } catch (error) {
+                  console.error("❌ Failed to fetch arbiter profile:", error);
+                }
+              }
+
               const betWithProfiles = {
                 ...bet,
                 makerProfile,
                 takerProfile,
+                arbiterProfile,
               };
 
               console.log(
@@ -434,6 +477,77 @@ export default function Demo(
     }
   }, [connect, connectors]);
 
+  // Function to get status text and styling
+  const getStatusInfo = (
+    status: number,
+    endTime: number,
+    makerProfile?: UserProfile | null,
+    takerProfile?: UserProfile | null,
+    arbiterProfile?: UserProfile | null
+  ) => {
+    const now = Math.floor(Date.now() / 1000);
+
+    switch (status) {
+      case 0:
+        return {
+          text: `Pending ${takerProfile?.username || "Taker"}`,
+          bgColor:
+            "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+        };
+      case 1:
+        return {
+          text: `Pending ${arbiterProfile?.username || "Arbiter"}`,
+          bgColor:
+            "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+        };
+      case 2:
+        const isEndTimePassed = now > endTime;
+        return {
+          text: isEndTimePassed
+            ? `Waiting for ${arbiterProfile?.username || "Arbiter"}`
+            : "Active",
+          bgColor: isEndTimePassed
+            ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+            : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+        };
+      case 4:
+        return {
+          text: `${makerProfile?.username || "Maker"} Won - Claim Pending`,
+          bgColor:
+            "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+        };
+      case 5:
+        return {
+          text: `${takerProfile?.username || "Taker"} Won - Claim Pending`,
+          bgColor:
+            "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+        };
+      case 6:
+        return {
+          text: `${makerProfile?.username || "Maker"} Won - Claimed`,
+          bgColor:
+            "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+        };
+      case 7:
+        return {
+          text: `${takerProfile?.username || "Taker"} Won - Claimed`,
+          bgColor:
+            "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+        };
+      case 8:
+        return {
+          text: "Cancelled",
+          bgColor: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+        };
+      default:
+        return {
+          text: "Unknown",
+          bgColor:
+            "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+        };
+    }
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -529,8 +643,31 @@ export default function Demo(
 
                         {/* Bet Details */}
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            Bet #{bet.bet_number}
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              Bet #{bet.bet_number}
+                            </div>
+                            <div
+                              className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                getStatusInfo(
+                                  bet.status,
+                                  bet.end_time,
+                                  bet.makerProfile,
+                                  bet.takerProfile,
+                                  bet.arbiterProfile
+                                ).bgColor
+                              }`}
+                            >
+                              {
+                                getStatusInfo(
+                                  bet.status,
+                                  bet.end_time,
+                                  bet.makerProfile,
+                                  bet.takerProfile,
+                                  bet.arbiterProfile
+                                ).text
+                              }
+                            </div>
                           </div>
                           <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
                             {bet.bet_agreement && bet.bet_agreement.length > 35
