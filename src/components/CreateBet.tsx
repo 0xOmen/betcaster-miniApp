@@ -241,6 +241,11 @@ export default function CreateBet({
     useState<boolean>(false);
   const [customArbiterFee, setCustomArbiterFee] = useState<string>("");
 
+  // Store FIDs for maker, taker, and arbiter
+  const [makerFid, setMakerFid] = useState<number | null>(null);
+  const [takerFid, setTakerFid] = useState<number | null>(null);
+  const [arbiterFid, setArbiterFid] = useState<number | null>(null);
+
   const { address } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
@@ -318,6 +323,13 @@ export default function CreateBet({
             // Store bet data in Supabase using our form data and the bet_number from the event
             if (betNumber) {
               try {
+                // Use stored FIDs instead of making additional API calls
+                console.log("Using stored FIDs:", {
+                  makerFid,
+                  takerFid,
+                  arbiterFid,
+                });
+
                 const supabaseBetData = {
                   bet_number: parseInt(betNumber),
                   maker_address: address as string,
@@ -333,6 +345,9 @@ export default function CreateBet({
                   arbiter_fee: arbiterFeePercent,
                   bet_agreement: betDescription,
                   transaction_hash: receipt.transactionHash,
+                  maker_fid: makerFid,
+                  taker_fid: takerFid,
+                  arbiter_fid: arbiterFid,
                 };
 
                 const response = await fetch("/api/bets", {
@@ -517,6 +532,10 @@ export default function CreateBet({
     setSearchTerm(user.displayName);
     setShowDropdown(false);
 
+    // Store the taker FID immediately
+    setTakerFid(user.fid);
+    console.log("Taker FID set:", user.fid);
+
     // Fetch detailed user information including wallet addresses
     const detailedUser = await fetchUserDetails(user.fid);
     if (detailedUser) {
@@ -531,6 +550,7 @@ export default function CreateBet({
     setSearchTerm(e.target.value);
     if (!e.target.value.trim()) {
       setSelectedUser(null);
+      setTakerFid(null); // Reset taker FID when user is cleared
     }
   };
 
@@ -548,6 +568,10 @@ export default function CreateBet({
     setArbiterSearchTerm(user.displayName);
     setShowArbiterDropdown(false);
 
+    // Store the arbiter FID immediately
+    setArbiterFid(user.fid);
+    console.log("Arbiter FID set:", user.fid);
+
     // Fetch detailed user information including wallet addresses
     const detailedUser = await fetchUserDetails(user.fid);
     if (detailedUser) {
@@ -562,6 +586,7 @@ export default function CreateBet({
     setArbiterSearchTerm(e.target.value);
     if (!e.target.value.trim()) {
       setSelectedArbiter(null);
+      setArbiterFid(null); // Reset arbiter FID when arbiter is cleared
     }
   };
 
@@ -786,6 +811,27 @@ export default function CreateBet({
   };
 
   const endDateTimestamp = getEndDateTimestamp();
+
+  // Fetch maker FID when wallet is connected
+  useEffect(() => {
+    const fetchMakerFid = async () => {
+      if (address) {
+        try {
+          const response = await fetch(`/api/users?address=${address}`);
+          if (response.ok) {
+            const data = await response.json();
+            const fid = data.users?.[0]?.fid || null;
+            setMakerFid(fid);
+            console.log("Maker FID set:", fid);
+          }
+        } catch (error) {
+          console.error("Failed to fetch maker FID:", error);
+        }
+      }
+    };
+
+    fetchMakerFid();
+  }, [address]);
 
   return (
     <div className="space-y-6 px-6 w-full max-w-md mx-auto">

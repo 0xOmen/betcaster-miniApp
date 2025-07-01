@@ -18,6 +18,9 @@ export async function POST(request: NextRequest) {
       bet_agreement,
       transaction_hash,
       bet_number,
+      maker_fid,
+      taker_fid,
+      arbiter_fid,
     } = body;
 
     // Validate required fields including bet_number since it's now the primary key
@@ -45,6 +48,9 @@ export async function POST(request: NextRequest) {
         arbiter_fee: body.arbiter_fee,
         bet_agreement: body.bet_agreement,
         transaction_hash: body.transaction_hash || null,
+        maker_fid: body.maker_fid || null,
+        taker_fid: body.taker_fid || null,
+        arbiter_fid: body.arbiter_fid || null,
       }])
       .select()
       .single();
