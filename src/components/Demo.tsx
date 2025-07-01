@@ -98,6 +98,8 @@ export default function Demo(
   const [betsTab, setBetsTab] = useState<"you" | "open">("you");
   const [userBets, setUserBets] = useState<Bet[]>([]);
   const [isLoadingBets, setIsLoadingBets] = useState(false);
+  const [selectedBet, setSelectedBet] = useState<Bet | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -504,8 +506,8 @@ export default function Demo(
         const isEndTimePassed = now > endTime;
         return {
           text: isEndTimePassed
-            ? `Waiting for ${arbiterProfile?.username || "Arbiter"}`
-            : "Active",
+            ? `Waiting ${arbiterProfile?.username || "Arbiter"}'s decision`
+            : "End time not passed",
           bgColor: isEndTimePassed
             ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
             : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
@@ -524,19 +526,19 @@ export default function Demo(
         };
       case 6:
         return {
-          text: `${makerProfile?.username || "Maker"} Won - Claimed`,
+          text: `${makerProfile?.username || "Maker"} Won`,
           bgColor:
             "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
         };
       case 7:
         return {
-          text: `${takerProfile?.username || "Taker"} Won - Claimed`,
+          text: `${takerProfile?.username || "Taker"} Won`,
           bgColor:
             "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
         };
       case 8:
         return {
-          text: "Cancelled",
+          text: "Cancelled/Refunded",
           bgColor: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
         };
       default:
@@ -546,6 +548,33 @@ export default function Demo(
             "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
         };
     }
+  };
+
+  // Function to format end time
+  const formatEndTime = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    return date
+      .toLocaleString("en-CA", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
+      .replace(",", "");
+  };
+
+  // Function to handle bet selection
+  const handleBetSelect = (bet: Bet) => {
+    setSelectedBet(bet);
+    setIsModalOpen(true);
+  };
+
+  // Function to close modal
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedBet(null);
   };
 
   if (!isSDKLoaded) {
@@ -612,7 +641,8 @@ export default function Demo(
                   userBets.map((bet) => (
                     <div
                       key={bet.bet_number}
-                      className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                      className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => handleBetSelect(bet)}
                     >
                       <div className="flex items-center space-x-3">
                         {/* Profile Pictures */}
@@ -833,6 +863,151 @@ export default function Demo(
           setActiveTab={setActiveTab}
           showWallet={USE_WALLET}
         />
+
+        {/* Bet Details Modal */}
+        {isModalOpen && selectedBet && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    Bet #{selectedBet.bet_number}
+                  </h2>
+                  <button
+                    onClick={closeModal}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Status Badge */}
+                <div className="mb-4">
+                  <div
+                    className={`inline-block px-3 py-1 text-sm font-medium rounded-full ${
+                      getStatusInfo(
+                        selectedBet.status,
+                        selectedBet.end_time,
+                        selectedBet.makerProfile,
+                        selectedBet.takerProfile,
+                        selectedBet.arbiterProfile
+                      ).bgColor
+                    }`}
+                  >
+                    {
+                      getStatusInfo(
+                        selectedBet.status,
+                        selectedBet.end_time,
+                        selectedBet.makerProfile,
+                        selectedBet.takerProfile,
+                        selectedBet.arbiterProfile
+                      ).text
+                    }
+                  </div>
+                </div>
+
+                {/* Participants */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Participants
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Maker:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedBet.makerProfile?.display_name ||
+                          selectedBet.makerProfile?.username ||
+                          "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Taker:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedBet.takerProfile?.display_name ||
+                          selectedBet.takerProfile?.username ||
+                          "Unknown"}
+                      </span>
+                    </div>
+                    {selectedBet.arbiterProfile && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Arbiter:
+                        </span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {selectedBet.arbiterProfile.display_name ||
+                            selectedBet.arbiterProfile.username}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bet Details */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Bet Details
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Amount:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedBet.bet_amount}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        End Time:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {formatEndTime(selectedBet.end_time)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bet Agreement */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Bet Agreement
+                  </h3>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                      {selectedBet.bet_agreement || "No description provided"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Close Button */}
+                <div className="flex justify-end">
+                  <button
+                    onClick={closeModal}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
