@@ -175,12 +175,14 @@ export default function Demo(
     const fetchUserBets = async () => {
       if (!address) return;
 
+      console.log("🔍 Fetching user bets for address:", address);
       setIsLoadingBets(true);
       try {
         const response = await fetch(`/api/bets?address=${address}`);
         if (response.ok) {
           const data = await response.json();
           const bets = data.bets || [];
+          console.log("📊 Found bets:", bets.length, "bets:", bets);
 
           // Fetch profile data for each bet's maker and taker
           const betsWithProfiles = await Promise.all(
@@ -188,47 +190,81 @@ export default function Demo(
               const makerFid = bet.maker_fid;
               const takerFid = bet.taker_fid;
 
+              console.log(`🎯 Processing bet #${bet.bet_number}:`, {
+                maker_address: bet.maker_address,
+                taker_address: bet.taker_address,
+                makerFid,
+                takerFid,
+              });
+
               let makerProfile = null;
               let takerProfile = null;
 
               if (makerFid) {
                 try {
+                  console.log(`👤 Fetching maker profile for FID: ${makerFid}`);
                   const makerResponse = await fetch(
                     `/api/users?fids=${makerFid}`
                   );
                   const makerData = await makerResponse.json();
+                  console.log("👤 Maker API response:", makerData);
                   makerProfile = makerData.users?.[0] || null;
+                  console.log("👤 Maker profile:", makerProfile);
                 } catch (error) {
-                  console.error("Failed to fetch maker profile:", error);
+                  console.error("❌ Failed to fetch maker profile:", error);
                 }
+              } else {
+                console.log(
+                  "⚠️ No maker FID available for bet #",
+                  bet.bet_number
+                );
               }
 
               if (takerFid) {
                 try {
+                  console.log(`👤 Fetching taker profile for FID: ${takerFid}`);
                   const takerResponse = await fetch(
                     `/api/users?fids=${takerFid}`
                   );
                   const takerData = await takerResponse.json();
+                  console.log("👤 Taker API response:", takerData);
                   takerProfile = takerData.users?.[0] || null;
+                  console.log("👤 Taker profile:", takerProfile);
                 } catch (error) {
-                  console.error("Failed to fetch taker profile:", error);
+                  console.error("❌ Failed to fetch taker profile:", error);
                 }
+              } else {
+                console.log(
+                  "⚠️ No taker FID available for bet #",
+                  bet.bet_number
+                );
               }
 
-              return {
+              const betWithProfiles = {
                 ...bet,
                 makerProfile,
                 takerProfile,
               };
+
+              console.log(
+                `✅ Final bet #${bet.bet_number} with profiles:`,
+                betWithProfiles
+              );
+              return betWithProfiles;
             })
           );
 
+          console.log("🎉 All bets processed:", betsWithProfiles);
           setUserBets(betsWithProfiles);
         } else {
-          console.error("Failed to fetch user bets");
+          console.error(
+            "❌ Failed to fetch user bets:",
+            response.status,
+            response.statusText
+          );
         }
       } catch (error) {
-        console.error("Error fetching user bets:", error);
+        console.error("❌ Error fetching user bets:", error);
       } finally {
         setIsLoadingBets(false);
       }

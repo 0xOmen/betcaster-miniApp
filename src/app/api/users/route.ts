@@ -6,7 +6,10 @@ export async function GET(request: NextRequest) {
     const fids = searchParams.get('fids');
     const address = searchParams.get('address');
 
+    console.log("👤 Users API: Request params:", { fids, address });
+
     if (!fids && !address) {
+      console.log("❌ Users API: Missing fids or address parameter");
       return NextResponse.json(
         { error: "Missing fids or address parameter" },
         { status: 400 }
@@ -21,14 +24,18 @@ export async function GET(request: NextRequest) {
       url += `?addresses=${address}`;
     }
 
+    console.log("🌐 Users API: Calling Neynar URL:", url);
+
     const response = await fetch(url, {
       headers: {
         'api_key': process.env.NEYNAR_API_KEY || '',
       },
     });
 
+    console.log("🌐 Users API: Neynar response status:", response.status);
+
     if (!response.ok) {
-      console.error('Neynar API error:', response.status, response.statusText);
+      console.error('❌ Users API: Neynar API error:', response.status, response.statusText);
       return NextResponse.json(
         { error: "Failed to fetch user data" },
         { status: response.status }
@@ -36,9 +43,10 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    console.log("✅ Users API: Neynar response data:", data);
     return NextResponse.json(data);
   } catch (error) {
-    console.error("API error:", error);
+    console.error("❌ Users API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
