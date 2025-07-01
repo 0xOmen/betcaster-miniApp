@@ -808,11 +808,8 @@ export default function Demo(
               </div>
             )}
 
-            <SignEvmMessage />
-
             {isConnected && (
               <>
-                <SendEth />
                 <Button
                   onClick={sendTx}
                   disabled={!isConnected || isSendTxPending}
