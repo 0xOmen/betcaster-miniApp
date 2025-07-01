@@ -187,8 +187,8 @@ export default function Demo(
           // Fetch profile data for each bet's maker and taker
           const betsWithProfiles = await Promise.all(
             bets.map(async (bet: Bet) => {
-              const makerFid = bet.maker_fid;
-              const takerFid = bet.taker_fid;
+              let makerFid = bet.maker_fid;
+              let takerFid = bet.taker_fid;
 
               console.log(`🎯 Processing bet #${bet.bet_number}:`, {
                 maker_address: bet.maker_address,
@@ -196,6 +196,44 @@ export default function Demo(
                 makerFid,
                 takerFid,
               });
+
+              // If maker_fid doesn't exist, fetch it using the address
+              if (!makerFid && bet.maker_address) {
+                try {
+                  console.log(
+                    `🔍 Fetching maker FID for address: ${bet.maker_address}`
+                  );
+                  const makerFidResponse = await fetch(
+                    `/api/users?address=${bet.maker_address}`
+                  );
+                  if (makerFidResponse.ok) {
+                    const makerFidData = await makerFidResponse.json();
+                    makerFid = makerFidData.users?.[0]?.fid || null;
+                    console.log(`✅ Found maker FID: ${makerFid}`);
+                  }
+                } catch (error) {
+                  console.error("❌ Failed to fetch maker FID:", error);
+                }
+              }
+
+              // If taker_fid doesn't exist, fetch it using the address
+              if (!takerFid && bet.taker_address) {
+                try {
+                  console.log(
+                    `🔍 Fetching taker FID for address: ${bet.taker_address}`
+                  );
+                  const takerFidResponse = await fetch(
+                    `/api/users?address=${bet.taker_address}`
+                  );
+                  if (takerFidResponse.ok) {
+                    const takerFidData = await takerFidResponse.json();
+                    takerFid = takerFidData.users?.[0]?.fid || null;
+                    console.log(`✅ Found taker FID: ${takerFid}`);
+                  }
+                } catch (error) {
+                  console.error("❌ Failed to fetch taker FID:", error);
+                }
+              }
 
               let makerProfile = null;
               let takerProfile = null;
