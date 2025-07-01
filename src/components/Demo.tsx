@@ -498,7 +498,7 @@ export default function Demo(
                   userBets.map((bet) => (
                     <div
                       key={bet.bet_number}
-                      className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                      className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
                     >
                       <div className="flex items-center space-x-3">
                         {/* Profile Pictures */}
@@ -533,11 +533,11 @@ export default function Demo(
                             Bet #{bet.bet_number}
                           </div>
                           <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                            {bet.bet_agreement && bet.bet_agreement.length > 25
-                              ? `${bet.bet_agreement.substring(0, 25)}...`
+                            {bet.bet_agreement && bet.bet_agreement.length > 35
+                              ? `${bet.bet_agreement.substring(0, 35)}...`
                               : bet.bet_agreement || "No description"}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          <div className="text-xs text-gray-500 dark:text-gray-500">
                             {bet.makerProfile?.display_name || "Unknown"} vs{" "}
                             {bet.takerProfile?.display_name || "Unknown"}
                           </div>
