@@ -102,71 +102,9 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("📊 API: Found bets from database:", data?.length || 0);
-
-    // Add FID information for maker and taker addresses
-    const betsWithFids = await Promise.all(
-      (data || []).map(async (bet) => {
-        console.log(`🎯 API: Processing bet #${bet.bet_number}:`, {
-          maker_address: bet.maker_address,
-          taker_address: bet.taker_address,
-        });
-
-        let makerFid = null;
-        let takerFid = null;
-
-        // Fetch FID for maker address
-        if (bet.maker_address) {
-          try {
-            console.log(`👤 API: Fetching maker FID for address: ${bet.maker_address}`);
-            const makerResponse = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/users?address=${bet.maker_address}`);
-            console.log("👤 API: Maker response status:", makerResponse.status);
-            
-            if (makerResponse.ok) {
-              const makerData = await makerResponse.json();
-              console.log("👤 API: Maker data:", makerData);
-              makerFid = makerData.users?.[0]?.fid || null;
-              console.log("👤 API: Maker FID:", makerFid);
-            } else {
-              console.log("❌ API: Maker response not ok:", makerResponse.statusText);
-            }
-          } catch (error) {
-            console.error("❌ API: Failed to fetch maker FID:", error);
-          }
-        }
-
-        // Fetch FID for taker address
-        if (bet.taker_address) {
-          try {
-            console.log(`👤 API: Fetching taker FID for address: ${bet.taker_address}`);
-            const takerResponse = await fetch(`${process.env.NEXT_PUBLIC_URL}/api/users?address=${bet.taker_address}`);
-            console.log("👤 API: Taker response status:", takerResponse.status);
-            
-            if (takerResponse.ok) {
-              const takerData = await takerResponse.json();
-              console.log("👤 API: Taker data:", takerData);
-              takerFid = takerData.users?.[0]?.fid || null;
-              console.log("👤 API: Taker FID:", takerFid);
-            } else {
-              console.log("❌ API: Taker response not ok:", takerResponse.statusText);
-            }
-          } catch (error) {
-            console.error("❌ API: Failed to fetch taker FID:", error);
-          }
-        }
-
-        const betWithFid = {
-          ...bet,
-          maker_fid: makerFid,
-          taker_fid: takerFid,
-        };
-
-        console.log(`✅ API: Final bet #${bet.bet_number} with FIDs:`, betWithFid);
-        return betWithFid;
-      })
-    );
-
-    console.log("🎉 API: All bets processed with FIDs");
-    return NextResponse.json({ bets: betsWithFids });
+    console.log("🎉 API: Returning bets with stored FIDs");
+    
+    return NextResponse.json({ bets: data || [] });
   } catch (error) {
     console.error("❌ API error:", error);
     return NextResponse.json(
