@@ -1004,240 +1004,48 @@ export default function Demo(
                     Close
                   </button>
                 </div>
+
+                {/* Maker Actions */}
+                {address === selectedBet.maker_address &&
+                  selectedBet.status === 0 && (
+                    <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
+                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                        Actions
+                      </h3>
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={() => {
+                            // TODO: Implement cancel bet logic
+                            console.log(
+                              "Cancel bet clicked for bet #",
+                              selectedBet.bet_number
+                            );
+                          }}
+                          className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                        >
+                          Cancel Bet
+                        </button>
+                        <button
+                          onClick={() => {
+                            // TODO: Implement edit bet logic
+                            console.log(
+                              "Edit bet clicked for bet #",
+                              selectedBet.bet_number
+                            );
+                          }}
+                          className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                        >
+                          Edit Bet
+                        </button>
+                      </div>
+                    </div>
+                  )}
               </div>
             </div>
           </div>
         )}
       </div>
     </div>
-  );
-}
-
-// Solana functions inspired by farcaster demo
-// https://github.com/farcasterxyz/frames-v2-demo/blob/main/src/components/Demo.tsx
-function SignSolanaMessage({
-  signMessage,
-}: {
-  signMessage?: (message: Uint8Array) => Promise<Uint8Array>;
-}) {
-  const [signature, setSignature] = useState<string | undefined>();
-  const [signError, setSignError] = useState<Error | undefined>();
-  const [signPending, setSignPending] = useState(false);
-
-  const handleSignMessage = useCallback(async () => {
-    setSignPending(true);
-    try {
-      if (!signMessage) {
-        throw new Error("no Solana signMessage");
-      }
-      const input = new TextEncoder().encode("Hello from Solana!");
-      const signatureBytes = await signMessage(input);
-      const signature = btoa(String.fromCharCode(...signatureBytes));
-      setSignature(signature);
-      setSignError(undefined);
-    } catch (e) {
-      if (e instanceof Error) {
-        setSignError(e);
-      }
-    } finally {
-      setSignPending(false);
-    }
-  }, [signMessage]);
-
-  return (
-    <>
-      <Button
-        onClick={handleSignMessage}
-        disabled={signPending}
-        isLoading={signPending}
-        className="mb-4"
-      >
-        Sign Message
-      </Button>
-      {signError && renderError(signError)}
-      {signature && (
-        <div className="mt-2 text-xs">
-          <div>Signature: {signature}</div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function SendSolana() {
-  const [state, setState] = useState<
-    | { status: "none" }
-    | { status: "pending" }
-    | { status: "error"; error: Error }
-    | { status: "success"; signature: string }
-  >({ status: "none" });
-
-  const { connection: solanaConnection } = useSolanaConnection();
-  const { sendTransaction, publicKey } = useSolanaWallet();
-
-  // This should be replaced but including it from the original demo
-  // https://github.com/farcasterxyz/frames-v2-demo/blob/main/src/components/Demo.tsx#L718
-  const ashoatsPhantomSolanaWallet =
-    "Ao3gLNZAsbrmnusWVqQCPMrcqNi6jdYgu8T6NCoXXQu1";
-
-  const handleSend = useCallback(async () => {
-    setState({ status: "pending" });
-    try {
-      if (!publicKey) {
-        throw new Error("no Solana publicKey");
-      }
-
-      const { blockhash } = await solanaConnection.getLatestBlockhash();
-      if (!blockhash) {
-        throw new Error("failed to fetch latest Solana blockhash");
-      }
-
-      const fromPubkeyStr = publicKey.toBase58();
-      const toPubkeyStr = ashoatsPhantomSolanaWallet;
-      const transaction = new Transaction();
-      transaction.add(
-        SystemProgram.transfer({
-          fromPubkey: new PublicKey(fromPubkeyStr),
-          toPubkey: new PublicKey(toPubkeyStr),
-          lamports: 0n,
-        })
-      );
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = new PublicKey(fromPubkeyStr);
-
-      const simulation =
-        await solanaConnection.simulateTransaction(transaction);
-      if (simulation.value.err) {
-        // Gather logs and error details for debugging
-        const logs = simulation.value.logs?.join("\n") ?? "No logs";
-        const errDetail = JSON.stringify(simulation.value.err);
-        throw new Error(`Simulation failed: ${errDetail}\nLogs:\n${logs}`);
-      }
-      const signature = await sendTransaction(transaction, solanaConnection);
-      setState({ status: "success", signature });
-    } catch (e) {
-      if (e instanceof Error) {
-        setState({ status: "error", error: e });
-      } else {
-        setState({ status: "none" });
-      }
-    }
-  }, [sendTransaction, publicKey, solanaConnection]);
-
-  return (
-    <>
-      <Button
-        onClick={handleSend}
-        disabled={state.status === "pending"}
-        isLoading={state.status === "pending"}
-        className="mb-4"
-      >
-        Send Transaction (sol)
-      </Button>
-      {state.status === "error" && renderError(state.error)}
-      {state.status === "success" && (
-        <div className="mt-2 text-xs">
-          <div>Hash: {truncateAddress(state.signature)}</div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function SignEvmMessage() {
-  const { isConnected } = useAccount();
-  const { connectAsync } = useConnect();
-  const {
-    signMessage,
-    data: signature,
-    error: signError,
-    isError: isSignError,
-    isPending: isSignPending,
-  } = useSignMessage();
-
-  const handleSignMessage = useCallback(async () => {
-    if (!isConnected) {
-      await connectAsync({
-        chainId: base.id,
-        connector: config.connectors[0],
-      });
-    }
-
-    signMessage({ message: `Hello from ${APP_NAME}!` });
-  }, [connectAsync, isConnected, signMessage]);
-
-  return (
-    <>
-      <Button
-        onClick={handleSignMessage}
-        disabled={isSignPending}
-        isLoading={isSignPending}
-      >
-        Sign Message
-      </Button>
-      {isSignError && renderError(signError)}
-      {signature && (
-        <div className="mt-2 text-xs">
-          <div>Signature: {signature}</div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function SendEth() {
-  const { isConnected, chainId } = useAccount();
-  const {
-    sendTransaction,
-    data,
-    error: sendTxError,
-    isError: isSendTxError,
-    isPending: isSendTxPending,
-  } = useSendTransaction();
-
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash: data,
-    });
-
-  const toAddr = useMemo(() => {
-    // Protocol guild address
-    return chainId === base.id
-      ? "0x32e3C7fD24e175701A35c224f2238d18439C7dBC"
-      : "0xB3d8d7887693a9852734b4D25e9C0Bb35Ba8a830";
-  }, [chainId]);
-
-  const handleSend = useCallback(() => {
-    sendTransaction({
-      to: toAddr,
-      value: 1n,
-    });
-  }, [toAddr, sendTransaction]);
-
-  return (
-    <>
-      <Button
-        onClick={handleSend}
-        disabled={!isConnected || isSendTxPending}
-        isLoading={isSendTxPending}
-      >
-        Send Transaction (eth)
-      </Button>
-      {isSendTxError && renderError(sendTxError)}
-      {data && (
-        <div className="mt-2 text-xs">
-          <div>Hash: {truncateAddress(data)}</div>
-          <div>
-            Status:{" "}
-            {isConfirming
-              ? "Confirming..."
-              : isConfirmed
-                ? "Confirmed!"
-                : "Pending"}
-          </div>
-        </div>
-      )}
-    </>
   );
 }
 
