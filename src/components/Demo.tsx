@@ -34,6 +34,11 @@ import { Header } from "~/components/ui/Header";
 import { Footer } from "~/components/ui/Footer";
 import { USE_WALLET, APP_NAME } from "~/lib/constants";
 import CreateBet from "~/components/CreateBet";
+import {
+  BET_MANAGEMENT_ENGINE_ABI,
+  BET_MANAGEMENT_ENGINE_ADDRESS,
+} from "~/lib/contracts";
+import { encodeFunctionData } from "viem";
 
 export type Tab = "create" | "bets" | "arbitrate" | "wallet" | "leaderboard";
 
@@ -100,6 +105,10 @@ export default function Demo(
   const [isLoadingBets, setIsLoadingBets] = useState(false);
   const [selectedBet, setSelectedBet] = useState<Bet | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [cancelTxHash, setCancelTxHash] = useState<`0x${string}` | undefined>(
+    undefined
+  );
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -577,6 +586,88 @@ export default function Demo(
     setSelectedBet(null);
   };
 
+  // Function to cancel bet
+  const handleCancelBet = async () => {
+    if (!selectedBet || !isConnected) {
+      console.error("Cannot cancel bet: not connected or no bet selected");
+      return;
+    }
+
+    try {
+      setIsCancelling(true);
+      console.log("Cancelling bet #", selectedBet.bet_number);
+
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: BET_MANAGEMENT_ENGINE_ABI,
+        functionName: "makerCancelBet",
+        args: [BigInt(selectedBet.bet_number)],
+      });
+
+      console.log("Encoded cancel transaction data:", encodedData);
+
+      // Create the transaction object
+      const transaction = {
+        to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+        data: encodedData as `0x${string}`,
+      };
+
+      console.log("Cancel transaction object:", transaction);
+
+      // Send the transaction
+      sendTransaction(transaction, {
+        onSuccess: async (hash: `0x${string}`) => {
+          console.log("Cancel transaction sent successfully:", hash);
+          setCancelTxHash(hash);
+          // Close modal after successful transaction
+          setTimeout(async () => {
+            closeModal();
+            // Update database to mark bet as cancelled
+            try {
+              const updateResponse = await fetch(
+                `/api/bets/${selectedBet.bet_number}`,
+                {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    status: 8,
+                    transaction_hash: hash,
+                  }),
+                }
+              );
+
+              if (!updateResponse.ok) {
+                console.error("Failed to update bet status in database");
+              } else {
+                console.log("Bet status updated to cancelled in database");
+              }
+            } catch (error) {
+              console.error("Error updating bet status:", error);
+            }
+
+            // Refresh bets list
+            if (address) {
+              const response = await fetch(`/api/bets?address=${address}`);
+              if (response.ok) {
+                const data = await response.json();
+                setUserBets(data.bets || []);
+              }
+            }
+          }, 2000);
+        },
+        onError: (error: Error) => {
+          console.error("Cancel transaction failed:", error);
+          setIsCancelling(false);
+        },
+      });
+    } catch (error) {
+      console.error("Error cancelling bet:", error);
+      setIsCancelling(false);
+    }
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -915,6 +1006,34 @@ export default function Demo(
                   </div>
                 </div>
 
+                {/* Maker Actions */}
+                {address === selectedBet.maker_address &&
+                  selectedBet.status === 0 && (
+                    <div className="mb-4">
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={handleCancelBet}
+                          disabled={isCancelling}
+                          className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isCancelling ? "Cancelling..." : "Cancel Bet"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            // TODO: Implement edit bet logic
+                            console.log(
+                              "Edit bet clicked for bet #",
+                              selectedBet.bet_number
+                            );
+                          }}
+                          className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                        >
+                          Edit Bet
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                 {/* Participants */}
                 <div className="mb-4">
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1001,42 +1120,6 @@ export default function Demo(
                     Close
                   </button>
                 </div>
-
-                {/* Maker Actions */}
-                {address === selectedBet.maker_address &&
-                  selectedBet.status === 0 && (
-                    <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
-                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                        Actions
-                      </h3>
-                      <div className="flex space-x-3">
-                        <button
-                          onClick={() => {
-                            // TODO: Implement cancel bet logic
-                            console.log(
-                              "Cancel bet clicked for bet #",
-                              selectedBet.bet_number
-                            );
-                          }}
-                          className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                        >
-                          Cancel Bet
-                        </button>
-                        <button
-                          onClick={() => {
-                            // TODO: Implement edit bet logic
-                            console.log(
-                              "Edit bet clicked for bet #",
-                              selectedBet.bet_number
-                            );
-                          }}
-                          className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                        >
-                          Edit Bet
-                        </button>
-                      </div>
-                    </div>
-                  )}
               </div>
             </div>
           </div>

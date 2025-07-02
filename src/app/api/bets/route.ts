@@ -112,4 +112,54 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const url = new URL(request.url);
+    const betNumber = url.pathname.split('/').pop();
+    const body = await request.json();
+    const { status, transaction_hash } = body;
+
+    if (!betNumber) {
+      return NextResponse.json(
+        { error: "Missing bet number" },
+        { status: 400 }
+      );
+    }
+
+    if (status === undefined) {
+      return NextResponse.json(
+        { error: "Missing status" },
+        { status: 400 }
+      );
+    }
+
+    // Update the bet in the database
+    const { data, error } = await supabase
+      .from('bets')
+      .update({
+        status: status,
+        transaction_hash: transaction_hash || null,
+      })
+      .eq('bet_number', parseInt(betNumber))
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return NextResponse.json(
+        { error: "Failed to update bet" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true, bet: data });
+  } catch (error) {
+    console.error("API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 } 
