@@ -633,8 +633,9 @@ export default function Demo(
 
         console.log("Cancel transaction object:", transaction);
 
-        // Send the transaction
+        // Send the transaction with different approaches based on connector
         try {
+          // Try the standard approach first
           await sendTransaction(transaction, {
             onSuccess: async (hash: `0x${string}`) => {
               console.log("Cancel transaction sent successfully:", hash);
@@ -693,7 +694,21 @@ export default function Demo(
           ) {
             console.log("Retrying transaction due to connector issue...");
             setIsCancelling(false);
-            setTimeout(() => attemptTransaction(retryCount + 1), 1000);
+
+            // Force reconnection on desktop if needed
+            if (typeof window !== "undefined" && window.innerWidth > 768) {
+              console.log("Desktop detected, attempting to reconnect...");
+              try {
+                await disconnect();
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                await connect({ connector: connectors[0] });
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+              } catch (reconnectError) {
+                console.error("Reconnection failed:", reconnectError);
+              }
+            }
+
+            setTimeout(() => attemptTransaction(retryCount + 1), 2000);
             return;
           }
 
