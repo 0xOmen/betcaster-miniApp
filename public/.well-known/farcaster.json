@@ -1,0 +1,41 @@
+{
+    "miniapp": {
+        "version": "1",
+        "name": "Betcaster",
+        "iconUrl": "https://betcaster.vercel.app/icon.png",
+        "homeUrl": "https://betcaster.vercel.app",
+        "splashImageUrl": "https://betcaster.vercel.app/splash.png",
+        "splashBackgroundColor": "#f7f7f7",
+        "webhookUrl": "https://betcaster.vercel.app/api/webhook",
+        "subtitle": "Decentralized betting on Farcaster",
+        "description": "Create, accept, and settle bets with friends on Farcaster. Secure blockchain-based betting with smart contract enforcement.",
+        "screenshotUrls": [
+            "https://betcaster.vercel.app/Bets1.png",
+            "https://betcaster.vercel.app/Bets2.png",
+            "https://betcaster.vercel.app/create.png"
+        ],
+        "primaryCategory": "social",
+        "tags": [
+            "betting",
+            "prediction",
+            "social",
+            "blockchain",
+            "defi"
+        ],
+        "heroImageUrl": "https://betcaster.vercel.app/arbitrate.png",
+        "tagline": "Bet with friends on Farcaster",
+        "ogTitle": "Betcaster",
+        "ogDescription": "Decentralized betting platform on Farcaster",
+        "ogImageUrl": "https://betcaster.vercel.app/arbitrate.png",
+        "requiredChains": [
+            "eip155:8453"
+        ],
+        "requiredCapabilities": [
+            "actions.signIn",
+            "wallet.getEthereumProvider",
+            "wallet.sendTransaction",
+            "wallet.signMessage"
+        ],
+        "noindex": false
+    }
+}
