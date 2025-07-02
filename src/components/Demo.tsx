@@ -638,7 +638,7 @@ export default function Demo(
               // Update database to mark bet as cancelled
               try {
                 const updateResponse = await fetch(
-                  `/api/bets/${selectedBet.bet_number}`,
+                  `/api/bets?betNumber=${selectedBet.bet_number}`,
                   {
                     method: "PATCH",
                     headers: {

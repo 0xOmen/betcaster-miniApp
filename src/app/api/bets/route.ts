@@ -116,8 +116,8 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const url = new URL(request.url);
-    const betNumber = url.pathname.split('/').pop();
+    const { searchParams } = new URL(request.url);
+    const betNumber = searchParams.get('betNumber');
     const body = await request.json();
     const { status, transaction_hash } = body;
 
