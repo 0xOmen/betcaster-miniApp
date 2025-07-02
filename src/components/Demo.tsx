@@ -811,6 +811,41 @@ export default function Demo(
                             {bet.makerProfile?.display_name || "Unknown"} vs{" "}
                             {bet.takerProfile?.display_name || "Unknown"}
                           </div>
+
+                          {/* Maker Actions for Status 0 */}
+                          {address === bet.maker_address &&
+                            bet.status === 0 && (
+                              <div className="flex space-x-2 mt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedBet(bet);
+                                    setIsModalOpen(true);
+                                    // TODO: Implement cancel bet logic
+                                    console.log(
+                                      "Cancel bet clicked for bet #",
+                                      bet.bet_number
+                                    );
+                                  }}
+                                  className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // TODO: Implement edit bet logic
+                                    console.log(
+                                      "Edit bet clicked for bet #",
+                                      bet.bet_number
+                                    );
+                                  }}
+                                  className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            )}
                         </div>
                       </div>
                     </div>
