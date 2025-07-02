@@ -605,122 +605,78 @@ export default function Demo(
       }
     }
 
-    // Add retry mechanism for connector initialization
-    const attemptTransaction = async (retryCount = 0) => {
-      try {
-        setIsCancelling(true);
-        console.log(
-          "Cancelling bet #",
-          selectedBet.bet_number,
-          "attempt:",
-          retryCount + 1
-        );
+    try {
+      setIsCancelling(true);
+      console.log("Cancelling bet #", selectedBet.bet_number);
 
-        // Encode the function call
-        const encodedData = encodeFunctionData({
-          abi: BET_MANAGEMENT_ENGINE_ABI,
-          functionName: "makerCancelBet",
-          args: [BigInt(selectedBet.bet_number)],
-        });
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: BET_MANAGEMENT_ENGINE_ABI,
+        functionName: "makerCancelBet",
+        args: [BigInt(selectedBet.bet_number)],
+      });
 
-        console.log("Encoded cancel transaction data:", encodedData);
+      console.log("Encoded cancel transaction data:", encodedData);
 
-        // Create the transaction object
-        const transaction = {
+      // Use a more direct approach to avoid connector issues
+      sendTransaction(
+        {
           to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
           data: encodedData as `0x${string}`,
-        };
+        },
+        {
+          onSuccess: async (hash: `0x${string}`) => {
+            console.log("Cancel transaction sent successfully:", hash);
+            setCancelTxHash(hash);
 
-        console.log("Cancel transaction object:", transaction);
-
-        // Send the transaction with different approaches based on connector
-        try {
-          // Try the standard approach first
-          await sendTransaction(transaction, {
-            onSuccess: async (hash: `0x${string}`) => {
-              console.log("Cancel transaction sent successfully:", hash);
-              setCancelTxHash(hash);
-              // Close modal after successful transaction
-              setTimeout(async () => {
-                closeModal();
-                // Update database to mark bet as cancelled
-                try {
-                  const updateResponse = await fetch(
-                    `/api/bets?betNumber=${selectedBet.bet_number}`,
-                    {
-                      method: "PATCH",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        status: 8,
-                        transaction_hash: hash,
-                      }),
-                    }
-                  );
-
-                  if (!updateResponse.ok) {
-                    console.error("Failed to update bet status in database");
-                  } else {
-                    console.log("Bet status updated to cancelled in database");
-                  }
-                } catch (error) {
-                  console.error("Error updating bet status:", error);
-                }
-
-                // Refresh bets list
-                if (address) {
-                  const response = await fetch(`/api/bets?address=${address}`);
-                  if (response.ok) {
-                    const data = await response.json();
-                    setUserBets(data.bets || []);
-                  }
-                }
-              }, 2000);
-            },
-            onError: (error: Error) => {
-              console.error("Cancel transaction failed:", error);
-              setIsCancelling(false);
-            },
-          });
-        } catch (error) {
-          console.error("Error sending cancel transaction:", error);
-
-          // Retry logic for connector issues
-          if (
-            retryCount < 2 &&
-            error instanceof Error &&
-            error.message.includes("getChainId")
-          ) {
-            console.log("Retrying transaction due to connector issue...");
-            setIsCancelling(false);
-
-            // Force reconnection on desktop if needed
-            if (typeof window !== "undefined" && window.innerWidth > 768) {
-              console.log("Desktop detected, attempting to reconnect...");
+            // Close modal after successful transaction
+            setTimeout(async () => {
+              closeModal();
+              // Update database to mark bet as cancelled
               try {
-                await disconnect();
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-                await connect({ connector: connectors[0] });
-                await new Promise((resolve) => setTimeout(resolve, 2000));
-              } catch (reconnectError) {
-                console.error("Reconnection failed:", reconnectError);
+                const updateResponse = await fetch(
+                  `/api/bets?betNumber=${selectedBet.bet_number}`,
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      status: 8,
+                      transaction_hash: hash,
+                    }),
+                  }
+                );
+
+                if (!updateResponse.ok) {
+                  console.error("Failed to update bet status in database");
+                } else {
+                  console.log("Bet status updated to cancelled in database");
+                }
+              } catch (error) {
+                console.error("Error updating bet status:", error);
               }
-            }
 
-            setTimeout(() => attemptTransaction(retryCount + 1), 2000);
-            return;
-          }
-
-          setIsCancelling(false);
+              // Refresh bets list
+              if (address) {
+                const response = await fetch(`/api/bets?address=${address}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  setUserBets(data.bets || []);
+                }
+              }
+            }, 2000);
+          },
+          onError: (error: Error) => {
+            console.error("Cancel transaction failed:", error);
+            setIsCancelling(false);
+          },
         }
-      } catch (error) {
-        console.error("Error cancelling bet:", error);
-        setIsCancelling(false);
-      }
-    };
-
-    await attemptTransaction();
+      );
+    } catch (error) {
+      console.error("Error cancelling bet:", error);
+      setIsCancelling(false);
+    }
   };
 
   if (!isSDKLoaded) {
