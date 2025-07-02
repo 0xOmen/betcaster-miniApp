@@ -593,6 +593,18 @@ export default function Demo(
       return;
     }
 
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
     try {
       setIsCancelling(true);
       console.log("Cancelling bet #", selectedBet.bet_number);
