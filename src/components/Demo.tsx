@@ -627,53 +627,58 @@ export default function Demo(
       console.log("Cancel transaction object:", transaction);
 
       // Send the transaction
-      sendTransaction(transaction, {
-        onSuccess: async (hash: `0x${string}`) => {
-          console.log("Cancel transaction sent successfully:", hash);
-          setCancelTxHash(hash);
-          // Close modal after successful transaction
-          setTimeout(async () => {
-            closeModal();
-            // Update database to mark bet as cancelled
-            try {
-              const updateResponse = await fetch(
-                `/api/bets/${selectedBet.bet_number}`,
-                {
-                  method: "PATCH",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    status: 8,
-                    transaction_hash: hash,
-                  }),
+      try {
+        await sendTransaction(transaction, {
+          onSuccess: async (hash: `0x${string}`) => {
+            console.log("Cancel transaction sent successfully:", hash);
+            setCancelTxHash(hash);
+            // Close modal after successful transaction
+            setTimeout(async () => {
+              closeModal();
+              // Update database to mark bet as cancelled
+              try {
+                const updateResponse = await fetch(
+                  `/api/bets/${selectedBet.bet_number}`,
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      status: 8,
+                      transaction_hash: hash,
+                    }),
+                  }
+                );
+
+                if (!updateResponse.ok) {
+                  console.error("Failed to update bet status in database");
+                } else {
+                  console.log("Bet status updated to cancelled in database");
                 }
-              );
-
-              if (!updateResponse.ok) {
-                console.error("Failed to update bet status in database");
-              } else {
-                console.log("Bet status updated to cancelled in database");
+              } catch (error) {
+                console.error("Error updating bet status:", error);
               }
-            } catch (error) {
-              console.error("Error updating bet status:", error);
-            }
 
-            // Refresh bets list
-            if (address) {
-              const response = await fetch(`/api/bets?address=${address}`);
-              if (response.ok) {
-                const data = await response.json();
-                setUserBets(data.bets || []);
+              // Refresh bets list
+              if (address) {
+                const response = await fetch(`/api/bets?address=${address}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  setUserBets(data.bets || []);
+                }
               }
-            }
-          }, 2000);
-        },
-        onError: (error: Error) => {
-          console.error("Cancel transaction failed:", error);
-          setIsCancelling(false);
-        },
-      });
+            }, 2000);
+          },
+          onError: (error: Error) => {
+            console.error("Cancel transaction failed:", error);
+            setIsCancelling(false);
+          },
+        });
+      } catch (error) {
+        console.error("Error sending cancel transaction:", error);
+        setIsCancelling(false);
+      }
     } catch (error) {
       console.error("Error cancelling bet:", error);
       setIsCancelling(false);
