@@ -109,6 +109,10 @@ export default function Demo(
     undefined
   );
   const [isCancelling, setIsCancelling] = useState(false);
+  const [acceptTxHash, setAcceptTxHash] = useState<`0x${string}` | undefined>(
+    undefined
+  );
+  const [isAccepting, setIsAccepting] = useState(false);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -494,12 +498,25 @@ export default function Demo(
     endTime: number,
     makerProfile?: UserProfile | null,
     takerProfile?: UserProfile | null,
-    arbiterProfile?: UserProfile | null
+    arbiterProfile?: UserProfile | null,
+    currentUserAddress?: string
   ) => {
     const now = Math.floor(Date.now() / 1000);
 
     switch (status) {
       case 0:
+        // Check if current user is the taker
+        if (
+          currentUserAddress &&
+          currentUserAddress.toLowerCase() ===
+            takerProfile?.primaryEthAddress?.toLowerCase()
+        ) {
+          return {
+            text: "Accept Bet?",
+            bgColor:
+              "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+          };
+        }
         return {
           text: `Pending ${takerProfile?.username || "Taker"}`,
           bgColor:
@@ -679,6 +696,99 @@ export default function Demo(
     }
   };
 
+  // Function to accept bet
+  const handleAcceptBet = async () => {
+    if (!selectedBet || !isConnected) {
+      console.error("Cannot accept bet: not connected or no bet selected");
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
+    try {
+      setIsAccepting(true);
+      console.log("Accepting bet #", selectedBet.bet_number);
+
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: BET_MANAGEMENT_ENGINE_ABI,
+        functionName: "acceptBet",
+        args: [BigInt(selectedBet.bet_number)],
+      });
+
+      console.log("Encoded accept transaction data:", encodedData);
+
+      // Send the transaction
+      sendTransaction(
+        {
+          to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+          data: encodedData as `0x${string}`,
+        },
+        {
+          onSuccess: async (hash: `0x${string}`) => {
+            console.log("Accept transaction sent successfully:", hash);
+            setAcceptTxHash(hash);
+
+            // Close modal after successful transaction
+            setTimeout(async () => {
+              closeModal();
+              // Update database to mark bet as accepted
+              try {
+                const updateResponse = await fetch(
+                  `/api/bets?betNumber=${selectedBet.bet_number}`,
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      status: 1,
+                      transaction_hash: hash,
+                    }),
+                  }
+                );
+
+                if (!updateResponse.ok) {
+                  console.error("Failed to update bet status in database");
+                } else {
+                  console.log("Bet status updated to accepted in database");
+                }
+              } catch (error) {
+                console.error("Error updating bet status:", error);
+              }
+
+              // Refresh bets list
+              if (address) {
+                const response = await fetch(`/api/bets?address=${address}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  setUserBets(data.bets || []);
+                }
+              }
+            }, 2000);
+          },
+          onError: (error: Error) => {
+            console.error("Accept transaction failed:", error);
+            setIsAccepting(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error accepting bet:", error);
+      setIsAccepting(false);
+    }
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -786,7 +896,8 @@ export default function Demo(
                                   bet.end_time,
                                   bet.makerProfile,
                                   bet.takerProfile,
-                                  bet.arbiterProfile
+                                  bet.arbiterProfile,
+                                  address
                                 ).bgColor
                               }`}
                             >
@@ -796,7 +907,8 @@ export default function Demo(
                                   bet.end_time,
                                   bet.makerProfile,
                                   bet.takerProfile,
-                                  bet.arbiterProfile
+                                  bet.arbiterProfile,
+                                  address
                                 ).text
                               }
                             </div>
@@ -842,6 +954,30 @@ export default function Demo(
                                   className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
                                 >
                                   Edit
+                                </button>
+                              </div>
+                            )}
+
+                          {/* Taker Actions for Status 0 */}
+                          {address &&
+                            address.toLowerCase() ===
+                              bet.takerProfile?.primaryEthAddress?.toLowerCase() &&
+                            bet.status === 0 && (
+                              <div className="flex space-x-2 mt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedBet(bet);
+                                    setIsModalOpen(true);
+                                    // TODO: Implement accept bet logic
+                                    console.log(
+                                      "Accept bet clicked for bet #",
+                                      bet.bet_number
+                                    );
+                                  }}
+                                  className="px-2 py-1 text-xs bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
+                                >
+                                  Accept Bet
                                 </button>
                               </div>
                             )}
@@ -1036,7 +1172,8 @@ export default function Demo(
                         selectedBet.end_time,
                         selectedBet.makerProfile,
                         selectedBet.takerProfile,
-                        selectedBet.arbiterProfile
+                        selectedBet.arbiterProfile,
+                        address
                       ).bgColor
                     }`}
                   >
@@ -1046,7 +1183,8 @@ export default function Demo(
                         selectedBet.end_time,
                         selectedBet.makerProfile,
                         selectedBet.takerProfile,
-                        selectedBet.arbiterProfile
+                        selectedBet.arbiterProfile,
+                        address
                       ).text
                     }
                   </div>
@@ -1075,6 +1213,24 @@ export default function Demo(
                           className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                         >
                           Edit Bet
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Taker Actions */}
+                {address &&
+                  address.toLowerCase() ===
+                    selectedBet.takerProfile?.primaryEthAddress?.toLowerCase() &&
+                  selectedBet.status === 0 && (
+                    <div className="mb-4">
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={handleAcceptBet}
+                          disabled={isAccepting}
+                          className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isAccepting ? "Accepting..." : "Accept Bet"}
                         </button>
                       </div>
                     </div>
