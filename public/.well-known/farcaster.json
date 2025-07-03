@@ -1,4 +1,9 @@
 {
+    "accountAssociation": {
+        "header": "eyJmaWQiOjIxMjA3NCwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDViYjk1NTM1REYyNjQ0MTg3NDcwMEEyNDI4Y0RkNDhGRjQxYjJEZTkifQ",
+        "payload": "eyJkb21haW4iOiJiZXRjYXN0ZXIudmVyY2VsLmFwcCJ9",
+        "signature": "MHhmMzZlZWZjMDY3NDFmOWEwMzM3MTMzN2Q2YjA5MzZjMWM1MDM0YTIxYzFlYWQ1MmUyYzAzOWY5OWRmNzdiZjFjMGQ3ZDZiZDRjYzk1ZWY0Y2I1ZjI1MDA5MzhkOTc0NzFmOWIwMjA4YjNiNmZmNzkwZjhmMTVjNTY2YTAyZTE4MzFj"
+    },
     "miniapp": {
         "version": "1",
         "name": "Betcaster",
