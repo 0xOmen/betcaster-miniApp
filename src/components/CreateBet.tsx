@@ -18,6 +18,7 @@ import {
 } from "wagmi";
 import { base } from "wagmi/chains";
 import { supabase } from "~/lib/supabase";
+import { BASE_TOKENS, Token, amountToWei } from "~/lib/tokens";
 
 interface User {
   fid: number;
@@ -27,63 +28,6 @@ interface User {
   primaryEthAddress?: string;
   primarySolanaAddress?: string;
 }
-
-interface Token {
-  name: string;
-  address: string;
-  symbol: string;
-  decimals: number;
-  image: string;
-  chainId: number;
-}
-
-const tokenOptions: Token[] = [
-  {
-    name: "Bracky",
-    address: "0x06f71fb90f84b35302d132322a3c90e4477333b0",
-    symbol: "BRACKY",
-    decimals: 18,
-    image:
-      "https://wrpcd.net/cdn-cgi/imagedelivery/BXluQx4ige9GuW0Ia56BHw/c58cb239-9e92-4fb5-d982-50fd5b903800/anim=false,fit=contain,f=auto,w=576",
-    chainId: 8453,
-  },
-  {
-    name: "USDC",
-    address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-    symbol: "USDC",
-    decimals: 6,
-    image:
-      "https://d3r81g40ycuhqg.cloudfront.net/wallet/wais/44/2b/442b80bd16af0c0d9b22e03a16753823fe826e5bfd457292b55fa0ba8c1ba213-ZWUzYjJmZGUtMDYxNy00NDcyLTg0NjQtMWI4OGEwYjBiODE2",
-    chainId: 8453,
-  },
-  {
-    name: "Degen",
-    address: "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed",
-    symbol: "DEGEN",
-    decimals: 18,
-    image:
-      "https://assets.coingecko.com/coins/images/34515/standard/android-chrome-512x512.png?1706198225",
-    chainId: 8453,
-  },
-  {
-    name: "Clanker",
-    address: "0x1bc0c42215582d5a085795f4badbac3ff36d1bcb",
-    symbol: "CLANKER",
-    decimals: 18,
-    image:
-      "https://assets.coingecko.com/coins/images/51440/standard/CLANKER.png?1731232869",
-    chainId: 8453,
-  },
-  {
-    name: "Ethereum",
-    address: "",
-    symbol: "ETH",
-    decimals: 18,
-    image:
-      "https://wallet-api-production.s3.amazonaws.com/uploads/tokens/eth_288.png",
-    chainId: 8453,
-  },
-];
 
 function TokenSelectDropdown({
   token,
@@ -690,9 +634,9 @@ export default function CreateBet({
 
     // Check token allowance for ERC20 tokens (skip for native ETH)
     if (selectedToken.address !== "") {
-      const decimals = selectedToken.decimals || 18;
-      const betAmountWei = BigInt(
-        Math.floor(parseFloat(betAmount) * Math.pow(10, decimals))
+      const betAmountWei = amountToWei(
+        parseFloat(betAmount),
+        selectedToken.address
       );
 
       if (!allowance || allowance < betAmountWei) {
@@ -756,9 +700,9 @@ export default function CreateBet({
       }
 
       // Convert bet amount to wei (using token decimals)
-      const decimals = selectedToken.decimals || 18;
-      const betAmountWei = BigInt(
-        Math.floor(parseFloat(betAmount) * Math.pow(10, decimals))
+      const betAmountWei = amountToWei(
+        parseFloat(betAmount),
+        selectedToken.address
       );
 
       // Prepare the transaction parameters for createBet function
@@ -986,7 +930,7 @@ export default function CreateBet({
           <TokenSelectDropdown
             token={selectedToken}
             setToken={setSelectedToken}
-            options={tokenOptions}
+            options={BASE_TOKENS}
           />
         </div>
 

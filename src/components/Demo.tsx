@@ -39,6 +39,35 @@ import {
   BET_MANAGEMENT_ENGINE_ADDRESS,
 } from "~/lib/contracts";
 import { encodeFunctionData } from "viem";
+import { useReadContract, useWriteContract } from "wagmi";
+import { amountToWei } from "~/lib/tokens";
+
+// Add ERC20 ABI for allowance and approve functions
+const ERC20_ABI = [
+  {
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    name: "allowance",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "approve",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
+
+const SPENDER_ADDRESS =
+  "0xEA358a9670a4f2113AA17e8d6C9A0dE68c2a0aEa" as `0x${string}`; //Betcaster contract on Base
 
 export type Tab = "create" | "bets" | "arbitrate" | "wallet" | "leaderboard";
 
@@ -113,12 +142,33 @@ export default function Demo(
     undefined
   );
   const [isAccepting, setIsAccepting] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [approvalTxHash, setApprovalTxHash] = useState<
+    `0x${string}` | undefined
+  >(undefined);
+  const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const hasSolanaProvider = useHasSolanaProvider();
   const solanaWallet = useSolanaWallet();
   const { publicKey: solanaPublicKey } = solanaWallet;
+  const { writeContractAsync: writeApproveAsync } = useWriteContract();
+
+  // Read allowance for the selected bet's token
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: selectedBet?.bet_token_address as `0x${string}`,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: [address as `0x${string}`, SPENDER_ADDRESS],
+    query: {
+      enabled:
+        !!selectedBet?.bet_token_address &&
+        !!address &&
+        selectedBet.bet_token_address !==
+          "0x0000000000000000000000000000000000000000",
+    },
+  });
 
   // Set initial tab to bets (Pending Bets) on page load
   useEffect(() => {
@@ -417,12 +467,46 @@ export default function Demo(
       hash: txHash as `0x${string}`,
     });
 
+  // Wait for approval transaction receipt
+  const { data: approvalReceipt, isSuccess: isApprovalReceiptSuccess } =
+    useWaitForTransactionReceipt({
+      hash: approvalTxHash,
+    });
+
   const {
     signTypedData,
     error: signTypedError,
     isError: isSignTypedError,
     isPending: isSignTypedPending,
   } = useSignTypedData();
+
+  // Handle approval transaction receipt
+  useEffect(() => {
+    if (approvalReceipt && isApprovalReceiptSuccess) {
+      console.log("=== APPROVAL TRANSACTION RECEIPT ===");
+      console.log("Transaction Hash:", approvalReceipt.transactionHash);
+      console.log(
+        "Status:",
+        approvalReceipt.status === "success" ? "Success" : "Failed"
+      );
+
+      if (approvalReceipt.status === "success") {
+        console.log("Token approval successful!");
+        setIsApproving(false);
+        setShowApprovalSuccess(true);
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setShowApprovalSuccess(false);
+        }, 3000);
+
+        // Refetch allowance after successful approval
+        setTimeout(() => {
+          refetchAllowance();
+        }, 1000);
+      }
+    }
+  }, [approvalReceipt, isApprovalReceiptSuccess, refetchAllowance]);
 
   const { disconnect } = useDisconnect();
 
@@ -754,6 +838,42 @@ export default function Demo(
       } catch (error) {
         console.error("Failed to switch to Base network:", error);
         return;
+      }
+    }
+
+    // Check token allowance for ERC20 tokens (skip for native ETH)
+    if (
+      selectedBet.bet_token_address !==
+      "0x0000000000000000000000000000000000000000"
+    ) {
+      const betAmountWei = amountToWei(
+        selectedBet.bet_amount,
+        selectedBet.bet_token_address
+      );
+
+      if (!allowance || allowance < betAmountWei) {
+        console.log("Insufficient token allowance. Requesting approval...");
+
+        try {
+          setIsApproving(true);
+          const hash = await writeApproveAsync({
+            address: selectedBet.bet_token_address as `0x${string}`,
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [SPENDER_ADDRESS, betAmountWei],
+          });
+
+          if (hash) {
+            console.log("Approval transaction sent:", hash);
+            setApprovalTxHash(hash);
+          }
+
+          return;
+        } catch (error) {
+          console.error("Failed to approve token allowance:", error);
+          setIsApproving(false);
+          return;
+        }
       }
     }
 
@@ -1174,6 +1294,13 @@ export default function Demo(
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
               <div className="p-6">
+                {/* Approval Success Message */}
+                {showApprovalSuccess && (
+                  <div className="mb-4 p-3 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-lg">
+                    ✅ Token approval successful! You can now accept the bet.
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     Bet #{selectedBet.bet_number}
@@ -1250,10 +1377,14 @@ export default function Demo(
                       <div className="flex space-x-3">
                         <button
                           onClick={handleAcceptBet}
-                          disabled={isAccepting}
+                          disabled={isAccepting || isApproving}
                           className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {isAccepting ? "Accepting..." : "Accept Bet"}
+                          {isApproving
+                            ? "Approving..."
+                            : isAccepting
+                              ? "Accepting..."
+                              : "Accept Bet"}
                         </button>
                       </div>
                     </div>
