@@ -12,7 +12,7 @@
         "splashImageUrl": "https://betcaster.vercel.app/splash.png",
         "splashBackgroundColor": "#f7f7f7",
         "webhookUrl": "https://betcaster.vercel.app/api/webhook",
-        "subtitle": "Decentralized betting on Farcaster",
+        "subtitle": "Bet with Friends on Farcaster",
         "description": "Create, accept, and settle bets with friends on Farcaster. Secure blockchain-based betting with smart contract enforcement.",
         "screenshotUrls": [
             "https://betcaster.vercel.app/Bets1.png",
