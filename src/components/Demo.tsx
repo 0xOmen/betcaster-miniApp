@@ -201,6 +201,25 @@ export default function Demo(
           const bets = data.bets || [];
           console.log("📊 Found bets:", bets.length, "bets:", bets);
 
+          // Debug: Log user's role in each bet
+          bets.forEach((bet: Bet) => {
+            const isMaker =
+              address?.toLowerCase() === bet.maker_address.toLowerCase();
+            const isTaker =
+              address?.toLowerCase() === bet.taker_address.toLowerCase();
+            const isArbiter =
+              address?.toLowerCase() === bet.arbiter_address?.toLowerCase();
+            console.log(`🎯 Bet #${bet.bet_number} - User role:`, {
+              isMaker,
+              isTaker,
+              isArbiter,
+              userAddress: address,
+              makerAddress: bet.maker_address,
+              takerAddress: bet.taker_address,
+              arbiterAddress: bet.arbiter_address,
+            });
+          });
+
           // Fetch profile data for each bet's maker and taker
           const betsWithProfiles = await Promise.all(
             bets.map(async (bet: Bet) => {
@@ -493,23 +512,17 @@ export default function Demo(
   }, [connect, connectors]);
 
   // Function to get status text and styling
-  const getStatusInfo = (
-    status: number,
-    endTime: number,
-    makerProfile?: UserProfile | null,
-    takerProfile?: UserProfile | null,
-    arbiterProfile?: UserProfile | null,
-    currentUserAddress?: string
-  ) => {
+  const getStatusInfo = (bet: Bet, currentUserAddress?: string) => {
     const now = Math.floor(Date.now() / 1000);
+    const { status, end_time, makerProfile, takerProfile, arbiterProfile } =
+      bet;
 
     switch (status) {
       case 0:
         // Check if current user is the taker
         if (
           currentUserAddress &&
-          currentUserAddress.toLowerCase() ===
-            takerProfile?.primaryEthAddress?.toLowerCase()
+          currentUserAddress.toLowerCase() === bet.taker_address.toLowerCase()
         ) {
           return {
             text: "Accept Bet?",
@@ -529,7 +542,7 @@ export default function Demo(
             "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
         };
       case 2:
-        const isEndTimePassed = now > endTime;
+        const isEndTimePassed = now > end_time;
         return {
           text: isEndTimePassed
             ? `Waiting ${arbiterProfile?.username || "Arbiter"}'s decision`
@@ -891,26 +904,10 @@ export default function Demo(
                             </div>
                             <div
                               className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                getStatusInfo(
-                                  bet.status,
-                                  bet.end_time,
-                                  bet.makerProfile,
-                                  bet.takerProfile,
-                                  bet.arbiterProfile,
-                                  address
-                                ).bgColor
+                                getStatusInfo(bet, address).bgColor
                               }`}
                             >
-                              {
-                                getStatusInfo(
-                                  bet.status,
-                                  bet.end_time,
-                                  bet.makerProfile,
-                                  bet.takerProfile,
-                                  bet.arbiterProfile,
-                                  address
-                                ).text
-                              }
+                              {getStatusInfo(bet, address).text}
                             </div>
                           </div>
                           <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
@@ -961,7 +958,7 @@ export default function Demo(
                           {/* Taker Actions for Status 0 */}
                           {address &&
                             address.toLowerCase() ===
-                              bet.takerProfile?.primaryEthAddress?.toLowerCase() &&
+                              bet.taker_address.toLowerCase() &&
                             bet.status === 0 && (
                               <div className="flex space-x-2 mt-2">
                                 <button
@@ -1167,26 +1164,10 @@ export default function Demo(
                 <div className="mb-4">
                   <div
                     className={`inline-block px-3 py-1 text-sm font-medium rounded-full ${
-                      getStatusInfo(
-                        selectedBet.status,
-                        selectedBet.end_time,
-                        selectedBet.makerProfile,
-                        selectedBet.takerProfile,
-                        selectedBet.arbiterProfile,
-                        address
-                      ).bgColor
+                      getStatusInfo(selectedBet, address).bgColor
                     }`}
                   >
-                    {
-                      getStatusInfo(
-                        selectedBet.status,
-                        selectedBet.end_time,
-                        selectedBet.makerProfile,
-                        selectedBet.takerProfile,
-                        selectedBet.arbiterProfile,
-                        address
-                      ).text
-                    }
+                    {getStatusInfo(selectedBet, address).text}
                   </div>
                 </div>
 
@@ -1221,7 +1202,7 @@ export default function Demo(
                 {/* Taker Actions */}
                 {address &&
                   address.toLowerCase() ===
-                    selectedBet.takerProfile?.primaryEthAddress?.toLowerCase() &&
+                    selectedBet.taker_address.toLowerCase() &&
                   selectedBet.status === 0 && (
                     <div className="mb-4">
                       <div className="flex space-x-3">
