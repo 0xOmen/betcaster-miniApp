@@ -77,14 +77,26 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const address = searchParams.get('address');
+    const fid = searchParams.get('fid');
     const status = searchParams.get('status');
 
-    console.log("🔍 API: Fetching bets with params:", { address, status });
+    console.log("🔍 API: Fetching bets with params:", { address, fid, status });
 
     let query = supabase.from('bets').select('*').order('created_at', { ascending: false });
 
-    if (address) {
-      query = query.or(`maker_address.eq.${address},taker_address.eq.${address},arbiter_address.eq.${address}`);
+    if (address || fid) {
+      let conditions = [];
+      
+      if (address) {
+        conditions.push(`maker_address.eq.${address},taker_address.eq.${address},arbiter_address.eq.${address}`);
+      }
+      
+      if (fid) {
+        conditions.push(`maker_fid.eq.${fid},taker_fid.eq.${fid},arbiter_fid.eq.${fid}`);
+      }
+      
+      // Combine conditions with OR
+      query = query.or(conditions.join(','));
     }
 
     if (status !== null) {

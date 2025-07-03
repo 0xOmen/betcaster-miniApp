@@ -187,15 +187,25 @@ export default function Demo(
     fetchNeynarUserObject();
   }, [context?.user?.fid]);
 
-  // Fetch user bets when wallet is connected
+  // Fetch user bets when wallet is connected OR when Farcaster context is available
   useEffect(() => {
     const fetchUserBets = async () => {
-      if (!address) return;
+      // Only fetch if we have either an address or a Farcaster FID
+      if (!address && !context?.user?.fid) return;
 
-      console.log("🔍 Fetching user bets for address:", address);
+      console.log("🔍 Fetching user bets for:", {
+        address,
+        fid: context?.user?.fid,
+      });
       setIsLoadingBets(true);
       try {
-        const response = await fetch(`/api/bets?address=${address}`);
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (address) params.append("address", address);
+        if (context?.user?.fid)
+          params.append("fid", context.user.fid.toString());
+
+        const response = await fetch(`/api/bets?${params.toString()}`);
         if (response.ok) {
           const data = await response.json();
           const bets = data.bets || [];
@@ -204,19 +214,26 @@ export default function Demo(
           // Debug: Log user's role in each bet
           bets.forEach((bet: Bet) => {
             const isMaker =
-              address?.toLowerCase() === bet.maker_address.toLowerCase();
+              address?.toLowerCase() === bet.maker_address.toLowerCase() ||
+              context?.user?.fid === bet.maker_fid;
             const isTaker =
-              address?.toLowerCase() === bet.taker_address.toLowerCase();
+              address?.toLowerCase() === bet.taker_address.toLowerCase() ||
+              context?.user?.fid === bet.taker_fid;
             const isArbiter =
-              address?.toLowerCase() === bet.arbiter_address?.toLowerCase();
+              address?.toLowerCase() === bet.arbiter_address?.toLowerCase() ||
+              context?.user?.fid === bet.arbiter_fid;
             console.log(`🎯 Bet #${bet.bet_number} - User role:`, {
               isMaker,
               isTaker,
               isArbiter,
               userAddress: address,
+              userFid: context?.user?.fid,
               makerAddress: bet.maker_address,
+              makerFid: bet.maker_fid,
               takerAddress: bet.taker_address,
+              takerFid: bet.taker_fid,
               arbiterAddress: bet.arbiter_address,
+              arbiterFid: bet.arbiter_fid,
             });
           });
 
@@ -386,7 +403,7 @@ export default function Demo(
     };
 
     fetchUserBets();
-  }, [address]);
+  }, [address, context?.user?.fid]);
 
   const {
     sendTransaction,
@@ -512,18 +529,25 @@ export default function Demo(
   }, [connect, connectors]);
 
   // Function to get status text and styling
-  const getStatusInfo = (bet: Bet, currentUserAddress?: string) => {
+  const getStatusInfo = (
+    bet: Bet,
+    currentUserAddress?: string,
+    currentUserFid?: number
+  ) => {
     const now = Math.floor(Date.now() / 1000);
     const { status, end_time, makerProfile, takerProfile, arbiterProfile } =
       bet;
 
     switch (status) {
       case 0:
-        // Check if current user is the taker
-        if (
-          currentUserAddress &&
-          currentUserAddress.toLowerCase() === bet.taker_address.toLowerCase()
-        ) {
+        // Check if current user is the taker (by address OR FID)
+        const isTaker =
+          (currentUserAddress &&
+            currentUserAddress.toLowerCase() ===
+              bet.taker_address.toLowerCase()) ||
+          (currentUserFid && currentUserFid === bet.taker_fid);
+
+        if (isTaker) {
           return {
             text: "Accept Bet?",
             bgColor:
@@ -688,8 +712,13 @@ export default function Demo(
               }
 
               // Refresh bets list
-              if (address) {
-                const response = await fetch(`/api/bets?address=${address}`);
+              if (address || context?.user?.fid) {
+                const params = new URLSearchParams();
+                if (address) params.append("address", address);
+                if (context?.user?.fid)
+                  params.append("fid", context.user.fid.toString());
+
+                const response = await fetch(`/api/bets?${params.toString()}`);
                 if (response.ok) {
                   const data = await response.json();
                   setUserBets(data.bets || []);
@@ -781,8 +810,13 @@ export default function Demo(
               }
 
               // Refresh bets list
-              if (address) {
-                const response = await fetch(`/api/bets?address=${address}`);
+              if (address || context?.user?.fid) {
+                const params = new URLSearchParams();
+                if (address) params.append("address", address);
+                if (context?.user?.fid)
+                  params.append("fid", context.user.fid.toString());
+
+                const response = await fetch(`/api/bets?${params.toString()}`);
                 if (response.ok) {
                   const data = await response.json();
                   setUserBets(data.bets || []);
@@ -904,10 +938,14 @@ export default function Demo(
                             </div>
                             <div
                               className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                getStatusInfo(bet, address).bgColor
+                                getStatusInfo(bet, address, context?.user?.fid)
+                                  .bgColor
                               }`}
                             >
-                              {getStatusInfo(bet, address).text}
+                              {
+                                getStatusInfo(bet, address, context?.user?.fid)
+                                  .text
+                              }
                             </div>
                           </div>
                           <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
@@ -956,9 +994,9 @@ export default function Demo(
                             )}
 
                           {/* Taker Actions for Status 0 */}
-                          {address &&
-                            address.toLowerCase() ===
-                              bet.taker_address.toLowerCase() &&
+                          {(address?.toLowerCase() ===
+                            bet.taker_address.toLowerCase() ||
+                            context?.user?.fid === bet.taker_fid) &&
                             bet.status === 0 && (
                               <div className="flex space-x-2 mt-2">
                                 <button
@@ -1164,10 +1202,14 @@ export default function Demo(
                 <div className="mb-4">
                   <div
                     className={`inline-block px-3 py-1 text-sm font-medium rounded-full ${
-                      getStatusInfo(selectedBet, address).bgColor
+                      getStatusInfo(selectedBet, address, context?.user?.fid)
+                        .bgColor
                     }`}
                   >
-                    {getStatusInfo(selectedBet, address).text}
+                    {
+                      getStatusInfo(selectedBet, address, context?.user?.fid)
+                        .text
+                    }
                   </div>
                 </div>
 
@@ -1200,9 +1242,9 @@ export default function Demo(
                   )}
 
                 {/* Taker Actions */}
-                {address &&
-                  address.toLowerCase() ===
-                    selectedBet.taker_address.toLowerCase() &&
+                {(address?.toLowerCase() ===
+                  selectedBet.taker_address.toLowerCase() ||
+                  context?.user?.fid === selectedBet.taker_fid) &&
                   selectedBet.status === 0 && (
                     <div className="mb-4">
                       <div className="flex space-x-3">
