@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     let query = supabase.from('bets').select('*').order('created_at', { ascending: false });
 
     if (address || fid) {
-      let conditions = [];
+      const conditions = [];
       
       if (address) {
         conditions.push(`maker_address.eq.${address},taker_address.eq.${address},arbiter_address.eq.${address}`);
