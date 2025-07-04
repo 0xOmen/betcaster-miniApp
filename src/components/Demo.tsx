@@ -1110,6 +1110,28 @@ export default function Demo(
       }
     }
 
+    // Determine who is forfeiting the bet
+    const isMaker =
+      address?.toLowerCase() === selectedBet.maker_address.toLowerCase() ||
+      context?.user?.fid === selectedBet.maker_fid;
+
+    const isTaker =
+      address?.toLowerCase() === selectedBet.taker_address.toLowerCase() ||
+      context?.user?.fid === selectedBet.taker_fid;
+
+    // Set the appropriate status based on who is forfeiting
+    let forfeitStatus: number;
+    if (isMaker) {
+      forfeitStatus = 5; // Taker wins (status 5)
+      console.log("Maker is forfeiting - Taker wins");
+    } else if (isTaker) {
+      forfeitStatus = 4; // Maker wins (status 4)
+      console.log("Taker is forfeiting - Maker wins");
+    } else {
+      console.error("User is neither maker nor taker - cannot forfeit");
+      return;
+    }
+
     try {
       setIsForfeiting(true);
       console.log("Forfeiting bet #", selectedBet.bet_number);
@@ -1137,7 +1159,7 @@ export default function Demo(
             // Close modal after successful transaction
             setTimeout(async () => {
               closeModal();
-              // Update database to mark bet as forfeited
+              // Update database with the correct status based on who forfeited
               try {
                 const updateResponse = await fetch(
                   `/api/bets?betNumber=${selectedBet.bet_number}`,
@@ -1147,7 +1169,7 @@ export default function Demo(
                       "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                      status: 8, // Use status 8 for cancelled/forfeited
+                      status: forfeitStatus,
                       transaction_hash: hash,
                     }),
                   }
@@ -1156,7 +1178,9 @@ export default function Demo(
                 if (!updateResponse.ok) {
                   console.error("Failed to update bet status in database");
                 } else {
-                  console.log("Bet status updated to forfeited in database");
+                  console.log(
+                    `Bet status updated to ${forfeitStatus} in database`
+                  );
                 }
               } catch (error) {
                 console.error("Error updating bet status:", error);
