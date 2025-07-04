@@ -1111,6 +1111,7 @@ export default function Demo(
             sendTransaction={sendTransaction}
             isTransactionPending={isSendTxPending}
             setActiveTab={setActiveTab}
+            userFid={context?.user?.fid || null}
           />
         )}
 
