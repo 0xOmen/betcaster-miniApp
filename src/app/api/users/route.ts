@@ -16,12 +16,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let url = "https://api.neynar.com/v2/farcaster/user/bulk";
+    let url = "https://api.neynar.com/v2/farcaster/user";
 
     if (fids && fids.trim() !== "") {
-      url += `?fids=${fids}`;
+      url += `/bulk?fids=${fids}`;
     } else if (address) {
-      url += `?addresses=${address}`;
+      url += `/bulk-by-address?addresses=${address}`;
     }
 
     console.log("🌐 Users API: Calling Neynar URL:", url);
