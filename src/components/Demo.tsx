@@ -160,6 +160,10 @@ export default function Demo(
     undefined
   );
   const [isForfeiting, setIsForfeiting] = useState(false);
+  const [claimTxHash, setClaimTxHash] = useState<`0x${string}` | undefined>(
+    undefined
+  );
+  const [isClaiming, setIsClaiming] = useState(false);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -694,13 +698,13 @@ export default function Demo(
         }
       case 4:
         return {
-          text: `${makerProfile?.username || "Maker"} Won - Claim Pending`,
+          text: `${makerProfile?.username || "Maker"} Won`,
           bgColor:
             "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
         };
       case 5:
         return {
-          text: `${takerProfile?.username || "Taker"} Won - Claim Pending`,
+          text: `${takerProfile?.username || "Taker"} Won`,
           bgColor:
             "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
         };
@@ -1213,6 +1217,117 @@ export default function Demo(
     }
   };
 
+  // Function to handle claiming winnings
+  const handleClaimWinnings = async () => {
+    if (!selectedBet || !isConnected) {
+      console.error("Cannot claim winnings: not connected or no bet selected");
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
+    // Determine the new status based on current status
+    let newStatus: number;
+    if (selectedBet.status === 4) {
+      newStatus = 6; // Maker claimed winnings
+      console.log("Maker claiming winnings - updating to status 6");
+    } else if (selectedBet.status === 5) {
+      newStatus = 7; // Taker claimed winnings
+      console.log("Taker claiming winnings - updating to status 7");
+    } else {
+      console.error("Invalid bet status for claiming:", selectedBet.status);
+      return;
+    }
+
+    try {
+      setIsClaiming(true);
+      console.log("Claiming winnings for bet #", selectedBet.bet_number);
+
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: BET_MANAGEMENT_ENGINE_ABI,
+        functionName: "claimBet",
+        args: [BigInt(selectedBet.bet_number)],
+      });
+
+      console.log("Encoded claim transaction data:", encodedData);
+
+      // Send the transaction
+      sendTransaction(
+        {
+          to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+          data: encodedData as `0x${string}`,
+        },
+        {
+          onSuccess: async (hash: `0x${string}`) => {
+            console.log("Claim transaction sent successfully:", hash);
+            setClaimTxHash(hash);
+
+            // Close modal after successful transaction
+            setTimeout(async () => {
+              closeModal();
+              // Update database with the new status
+              try {
+                const updateResponse = await fetch(
+                  `/api/bets?betNumber=${selectedBet.bet_number}`,
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      status: newStatus,
+                      transaction_hash: hash,
+                    }),
+                  }
+                );
+
+                if (!updateResponse.ok) {
+                  console.error("Failed to update bet status in database");
+                } else {
+                  console.log(`Bet status updated to ${newStatus} in database`);
+                }
+              } catch (error) {
+                console.error("Error updating bet status:", error);
+              }
+
+              // Refresh bets list
+              if (address || context?.user?.fid) {
+                const params = new URLSearchParams();
+                if (address) params.append("address", address);
+                if (context?.user?.fid)
+                  params.append("fid", context.user.fid.toString());
+
+                const response = await fetch(`/api/bets?${params.toString()}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  setUserBets(data.bets || []);
+                }
+              }
+            }, 2000);
+          },
+          onError: (error: Error) => {
+            console.error("Claim transaction failed:", error);
+            setIsClaiming(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error claiming winnings:", error);
+      setIsClaiming(false);
+    }
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -1432,6 +1547,43 @@ export default function Demo(
                                   className="px-2 py-1 text-xs bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors"
                                 >
                                   Accept Arbiter Role
+                                </button>
+                              </div>
+                            )}
+
+                          {/* Claim Winnings Actions for Status 4 and 5 */}
+                          {bet.status === 4 &&
+                            (address?.toLowerCase() ===
+                              bet.maker_address.toLowerCase() ||
+                              context?.user?.fid === bet.maker_fid) && (
+                              <div className="flex space-x-2 mt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedBet(bet);
+                                    setIsModalOpen(true);
+                                  }}
+                                  className="px-2 py-1 text-xs bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
+                                >
+                                  Claim Winnings!
+                                </button>
+                              </div>
+                            )}
+
+                          {bet.status === 5 &&
+                            (address?.toLowerCase() ===
+                              bet.taker_address.toLowerCase() ||
+                              context?.user?.fid === bet.taker_fid) && (
+                              <div className="flex space-x-2 mt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedBet(bet);
+                                    setIsModalOpen(true);
+                                  }}
+                                  className="px-2 py-1 text-xs bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
+                                >
+                                  Claim Winnings!
                                 </button>
                               </div>
                             )}
@@ -1844,6 +1996,41 @@ export default function Demo(
                           className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isForfeiting ? "Forfeiting..." : "Forfeit Bet"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Claim Winnings Actions for Status 4 and 5 */}
+                {selectedBet.status === 4 &&
+                  (address?.toLowerCase() ===
+                    selectedBet.maker_address.toLowerCase() ||
+                    context?.user?.fid === selectedBet.maker_fid) && (
+                    <div className="mb-4">
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={handleClaimWinnings}
+                          disabled={isClaiming}
+                          className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isClaiming ? "Claiming..." : "Claim Winnings!"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                {selectedBet.status === 5 &&
+                  (address?.toLowerCase() ===
+                    selectedBet.taker_address.toLowerCase() ||
+                    context?.user?.fid === selectedBet.taker_fid) && (
+                    <div className="mb-4">
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={handleClaimWinnings}
+                          disabled={isClaiming}
+                          className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isClaiming ? "Claiming..." : "Claim Winnings!"}
                         </button>
                       </div>
                     </div>
