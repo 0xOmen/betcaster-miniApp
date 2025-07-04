@@ -45,6 +45,7 @@ import {
 import { encodeFunctionData } from "viem";
 import { useReadContract, useWriteContract } from "wagmi";
 import { amountToWei } from "~/lib/tokens";
+import { getTimeRemaining } from "~/lib/utils";
 
 // Add ERC20 ABI for allowance and approve functions
 const ERC20_ABI = [
@@ -673,14 +674,20 @@ export default function Demo(
         };
       case 2:
         const isEndTimePassed = now > end_time;
-        return {
-          text: isEndTimePassed
-            ? `Waiting ${arbiterProfile?.username || "Arbiter"}'s decision`
-            : "End time not passed",
-          bgColor: isEndTimePassed
-            ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-            : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-        };
+        if (isEndTimePassed) {
+          return {
+            text: `Waiting ${arbiterProfile?.username || "Arbiter"}'s decision`,
+            bgColor:
+              "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+          };
+        } else {
+          const timeRemaining = getTimeRemaining(end_time);
+          return {
+            text: `${timeRemaining} left`,
+            bgColor:
+              "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+          };
+        }
       case 4:
         return {
           text: `${makerProfile?.username || "Maker"} Won - Claim Pending`,
