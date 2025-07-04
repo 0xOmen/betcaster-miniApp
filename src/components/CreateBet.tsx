@@ -632,6 +632,22 @@ export default function CreateBet({
       return;
     }
 
+    // Ensure maker FID is available before proceeding
+    if (!makerFid && address) {
+      console.log("Fetching maker FID before bet creation...");
+      try {
+        const response = await fetch(`/api/users?address=${address}`);
+        if (response.ok) {
+          const data = await response.json();
+          const fid = data.users?.[0]?.fid || null;
+          setMakerFid(fid);
+          console.log("Maker FID set before bet creation:", fid);
+        }
+      } catch (error) {
+        console.error("Failed to fetch maker FID before bet creation:", error);
+      }
+    }
+
     // Check token allowance for ERC20 tokens (skip for native ETH)
     if (selectedToken.address !== "") {
       const betAmountWei = amountToWei(
@@ -755,27 +771,6 @@ export default function CreateBet({
   };
 
   const endDateTimestamp = getEndDateTimestamp();
-
-  // Fetch maker FID when wallet is connected
-  useEffect(() => {
-    const fetchMakerFid = async () => {
-      if (address) {
-        try {
-          const response = await fetch(`/api/users?address=${address}`);
-          if (response.ok) {
-            const data = await response.json();
-            const fid = data.users?.[0]?.fid || null;
-            setMakerFid(fid);
-            console.log("Maker FID set:", fid);
-          }
-        } catch (error) {
-          console.error("Failed to fetch maker FID:", error);
-        }
-      }
-    };
-
-    fetchMakerFid();
-  }, [address]);
 
   return (
     <div className="space-y-6 px-6 w-full max-w-md mx-auto">
