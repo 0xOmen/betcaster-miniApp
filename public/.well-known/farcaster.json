@@ -9,7 +9,7 @@
         "name": "Betcaster",
         "iconUrl": "https://betcaster.vercel.app/icon.png",
         "homeUrl": "https://betcaster.vercel.app",
-        "splashImageUrl": "https://betcaster.vercel.app/splash.png",
+        "splashImageUrl": "https://betcaster.vercel.app/icon.png",
         "splashBackgroundColor": "#f7f7f7",
         "webhookUrl": "https://betcaster.vercel.app/api/webhook",
         "subtitle": "Bet with Friends on Farcaster",
