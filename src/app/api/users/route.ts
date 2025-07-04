@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const fids = searchParams.get('fids');
-    const address = searchParams.get('address');
+    const fids = searchParams.get("fids");
+    const address = searchParams.get("address");
 
     console.log("👤 Users API: Request params:", { fids, address });
 
@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let url = 'https://api.neynar.com/v2/farcaster/user/bulk';
-    
-    if (fids) {
+    let url = "https://api.neynar.com/v2/farcaster/user/bulk";
+
+    if (fids && fids.trim() !== "") {
       url += `?fids=${fids}`;
     } else if (address) {
       url += `?addresses=${address}`;
@@ -28,14 +28,18 @@ export async function GET(request: NextRequest) {
 
     const response = await fetch(url, {
       headers: {
-        'api_key': process.env.NEYNAR_API_KEY || '',
+        api_key: process.env.NEYNAR_API_KEY || "",
       },
     });
 
     console.log("🌐 Users API: Neynar response status:", response.status);
 
     if (!response.ok) {
-      console.error('❌ Users API: Neynar API error:', response.status, response.statusText);
+      console.error(
+        "❌ Users API: Neynar API error:",
+        response.status,
+        response.statusText
+      );
       return NextResponse.json(
         { error: "Failed to fetch user data" },
         { status: response.status }
