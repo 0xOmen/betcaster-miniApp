@@ -38,6 +38,10 @@ import {
   BET_MANAGEMENT_ENGINE_ABI,
   BET_MANAGEMENT_ENGINE_ADDRESS,
 } from "~/lib/contracts";
+import {
+  ARBITER_MANAGEMENT_ENGINE_ABI,
+  ARBITER_MANAGEMENT_ENGINE_ADDRESS,
+} from "~/lib/arbiterAbi";
 import { encodeFunctionData } from "viem";
 import { useReadContract, useWriteContract } from "wagmi";
 import { amountToWei } from "~/lib/tokens";
@@ -147,6 +151,10 @@ export default function Demo(
     `0x${string}` | undefined
   >(undefined);
   const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
+  const [acceptArbiterTxHash, setAcceptArbiterTxHash] = useState<
+    `0x${string}` | undefined
+  >(undefined);
+  const [isAcceptingArbiter, setIsAcceptingArbiter] = useState(false);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -644,6 +652,20 @@ export default function Demo(
             "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
         };
       case 1:
+        // Check if current user is the arbiter (by address OR FID)
+        const isArbiter =
+          (currentUserAddress &&
+            currentUserAddress.toLowerCase() ===
+              bet.arbiter_address?.toLowerCase()) ||
+          (currentUserFid && currentUserFid === bet.arbiter_fid);
+
+        if (isArbiter) {
+          return {
+            text: "Accept Arbiter Role?",
+            bgColor:
+              "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+          };
+        }
         return {
           text: `Pending ${arbiterProfile?.username || "Arbiter"}`,
           bgColor:
@@ -956,6 +978,108 @@ export default function Demo(
     }
   };
 
+  // Function to accept arbiter role
+  const handleAcceptArbiterRole = async () => {
+    if (!selectedBet || !isConnected) {
+      console.error(
+        "Cannot accept arbiter role: not connected or no bet selected"
+      );
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
+    try {
+      setIsAcceptingArbiter(true);
+      console.log("Accepting arbiter role for bet #", selectedBet.bet_number);
+
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: ARBITER_MANAGEMENT_ENGINE_ABI,
+        functionName: "ArbiterAcceptRole",
+        args: [BigInt(selectedBet.bet_number)],
+      });
+
+      console.log("Encoded accept arbiter transaction data:", encodedData);
+
+      // Send the transaction
+      sendTransaction(
+        {
+          to: ARBITER_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+          data: encodedData as `0x${string}`,
+        },
+        {
+          onSuccess: async (hash: `0x${string}`) => {
+            console.log("Accept arbiter transaction sent successfully:", hash);
+            setAcceptArbiterTxHash(hash);
+
+            // Close modal after successful transaction
+            setTimeout(async () => {
+              closeModal();
+              // Update database to mark bet as arbiter accepted
+              try {
+                const updateResponse = await fetch(
+                  `/api/bets?betNumber=${selectedBet.bet_number}`,
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      status: 2,
+                      transaction_hash: hash,
+                    }),
+                  }
+                );
+
+                if (!updateResponse.ok) {
+                  console.error("Failed to update bet status in database");
+                } else {
+                  console.log(
+                    "Bet status updated to arbiter accepted in database"
+                  );
+                }
+              } catch (error) {
+                console.error("Error updating bet status:", error);
+              }
+
+              // Refresh bets list
+              if (address || context?.user?.fid) {
+                const params = new URLSearchParams();
+                if (address) params.append("address", address);
+                if (context?.user?.fid)
+                  params.append("fid", context.user.fid.toString());
+
+                const response = await fetch(`/api/bets?${params.toString()}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  setUserBets(data.bets || []);
+                }
+              }
+            }, 2000);
+          },
+          onError: (error: Error) => {
+            console.error("Accept arbiter transaction failed:", error);
+            setIsAcceptingArbiter(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error accepting arbiter role:", error);
+      setIsAcceptingArbiter(false);
+    }
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -1133,6 +1257,25 @@ export default function Demo(
                                   className="px-2 py-1 text-xs bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
                                 >
                                   Accept Bet
+                                </button>
+                              </div>
+                            )}
+
+                          {/* Arbiter Actions for Status 1 */}
+                          {(address?.toLowerCase() ===
+                            bet.arbiter_address?.toLowerCase() ||
+                            context?.user?.fid === bet.arbiter_fid) &&
+                            bet.status === 1 && (
+                              <div className="flex space-x-2 mt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedBet(bet);
+                                    setIsModalOpen(true);
+                                  }}
+                                  className="px-2 py-1 text-xs bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors"
+                                >
+                                  Accept Arbiter Role
                                 </button>
                               </div>
                             )}
@@ -1385,6 +1528,26 @@ export default function Demo(
                             : isAccepting
                               ? "Accepting..."
                               : "Accept Bet"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Arbiter Actions */}
+                {(address?.toLowerCase() ===
+                  selectedBet.arbiter_address?.toLowerCase() ||
+                  context?.user?.fid === selectedBet.arbiter_fid) &&
+                  selectedBet.status === 1 && (
+                    <div className="mb-4">
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={handleAcceptArbiterRole}
+                          disabled={isAcceptingArbiter}
+                          className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isAcceptingArbiter
+                            ? "Accepting..."
+                            : "Accept Arbiter Role"}
                         </button>
                       </div>
                     </div>
