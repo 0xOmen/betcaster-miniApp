@@ -156,6 +156,10 @@ export default function Demo(
     `0x${string}` | undefined
   >(undefined);
   const [isAcceptingArbiter, setIsAcceptingArbiter] = useState(false);
+  const [forfeitTxHash, setForfeitTxHash] = useState<`0x${string}` | undefined>(
+    undefined
+  );
+  const [isForfeiting, setIsForfeiting] = useState(false);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -1087,6 +1091,104 @@ export default function Demo(
     }
   };
 
+  // Function to handle bet forfeiture
+  const handleForfeitBet = async () => {
+    if (!selectedBet || !isConnected) {
+      console.error("Cannot forfeit bet: not connected or no bet selected");
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
+    try {
+      setIsForfeiting(true);
+      console.log("Forfeiting bet #", selectedBet.bet_number);
+
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: BET_MANAGEMENT_ENGINE_ABI,
+        functionName: "forfeitBet",
+        args: [BigInt(selectedBet.bet_number)],
+      });
+
+      console.log("Encoded forfeit transaction data:", encodedData);
+
+      // Send the transaction
+      sendTransaction(
+        {
+          to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+          data: encodedData as `0x${string}`,
+        },
+        {
+          onSuccess: async (hash: `0x${string}`) => {
+            console.log("Forfeit transaction sent successfully:", hash);
+            setForfeitTxHash(hash);
+
+            // Close modal after successful transaction
+            setTimeout(async () => {
+              closeModal();
+              // Update database to mark bet as forfeited
+              try {
+                const updateResponse = await fetch(
+                  `/api/bets?betNumber=${selectedBet.bet_number}`,
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      status: 8, // Use status 8 for cancelled/forfeited
+                      transaction_hash: hash,
+                    }),
+                  }
+                );
+
+                if (!updateResponse.ok) {
+                  console.error("Failed to update bet status in database");
+                } else {
+                  console.log("Bet status updated to forfeited in database");
+                }
+              } catch (error) {
+                console.error("Error updating bet status:", error);
+              }
+
+              // Refresh bets list
+              if (address || context?.user?.fid) {
+                const params = new URLSearchParams();
+                if (address) params.append("address", address);
+                if (context?.user?.fid)
+                  params.append("fid", context.user.fid.toString());
+
+                const response = await fetch(`/api/bets?${params.toString()}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  setUserBets(data.bets || []);
+                }
+              }
+            }, 2000);
+          },
+          onError: (error: Error) => {
+            console.error("Forfeit transaction failed:", error);
+            setIsForfeiting(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error forfeiting bet:", error);
+      setIsForfeiting(false);
+    }
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -1209,6 +1311,28 @@ export default function Demo(
                             {bet.makerProfile?.display_name || "Unknown"} vs{" "}
                             {bet.takerProfile?.display_name || "Unknown"}
                           </div>
+
+                          {/* Forfeit Actions for Status 2 */}
+                          {bet.status === 2 &&
+                            (address?.toLowerCase() ===
+                              bet.maker_address.toLowerCase() ||
+                              context?.user?.fid === bet.maker_fid ||
+                              address?.toLowerCase() ===
+                                bet.taker_address.toLowerCase() ||
+                              context?.user?.fid === bet.taker_fid) && (
+                              <div className="flex space-x-2 mt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedBet(bet);
+                                    setIsModalOpen(true);
+                                  }}
+                                  className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                >
+                                  Forfeit Bet
+                                </button>
+                              </div>
+                            )}
 
                           {/* Maker Actions for Status 0 */}
                           {address === bet.maker_address &&
@@ -1491,6 +1615,48 @@ export default function Demo(
                   </div>
                 </div>
 
+                {/* Forfeit Actions for Status 2 */}
+                {selectedBet.status === 2 &&
+                  (address?.toLowerCase() ===
+                    selectedBet.maker_address.toLowerCase() ||
+                    context?.user?.fid === selectedBet.maker_fid ||
+                    address?.toLowerCase() ===
+                      selectedBet.taker_address.toLowerCase() ||
+                    context?.user?.fid === selectedBet.taker_fid) && (
+                    <div className="mb-4">
+                      {/* Warning Message */}
+                      <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <div className="flex-shrink-0">
+                            <svg
+                              className="w-5 h-5 text-red-400"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                              Warning: You will lose your tokens
+                            </h3>
+                            <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                              <p>
+                                By forfeiting this bet, you will permanently
+                                lose the tokens you wagered. This action cannot
+                                be undone.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                 {/* Maker Actions */}
                 {address === selectedBet.maker_address &&
                   selectedBet.status === 0 && (
@@ -1637,6 +1803,27 @@ export default function Demo(
                     </p>
                   </div>
                 </div>
+
+                {/* Forfeit Actions for Status 2 */}
+                {selectedBet.status === 2 &&
+                  (address?.toLowerCase() ===
+                    selectedBet.maker_address.toLowerCase() ||
+                    context?.user?.fid === selectedBet.maker_fid ||
+                    address?.toLowerCase() ===
+                      selectedBet.taker_address.toLowerCase() ||
+                    context?.user?.fid === selectedBet.taker_fid) && (
+                    <div className="mb-4">
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={handleForfeitBet}
+                          disabled={isForfeiting}
+                          className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isForfeiting ? "Forfeiting..." : "Forfeit Bet"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                 {/* Close Button */}
                 <div className="flex justify-end">

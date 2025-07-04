@@ -146,11 +146,11 @@ export async function getFarcasterMetadata(): Promise<MiniAppManifest> {
     accountAssociation,
     frame: {
       version: "1",
-      name: APP_NAME ?? "Neynar Starter Kit",
+      name: APP_NAME ?? "Betcaster",
       iconUrl: APP_ICON_URL,
       homeUrl: APP_URL,
       imageUrl: APP_OG_IMAGE_URL,
-      buttonTitle: APP_BUTTON_TEXT ?? "Launch Mini App",
+      buttonTitle: APP_BUTTON_TEXT ?? "Bet with Friends!",
       splashImageUrl: APP_SPLASH_URL,
       splashBackgroundColor: APP_SPLASH_BACKGROUND_COLOR,
       webhookUrl: APP_WEBHOOK_URL,
