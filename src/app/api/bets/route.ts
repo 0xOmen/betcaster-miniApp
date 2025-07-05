@@ -159,8 +159,15 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Build update object with all possible fields
-    const updateData: any = {};
+    // Build update object with proper typing
+    const updateData: {
+      status?: number;
+      transaction_hash?: string | null;
+      taker_address?: string;
+      arbiter_address?: string | null;
+      end_time?: number;
+      bet_agreement?: string;
+    } = {};
 
     // Handle status updates (existing functionality)
     if (body.status !== undefined) {
