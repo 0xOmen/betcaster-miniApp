@@ -24,7 +24,18 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields including bet_number since it's now the primary key
-    if (!maker_address || !taker_address || !bet_token_address || !bet_amount || !timestamp || !end_time || !protocol_fee || !arbiter_fee || !bet_agreement || !bet_number) {
+    if (
+      !maker_address ||
+      !taker_address ||
+      !bet_token_address ||
+      !bet_amount ||
+      !timestamp ||
+      !end_time ||
+      !protocol_fee ||
+      !arbiter_fee ||
+      !bet_agreement ||
+      !bet_number
+    ) {
       return NextResponse.json(
         { error: "Missing required fields including bet_number" },
         { status: 400 }
@@ -33,25 +44,27 @@ export async function POST(request: NextRequest) {
 
     // Insert the bet into the database
     const { data, error } = await supabase
-      .from('bets')
-      .insert([{
-        bet_number: body.bet_number, // Now required as primary key
-        maker_address: body.maker_address,
-        taker_address: body.taker_address,
-        arbiter_address: body.arbiter_address || null,
-        bet_token_address: body.bet_token_address,
-        bet_amount: body.bet_amount,
-        timestamp: body.timestamp,
-        end_time: body.end_time,
-        status: 0,
-        protocol_fee: body.protocol_fee,
-        arbiter_fee: body.arbiter_fee,
-        bet_agreement: body.bet_agreement,
-        transaction_hash: body.transaction_hash || null,
-        maker_fid: body.maker_fid || null,
-        taker_fid: body.taker_fid || null,
-        arbiter_fid: body.arbiter_fid || null,
-      }])
+      .from("bets")
+      .insert([
+        {
+          bet_number: body.bet_number, // Now required as primary key
+          maker_address: body.maker_address,
+          taker_address: body.taker_address,
+          arbiter_address: body.arbiter_address || null,
+          bet_token_address: body.bet_token_address,
+          bet_amount: body.bet_amount,
+          timestamp: body.timestamp,
+          end_time: body.end_time,
+          status: 0,
+          protocol_fee: body.protocol_fee,
+          arbiter_fee: body.arbiter_fee,
+          bet_agreement: body.bet_agreement,
+          transaction_hash: body.transaction_hash || null,
+          maker_fid: body.maker_fid || null,
+          taker_fid: body.taker_fid || null,
+          arbiter_fid: body.arbiter_fid || null,
+        },
+      ])
       .select()
       .single();
 
@@ -76,31 +89,38 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const address = searchParams.get('address');
-    const fid = searchParams.get('fid');
-    const status = searchParams.get('status');
+    const address = searchParams.get("address");
+    const fid = searchParams.get("fid");
+    const status = searchParams.get("status");
 
     console.log("🔍 API: Fetching bets with params:", { address, fid, status });
 
-    let query = supabase.from('bets').select('*').order('created_at', { ascending: false });
+    let query = supabase
+      .from("bets")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (address || fid) {
       const conditions = [];
-      
+
       if (address) {
-        conditions.push(`maker_address.eq.${address},taker_address.eq.${address},arbiter_address.eq.${address}`);
+        conditions.push(
+          `maker_address.eq.${address},taker_address.eq.${address},arbiter_address.eq.${address}`
+        );
       }
-      
+
       if (fid) {
-        conditions.push(`maker_fid.eq.${fid},taker_fid.eq.${fid},arbiter_fid.eq.${fid}`);
+        conditions.push(
+          `maker_fid.eq.${fid},taker_fid.eq.${fid},arbiter_fid.eq.${fid}`
+        );
       }
-      
+
       // Combine conditions with OR
-      query = query.or(conditions.join(','));
+      query = query.or(conditions.join(","));
     }
 
     if (status !== null) {
-      query = query.eq('status', parseInt(status));
+      query = query.eq("status", parseInt(status));
     }
 
     const { data, error } = await query;
@@ -115,7 +135,7 @@ export async function GET(request: NextRequest) {
 
     console.log("📊 API: Found bets from database:", data?.length || 0);
     console.log("🎉 API: Returning bets with stored FIDs");
-    
+
     return NextResponse.json({ bets: data || [] });
   } catch (error) {
     console.error("❌ API error:", error);
@@ -129,9 +149,8 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const betNumber = searchParams.get('betNumber');
+    const betNumber = searchParams.get("betNumber");
     const body = await request.json();
-    const { status, transaction_hash } = body;
 
     if (!betNumber) {
       return NextResponse.json(
@@ -140,38 +159,69 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    if (status === undefined) {
+    // Build update object with all possible fields
+    const updateData: any = {};
+
+    // Handle status updates (existing functionality)
+    if (body.status !== undefined) {
+      updateData.status = body.status;
+    }
+
+    // Handle transaction hash updates (existing functionality)
+    if (body.transaction_hash !== undefined) {
+      updateData.transaction_hash = body.transaction_hash;
+    }
+
+    // Handle bet parameter updates (new functionality)
+    if (body.taker_address !== undefined) {
+      updateData.taker_address = body.taker_address;
+    }
+
+    if (body.arbiter_address !== undefined) {
+      updateData.arbiter_address = body.arbiter_address;
+    }
+
+    if (body.end_time !== undefined) {
+      updateData.end_time = body.end_time;
+    }
+
+    if (body.bet_agreement !== undefined) {
+      updateData.bet_agreement = body.bet_agreement;
+    }
+
+    // Check if we have any fields to update
+    if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
-        { error: "Missing status" },
+        { error: "No fields to update" },
         { status: 400 }
       );
     }
 
+    console.log("🔄 API: Updating bet #", betNumber, "with data:", updateData);
+
     // Update the bet in the database
     const { data, error } = await supabase
-      .from('bets')
-      .update({
-        status: status,
-        transaction_hash: transaction_hash || null,
-      })
-      .eq('bet_number', parseInt(betNumber))
+      .from("bets")
+      .update(updateData)
+      .eq("bet_number", parseInt(betNumber))
       .select()
       .single();
 
     if (error) {
-      console.error("Supabase error:", error);
+      console.error("❌ Supabase error:", error);
       return NextResponse.json(
         { error: "Failed to update bet" },
         { status: 500 }
       );
     }
 
+    console.log("✅ API: Bet updated successfully:", data);
     return NextResponse.json({ success: true, bet: data });
   } catch (error) {
-    console.error("API error:", error);
+    console.error("❌ API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
-} 
+}
