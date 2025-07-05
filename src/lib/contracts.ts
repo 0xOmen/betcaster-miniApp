@@ -85,7 +85,7 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
           { internalType: "uint256", name: "arbiterFee", type: "uint256" },
           { internalType: "string", name: "betAgreement", type: "string" },
         ],
-        indexed: true,
+        indexed: false,
         internalType: "struct BetTypes.Bet",
         name: "bet",
         type: "tuple",
@@ -127,7 +127,7 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
           { internalType: "uint256", name: "arbiterFee", type: "uint256" },
           { internalType: "string", name: "betAgreement", type: "string" },
         ],
-        indexed: true,
+        indexed: false,
         internalType: "struct BetTypes.Bet",
         name: "bet",
         type: "tuple",
@@ -188,7 +188,7 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
           { internalType: "uint256", name: "arbiterFee", type: "uint256" },
           { internalType: "string", name: "betAgreement", type: "string" },
         ],
-        indexed: true,
+        indexed: false,
         internalType: "struct BetTypes.Bet",
         name: "bet",
         type: "tuple",
@@ -230,7 +230,7 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
           { internalType: "uint256", name: "arbiterFee", type: "uint256" },
           { internalType: "string", name: "betAgreement", type: "string" },
         ],
-        indexed: true,
+        indexed: false,
         internalType: "struct BetTypes.Bet",
         name: "bet",
         type: "tuple",
@@ -368,4 +368,4 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
 
 // Contract address on Base blockchain
 export const BET_MANAGEMENT_ENGINE_ADDRESS =
-  "0xbAA34eb15E2733E2AFE8826251f029AcE353F405" as const;
+  "0xca450EF7E33b74e9f086f8C5B4955909cbdE50D9" as const;
