@@ -164,6 +164,19 @@ export default function Demo(
     undefined
   );
   const [isClaiming, setIsClaiming] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTxHash, setEditTxHash] = useState<`0x${string}` | undefined>(
+    undefined
+  );
+
+  // Edit form state
+  const [editTaker, setEditTaker] = useState<string>("");
+  const [editArbiter, setEditArbiter] = useState<string>("");
+  const [editEndTime, setEditEndTime] = useState<string>("");
+  const [editBetAgreement, setEditBetAgreement] = useState<string>("");
+  const [editTimeOption, setEditTimeOption] = useState<string>("");
+  const [editCustomDays, setEditCustomDays] = useState<string>("");
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -1334,6 +1347,175 @@ export default function Demo(
     return token ? token.name : "Unknown Token";
   };
 
+  // Function to handle bet editing
+  const handleEditBet = async () => {
+    if (!selectedBet || !isConnected) {
+      console.error("Cannot edit bet: not connected or no bet selected");
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
+    try {
+      setIsEditing(true);
+      console.log("Editing bet #", selectedBet.bet_number);
+
+      // Calculate new end time
+      let newEndTime: number;
+      if (editTimeOption === "custom" && editCustomDays) {
+        const days = parseInt(editCustomDays);
+        if (days > 0 && days <= 365) {
+          newEndTime = Math.floor(Date.now() / 1000) + days * 24 * 60 * 60;
+        } else {
+          newEndTime = selectedBet.end_time; // Keep original if invalid
+        }
+      } else if (editTimeOption) {
+        const now = Math.floor(Date.now() / 1000);
+        switch (editTimeOption) {
+          case "24h":
+            newEndTime = now + 24 * 60 * 60;
+            break;
+          case "1week":
+            newEndTime = now + 7 * 24 * 60 * 60;
+            break;
+          case "1month":
+            newEndTime = now + 30 * 24 * 60 * 60;
+            break;
+          default:
+            newEndTime = selectedBet.end_time;
+        }
+      } else {
+        newEndTime = selectedBet.end_time; // Keep original if no change
+      }
+
+      // Use provided values or fall back to original values
+      const newTaker = editTaker || selectedBet.taker_address;
+      const newArbiter =
+        editArbiter ||
+        selectedBet.arbiter_address ||
+        "0x0000000000000000000000000000000000000000";
+      const newBetAgreement = editBetAgreement || selectedBet.bet_agreement;
+
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: BET_MANAGEMENT_ENGINE_ABI,
+        functionName: "changeBetParameters",
+        args: [
+          BigInt(selectedBet.bet_number),
+          newTaker as `0x${string}`,
+          newArbiter as `0x${string}`,
+          BigInt(newEndTime),
+          newBetAgreement,
+        ],
+      });
+
+      console.log("Encoded edit transaction data:", encodedData);
+
+      // Send the transaction
+      sendTransaction(
+        {
+          to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+          data: encodedData as `0x${string}`,
+        },
+        {
+          onSuccess: async (hash: `0x${string}`) => {
+            console.log("Edit transaction sent successfully:", hash);
+            setEditTxHash(hash);
+
+            // Close modal after successful transaction
+            setTimeout(async () => {
+              setIsEditModalOpen(false);
+              setIsModalOpen(false);
+              // Update database with new parameters
+              try {
+                const updateResponse = await fetch(
+                  `/api/bets?betNumber=${selectedBet.bet_number}`,
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      taker_address: newTaker,
+                      arbiter_address:
+                        newArbiter ===
+                        "0x0000000000000000000000000000000000000000"
+                          ? null
+                          : newArbiter,
+                      end_time: newEndTime,
+                      bet_agreement: newBetAgreement,
+                      transaction_hash: hash,
+                    }),
+                  }
+                );
+
+                if (!updateResponse.ok) {
+                  console.error("Failed to update bet parameters in database");
+                } else {
+                  console.log("Bet parameters updated in database");
+                }
+              } catch (error) {
+                console.error("Error updating bet parameters:", error);
+              }
+
+              // Refresh bets list
+              if (address || context?.user?.fid) {
+                const params = new URLSearchParams();
+                if (address) params.append("address", address);
+                if (context?.user?.fid)
+                  params.append("fid", context.user.fid.toString());
+
+                const response = await fetch(`/api/bets?${params.toString()}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  setUserBets(data.bets || []);
+                }
+              }
+            }, 2000);
+          },
+          onError: (error: Error) => {
+            console.error("Edit transaction failed:", error);
+            setIsEditing(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error editing bet:", error);
+      setIsEditing(false);
+    }
+  };
+
+  // Function to open edit modal and populate fields
+  const openEditModal = (bet: Bet) => {
+    setSelectedBet(bet);
+    setEditTaker(bet.taker_address);
+    setEditArbiter(bet.arbiter_address || "");
+    setEditBetAgreement(bet.bet_agreement);
+    setEditTimeOption("");
+    setEditCustomDays("");
+    setIsEditModalOpen(true);
+  };
+
+  // Function to close edit modal
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditTaker("");
+    setEditArbiter("");
+    setEditBetAgreement("");
+    setEditTimeOption("");
+    setEditCustomDays("");
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -1488,11 +1670,6 @@ export default function Demo(
                                     e.stopPropagation();
                                     setSelectedBet(bet);
                                     setIsModalOpen(true);
-                                    // TODO: Implement cancel bet logic
-                                    console.log(
-                                      "Cancel bet clicked for bet #",
-                                      bet.bet_number
-                                    );
                                   }}
                                   className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                                 >
@@ -1501,11 +1678,7 @@ export default function Demo(
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    // TODO: Implement edit bet logic
-                                    console.log(
-                                      "Edit bet clicked for bet #",
-                                      bet.bet_number
-                                    );
+                                    openEditModal(bet);
                                   }}
                                   className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
                                 >
@@ -1852,13 +2025,7 @@ export default function Demo(
                           {isCancelling ? "Cancelling..." : "Cancel Bet"}
                         </button>
                         <button
-                          onClick={(e) => {
-                            // TODO: Implement edit bet logic
-                            console.log(
-                              "Edit bet clicked for bet #",
-                              selectedBet.bet_number
-                            );
-                          }}
+                          onClick={() => openEditModal(selectedBet)}
                           className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                         >
                           Edit Bet
@@ -2058,6 +2225,176 @@ export default function Demo(
                   >
                     Close
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isEditModalOpen && selectedBet && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    Edit Bet #{selectedBet.bet_number}
+                  </h2>
+                  <button
+                    onClick={closeEditModal}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Taker Address */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Taker Address
+                    </label>
+                    <input
+                      type="text"
+                      value={editTaker}
+                      onChange={(e) => setEditTaker(e.target.value)}
+                      placeholder="Enter taker address..."
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Arbiter Address */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Arbiter Address (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={editArbiter}
+                      onChange={(e) => setEditArbiter(e.target.value)}
+                      placeholder="Enter arbiter address or leave empty..."
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* End Time */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      New End Time
+                    </label>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditTimeOption("24h")}
+                          className={`py-2 px-3 text-sm ${
+                            editTimeOption === "24h"
+                              ? "bg-purple-500 text-white"
+                              : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          24 hours
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditTimeOption("1week")}
+                          className={`py-2 px-3 text-sm ${
+                            editTimeOption === "1week"
+                              ? "bg-purple-500 text-white"
+                              : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          1 week
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditTimeOption("1month")}
+                          className={`py-2 px-3 text-sm ${
+                            editTimeOption === "1month"
+                              ? "bg-purple-500 text-white"
+                              : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          1 month
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditTimeOption("custom")}
+                          className={`py-2 px-3 text-sm ${
+                            editTimeOption === "custom"
+                              ? "bg-purple-500 text-white"
+                              : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+
+                      {editTimeOption === "custom" && (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="number"
+                            min="1"
+                            max="365"
+                            placeholder="Enter days (1-365)"
+                            value={editCustomDays}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value);
+                              if (value <= 365) {
+                                setEditCustomDays(e.target.value);
+                              }
+                            }}
+                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          />
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            days
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bet Agreement */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Bet Agreement
+                    </label>
+                    <textarea
+                      value={editBetAgreement}
+                      onChange={(e) => setEditBetAgreement(e.target.value)}
+                      placeholder="Describe what you're betting on..."
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={handleEditBet}
+                      disabled={isEditing}
+                      className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isEditing ? "Updating..." : "Update Bet"}
+                    </button>
+                    <button
+                      onClick={closeEditModal}
+                      className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
