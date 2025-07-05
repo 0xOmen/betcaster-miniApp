@@ -44,7 +44,7 @@ import {
 } from "~/lib/arbiterAbi";
 import { encodeFunctionData } from "viem";
 import { useReadContract, useWriteContract } from "wagmi";
-import { amountToWei } from "~/lib/tokens";
+import { amountToWei, getTokenByAddress } from "~/lib/tokens";
 import { getTimeRemaining } from "~/lib/utils";
 
 // Add ERC20 ABI for allowance and approve functions
@@ -1328,6 +1328,12 @@ export default function Demo(
     }
   };
 
+  // Helper function to get token name from address
+  const getTokenName = (tokenAddress: string): string => {
+    const token = getTokenByAddress(tokenAddress);
+    return token ? token.name : "Unknown Token";
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -1955,6 +1961,14 @@ export default function Demo(
                       </span>
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {selectedBet.bet_amount}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Token:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {getTokenName(selectedBet.bet_token_address)}
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
