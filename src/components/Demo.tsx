@@ -191,6 +191,16 @@ export default function Demo(
   const [editTimeOption, setEditTimeOption] = useState<string>("");
   const [editCustomDays, setEditCustomDays] = useState<string>("");
 
+  // Select Winner state
+  const [isSelectWinnerModalOpen, setIsSelectWinnerModalOpen] = useState(false);
+  const [isSelectingWinner, setIsSelectingWinner] = useState(false);
+  const [selectWinnerTxHash, setSelectWinnerTxHash] = useState<
+    `0x${string}` | undefined
+  >(undefined);
+  const [selectedWinner, setSelectedWinner] = useState<
+    "maker" | "taker" | null
+  >(null);
+
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const hasSolanaProvider = useHasSolanaProvider();
@@ -1556,6 +1566,133 @@ export default function Demo(
     setEditCustomDays("");
   };
 
+  // Function to open select winner modal
+  const openSelectWinnerModal = (bet: Bet) => {
+    setSelectedBet(bet);
+    setSelectedWinner(null);
+    setIsSelectWinnerModalOpen(true);
+  };
+
+  // Function to close select winner modal
+  const closeSelectWinnerModal = () => {
+    setIsSelectWinnerModalOpen(false);
+    setSelectedWinner(null);
+  };
+
+  // Function to handle winner selection
+  const handleSelectWinner = async () => {
+    if (!selectedBet || !isConnected || !selectedWinner) {
+      console.error(
+        "Cannot select winner: not connected, no bet selected, or no winner selected"
+      );
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
+    try {
+      setIsSelectingWinner(true);
+      console.log(
+        "Selecting winner for bet #",
+        selectedBet.bet_number,
+        "Winner:",
+        selectedWinner
+      );
+
+      // Determine the winner address
+      const winnerAddress =
+        selectedWinner === "maker"
+          ? selectedBet.maker_address
+          : selectedBet.taker_address;
+
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: ARBITER_MANAGEMENT_ENGINE_ABI,
+        functionName: "selectWinner",
+        args: [BigInt(selectedBet.bet_number), winnerAddress as `0x${string}`],
+      });
+
+      console.log("Encoded select winner transaction data:", encodedData);
+
+      // Send the transaction
+      sendTransaction(
+        {
+          to: ARBITER_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+          data: encodedData as `0x${string}`,
+        },
+        {
+          onSuccess: async (hash: `0x${string}`) => {
+            console.log("Select winner transaction sent successfully:", hash);
+            setSelectWinnerTxHash(hash);
+
+            // Close modal after successful transaction
+            setTimeout(async () => {
+              closeSelectWinnerModal();
+              // Update database with the winner status
+              try {
+                const winnerStatus = selectedWinner === "maker" ? 4 : 5; // 4 = maker wins, 5 = taker wins
+                const updateResponse = await fetch(
+                  `/api/bets?betNumber=${selectedBet.bet_number}`,
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      status: winnerStatus,
+                      transaction_hash: hash,
+                    }),
+                  }
+                );
+
+                if (!updateResponse.ok) {
+                  console.error("Failed to update bet status in database");
+                } else {
+                  console.log(
+                    `Bet status updated to ${winnerStatus} in database`
+                  );
+                }
+              } catch (error) {
+                console.error("Error updating bet status:", error);
+              }
+
+              // Refresh bets list
+              if (address || context?.user?.fid) {
+                const params = new URLSearchParams();
+                if (address) params.append("address", address);
+                if (context?.user?.fid)
+                  params.append("fid", context.user.fid.toString());
+
+                const response = await fetch(`/api/bets?${params.toString()}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  setUserBets(data.bets || []);
+                }
+              }
+            }, 2000);
+          },
+          onError: (error: Error) => {
+            console.error("Select winner transaction failed:", error);
+            setIsSelectingWinner(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error selecting winner:", error);
+      setIsSelectingWinner(false);
+    }
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -1766,6 +1903,25 @@ export default function Demo(
                                   className="px-2 py-1 text-xs bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors"
                                 >
                                   Accept Arbiter Role
+                                </button>
+                              </div>
+                            )}
+
+                          {/* Arbiter Select Winner Actions for Status 2 */}
+                          {(address?.toLowerCase() ===
+                            bet.arbiter_address?.toLowerCase() ||
+                            context?.user?.fid === bet.arbiter_fid) &&
+                            bet.status === 2 &&
+                            Math.floor(Date.now() / 1000) > bet.end_time && (
+                              <div className="flex space-x-2 mt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openSelectWinnerModal(bet);
+                                  }}
+                                  className="px-2 py-1 text-xs bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors"
+                                >
+                                  Select Winner
                                 </button>
                               </div>
                             )}
@@ -2426,6 +2582,164 @@ export default function Demo(
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isSelectWinnerModalOpen && selectedBet && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    Select Winner for Bet #{selectedBet.bet_number}
+                  </h2>
+                  <button
+                    onClick={closeSelectWinnerModal}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Arbiter Instructions */}
+                <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-lg">
+                  <strong>Arbiter Instructions:</strong>
+                  <div className="mt-1 text-sm">
+                    If the bet agreement was fulfilled as written, select{" "}
+                    <b>Maker</b> as the winner. Otherwise, select <b>Taker</b>{" "}
+                    as the winner.
+                  </div>
+                </div>
+
+                {/* Bet Details */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Bet Details
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Maker:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedBet.makerProfile?.display_name ||
+                          selectedBet.makerProfile?.username ||
+                          "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Taker:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedBet.takerProfile?.display_name ||
+                          selectedBet.takerProfile?.username ||
+                          "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Amount:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedBet.bet_amount}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Token:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {getTokenName(selectedBet.bet_token_address)}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        End Time:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {formatEndTime(selectedBet.end_time)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bet Agreement */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Bet Agreement
+                  </h3>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                      {selectedBet.bet_agreement || "No description provided"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Winner Selection */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Select Winner
+                  </h3>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => setSelectedWinner("maker")}
+                      className={`flex-1 px-4 py-2 rounded-lg border ${
+                        selectedWinner === "maker"
+                          ? "bg-green-500 text-white border-green-600"
+                          : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
+                      Maker
+                    </button>
+                    <button
+                      onClick={() => setSelectedWinner("taker")}
+                      className={`flex-1 px-4 py-2 rounded-lg border ${
+                        selectedWinner === "taker"
+                          ? "bg-blue-500 text-white border-blue-600"
+                          : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                      }`}
+                    >
+                      Taker
+                    </button>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleSelectWinner}
+                    disabled={isSelectingWinner || !selectedWinner}
+                    className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSelectingWinner ? "Submitting..." : "Submit Winner"}
+                  </button>
+                  <button
+                    onClick={closeSelectWinnerModal}
+                    className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {selectWinnerTxHash && (
+                  <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                    Transaction Hash: {truncateAddress(selectWinnerTxHash)}
+                  </div>
+                )}
               </div>
             </div>
           </div>
