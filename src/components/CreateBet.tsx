@@ -170,6 +170,7 @@ export default function CreateBet({
   const [betAmount, setBetAmount] = useState("");
   const [betDescription, setBetDescription] = useState("");
   const [selectedTimeOption, setSelectedTimeOption] = useState<string>("");
+  const [customHours, setCustomHours] = useState("");
   const [customDays, setCustomDays] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
@@ -570,6 +571,7 @@ export default function CreateBet({
     setSelectedTimeOption(option);
     setShowCustomInput(option === "custom");
     if (option !== "custom") {
+      setCustomHours("");
       setCustomDays("");
     }
   };
@@ -585,9 +587,11 @@ export default function CreateBet({
       case "1month":
         return now + 30 * 24 * 60 * 60; // 30 days in seconds
       case "custom":
-        const days = parseInt(customDays);
-        if (days > 0 && days <= 365) {
-          return now + days * 24 * 60 * 60; // Custom days in seconds
+        const hours = parseInt(customHours) || 0;
+        const days = parseInt(customDays) || 0;
+        const totalSeconds = hours * 60 * 60 + days * 24 * 60 * 60;
+        if (totalSeconds > 0 && totalSeconds <= 365 * 24 * 60 * 60) {
+          return now + totalSeconds; // Custom hours and days in seconds
         }
         return 0;
       default:
@@ -855,6 +859,17 @@ export default function CreateBet({
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
+                onClick={() => handleArbiterFeeSelect(0.5)}
+                className={`py-2 px-3 text-sm ${
+                  arbiterFeePercent === 0.5 && !showCustomArbiterFee
+                    ? "bg-purple-500 text-white"
+                    : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                0.5%
+              </button>
+              <button
+                type="button"
                 onClick={() => handleArbiterFeeSelect(1)}
                 className={`py-2 px-3 text-sm ${
                   arbiterFeePercent === 1 && !showCustomArbiterFee
@@ -874,17 +889,6 @@ export default function CreateBet({
                 }`}
               >
                 2%
-              </button>
-              <button
-                type="button"
-                onClick={() => handleArbiterFeeSelect(5)}
-                className={`py-2 px-3 text-sm ${
-                  arbiterFeePercent === 5 && !showCustomArbiterFee
-                    ? "bg-purple-500 text-white"
-                    : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
-                }`}
-              >
-                5%
               </button>
             </div>
             <button
@@ -972,24 +976,45 @@ export default function CreateBet({
             </div>
 
             {showCustomInput && (
-              <div className="flex items-center space-x-2">
-                <input
-                  type="number"
-                  min="1"
-                  max="365"
-                  placeholder="Enter days (1-365)"
-                  value={customDays}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    if (value <= 365) {
-                      setCustomDays(e.target.value);
-                    }
-                  }}
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  days
-                </span>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="8760"
+                    placeholder="Enter hours (1-8760)"
+                    value={customHours}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (value <= 8760) {
+                        setCustomHours(e.target.value);
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    hours
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    placeholder="Enter days (1-365)"
+                    value={customDays}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (value <= 365) {
+                        setCustomDays(e.target.value);
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    days
+                  </span>
+                </div>
               </div>
             )}
 
