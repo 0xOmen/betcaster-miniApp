@@ -2318,8 +2318,113 @@ export default function Demo(
                     onFidChange={setEditArbiterFid}
                   />
 
-                  {/* Rest of the existing edit form remains the same */}
-                  {/* ... existing time selection, bet agreement, and action buttons ... */}
+                  {/* End Time */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      New End Time
+                    </label>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditTimeOption("24h")}
+                          className={`py-2 px-3 text-sm ${
+                            editTimeOption === "24h"
+                              ? "bg-purple-500 text-white"
+                              : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          24 hours
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditTimeOption("1week")}
+                          className={`py-2 px-3 text-sm ${
+                            editTimeOption === "1week"
+                              ? "bg-purple-500 text-white"
+                              : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          1 week
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditTimeOption("1month")}
+                          className={`py-2 px-3 text-sm ${
+                            editTimeOption === "1month"
+                              ? "bg-purple-500 text-white"
+                              : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          1 month
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditTimeOption("custom")}
+                          className={`py-2 px-3 text-sm ${
+                            editTimeOption === "custom"
+                              ? "bg-purple-500 text-white"
+                              : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+
+                      {editTimeOption === "custom" && (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="number"
+                            min="1"
+                            max="365"
+                            placeholder="Enter days (1-365)"
+                            value={editCustomDays}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value);
+                              if (value <= 365) {
+                                setEditCustomDays(e.target.value);
+                              }
+                            }}
+                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          />
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            days
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bet Agreement */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Bet Agreement
+                    </label>
+                    <textarea
+                      value={editBetAgreement}
+                      onChange={(e) => setEditBetAgreement(e.target.value)}
+                      placeholder="Describe what you're betting on..."
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={handleEditBet}
+                      disabled={isEditing}
+                      className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isEditing ? "Updating..." : "Update Bet"}
+                    </button>
+                    <button
+                      onClick={closeEditModal}
+                      className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
