@@ -846,8 +846,189 @@ export default function CreateBet({
           onFidChange={setArbiterFid}
         />
 
-        {/* Rest of the existing code remains the same */}
-        {/* ... existing arbiter fee, time selection, and create button ... */}
+        {/* Arbiter Fee Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Arbiter Fee
+          </label>
+          <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => handleArbiterFeeSelect(1)}
+                className={`py-2 px-3 text-sm ${
+                  arbiterFeePercent === 1 && !showCustomArbiterFee
+                    ? "bg-purple-500 text-white"
+                    : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                1%
+              </button>
+              <button
+                type="button"
+                onClick={() => handleArbiterFeeSelect(2)}
+                className={`py-2 px-3 text-sm ${
+                  arbiterFeePercent === 2 && !showCustomArbiterFee
+                    ? "bg-purple-500 text-white"
+                    : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                2%
+              </button>
+              <button
+                type="button"
+                onClick={() => handleArbiterFeeSelect(5)}
+                className={`py-2 px-3 text-sm ${
+                  arbiterFeePercent === 5 && !showCustomArbiterFee
+                    ? "bg-purple-500 text-white"
+                    : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                5%
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={handleCustomArbiterFee}
+              className={`w-full py-2 px-3 text-sm ${
+                showCustomArbiterFee
+                  ? "bg-purple-500 text-white"
+                  : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+              }`}
+            >
+              Custom Fee
+            </button>
+            {showCustomArbiterFee && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  min="0.1"
+                  max="10"
+                  step="0.1"
+                  placeholder="Enter fee % (0.1-10)"
+                  value={customArbiterFee}
+                  onChange={(e) => setCustomArbiterFee(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  %
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* End Time Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Bet End Time
+          </label>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleTimeOptionSelect("24h")}
+                className={`py-2 px-3 text-sm ${
+                  selectedTimeOption === "24h"
+                    ? "bg-purple-500 text-white"
+                    : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                24 hours
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTimeOptionSelect("1week")}
+                className={`py-2 px-3 text-sm ${
+                  selectedTimeOption === "1week"
+                    ? "bg-purple-500 text-white"
+                    : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                1 week
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTimeOptionSelect("1month")}
+                className={`py-2 px-3 text-sm ${
+                  selectedTimeOption === "1month"
+                    ? "bg-purple-500 text-white"
+                    : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                1 month
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTimeOptionSelect("custom")}
+                className={`py-2 px-3 text-sm ${
+                  selectedTimeOption === "custom"
+                    ? "bg-purple-500 text-white"
+                    : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                Custom
+              </button>
+            </div>
+
+            {showCustomInput && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  min="1"
+                  max="365"
+                  placeholder="Enter days (1-365)"
+                  value={customDays}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (value <= 365) {
+                      setCustomDays(e.target.value);
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  days
+                </span>
+              </div>
+            )}
+
+            {selectedTimeOption && (
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                End time: {formatEndDate(endDateTimestamp)}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Create Bet Button */}
+        <Button
+          onClick={handleCreateBet}
+          disabled={
+            !isConnected ||
+            !selectedUser ||
+            !selectedToken ||
+            !betAmount ||
+            !selectedTimeOption ||
+            isTransactionPending ||
+            isApproving
+          }
+          isLoading={isTransactionPending || isApproving}
+          className="w-full"
+        >
+          {isApproving
+            ? "Approving..."
+            : isTransactionPending
+              ? "Creating Bet..."
+              : "Create Bet"}
+        </Button>
+
+        {/* Transaction Status */}
+        {txHash && (
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Transaction Hash: {txHash}
+          </div>
+        )}
       </div>
     </div>
   );
