@@ -244,17 +244,15 @@ export default function Demo(
   }, [context, address, isConnected, chainId, isSDKLoaded, connectionAttempts]);
 
   // Enhanced wallet connection logic
-  const { connect, connectors } = useConnect();
+  const { connectors } = useConnect();
 
   // Auto-connect when context is available and wallet is not connected
   useEffect(() => {
     if (isSDKLoaded && context && !isConnected && connectionAttempts < 3) {
       const attemptConnection = async () => {
         try {
-          console.log(
-            "Attempting auto-connection with Farcaster Frame connector..."
-          );
-          await connect({ connector: miniAppConnector() });
+          console.log("Attempting auto-connection...");
+          await connectors[0].connect();
           setConnectionAttempts((prev) => prev + 1);
         } catch (error) {
           console.warn("Auto-connection failed:", error);
@@ -262,11 +260,10 @@ export default function Demo(
         }
       };
 
-      // Delay to ensure everything is properly initialized
       const timeoutId = setTimeout(attemptConnection, 1000);
       return () => clearTimeout(timeoutId);
     }
-  }, [isSDKLoaded, context, isConnected, connect, connectionAttempts]);
+  }, [isSDKLoaded, context, isConnected, connectors, connectionAttempts]);
 
   // Fetch Neynar user object when context is available
   useEffect(() => {
@@ -656,11 +653,12 @@ export default function Demo(
   const handleManualConnect = useCallback(async () => {
     try {
       console.log("Manual connection attempt...");
-      await connect({ connector: miniAppConnector() });
+      // Use the first connector directly
+      await connectors[0].connect();
     } catch (error) {
       console.error("Manual connection failed:", error);
     }
-  }, [connect]);
+  }, [connectors]);
 
   // Function to get status text and styling
   const getStatusInfo = (
@@ -2118,13 +2116,13 @@ export default function Demo(
             ) : (
               <div className="space-y-3 w-full">
                 <Button
-                  onClick={() => connect({ connector: connectors[1] })}
+                  onClick={() => connectors[0].connect()}
                   className="w-full"
                 >
                   Connect Coinbase Wallet
                 </Button>
                 <Button
-                  onClick={() => connect({ connector: connectors[2] })}
+                  onClick={() => connectors[1].connect()}
                   className="w-full"
                 >
                   Connect MetaMask
