@@ -2353,6 +2353,18 @@ export default function Demo(
                     </div>
                   )}
 
+                {/* Bet Agreement */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Bet Agreement
+                  </h3>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                      {selectedBet.bet_agreement || "No description provided"}
+                    </p>
+                  </div>
+                </div>
+
                 {/* Arbiter Actions */}
                 {(address?.toLowerCase() ===
                   selectedBet.arbiter_address?.toLowerCase() ||
@@ -2431,9 +2443,27 @@ export default function Demo(
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         Token:
                       </span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {getTokenName(selectedBet.bet_token_address)}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        {(() => {
+                          const token = getTokenByAddress(
+                            selectedBet.bet_token_address
+                          );
+                          return (
+                            <>
+                              {token && (
+                                <img
+                                  src={token.image}
+                                  alt={token.name}
+                                  className="w-5 h-5 rounded-full"
+                                />
+                              )}
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {getTokenName(selectedBet.bet_token_address)}
+                              </span>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -2443,18 +2473,6 @@ export default function Demo(
                         {formatEndTime(selectedBet.end_time)}
                       </span>
                     </div>
-                  </div>
-                </div>
-
-                {/* Bet Agreement */}
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Bet Agreement
-                  </h3>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
-                      {selectedBet.bet_agreement || "No description provided"}
-                    </p>
                   </div>
                 </div>
 
@@ -2781,9 +2799,27 @@ export default function Demo(
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         Token:
                       </span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {getTokenName(selectedBet.bet_token_address)}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        {(() => {
+                          const token = getTokenByAddress(
+                            selectedBet.bet_token_address
+                          );
+                          return (
+                            <>
+                              {token && (
+                                <img
+                                  src={token.image}
+                                  alt={token.name}
+                                  className="w-5 h-5 rounded-full"
+                                />
+                              )}
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {getTokenName(selectedBet.bet_token_address)}
+                              </span>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
