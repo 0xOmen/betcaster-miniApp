@@ -47,7 +47,7 @@ import { useReadContract, useWriteContract } from "wagmi";
 import { amountToWei, getTokenByAddress } from "~/lib/tokens";
 import { getTimeRemaining } from "~/lib/utils";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
-import { getChainId } from "@wagmi/core";
+import { farcasterMiniApp as miniAppConnector } from "@farcaster/miniapp-wagmi-connector";
 
 // Add ERC20 ABI for allowance and approve functions
 const ERC20_ABI = [
@@ -2434,15 +2434,10 @@ export default function Demo(
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Amount:
+                        Wager:
                       </span>
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {selectedBet.bet_amount}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Token:
                       </span>
                       <div className="flex items-center space-x-2">
                         {(() => {
@@ -2790,15 +2785,10 @@ export default function Demo(
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Amount:
+                        Wager:
                       </span>
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {selectedBet.bet_amount}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Token:
                       </span>
                       <div className="flex items-center space-x-2">
                         {(() => {
