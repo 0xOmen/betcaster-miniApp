@@ -699,7 +699,7 @@ export default function Demo(
           };
         }
         return {
-          text: `Pending ${takerProfile?.username || "Taker"}`,
+          text: `${takerProfile?.username || "Taker"} hasn't accepted`,
           bgColor:
             "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
         };
@@ -719,7 +719,7 @@ export default function Demo(
           };
         }
         return {
-          text: `Pending ${arbiterProfile?.username || "Arbiter"}`,
+          text: `${arbiterProfile?.username || "Arbiter"} needs to accept`,
           bgColor:
             "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
         };
@@ -727,7 +727,7 @@ export default function Demo(
         const isEndTimePassed = now > end_time;
         if (isEndTimePassed) {
           return {
-            text: `Waiting ${arbiterProfile?.username || "Arbiter"}'s decision`,
+            text: `Awaiting ${arbiterProfile?.username || "Arbiter"}'s ruling`,
             bgColor:
               "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
           };
