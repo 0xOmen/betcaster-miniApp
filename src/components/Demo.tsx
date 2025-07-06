@@ -255,10 +255,12 @@ export default function Demo(
         const data = await response.json();
         const user = data.users?.[0];
         if (user) {
-          // Store in cache immediately
-          setUserCache((prev) => new Map(prev).set(fid, user));
+          // Update cache immediately and return user data
+          const newCache = new Map(userCache);
+          newCache.set(fid, user);
+          setUserCache(newCache);
           console.log(`✅ Cached user data for FID: ${fid}`);
-          return user; // Return the user data directly
+          return user;
         }
       }
     } catch (error) {
