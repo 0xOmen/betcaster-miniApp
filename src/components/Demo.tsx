@@ -47,6 +47,7 @@ import { useReadContract, useWriteContract } from "wagmi";
 import { amountToWei, getTokenByAddress } from "~/lib/tokens";
 import { getTimeRemaining } from "~/lib/utils";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
+import { farcasterMiniApp as miniAppConnector } from "@farcaster/miniapp-wagmi-connector";
 
 // Add ERC20 ABI for allowance and approve functions
 const ERC20_ABI = [
@@ -253,7 +254,7 @@ export default function Demo(
           console.log(
             "Attempting auto-connection with Farcaster Frame connector..."
           );
-          await connect({ connector: connectors[0] });
+          await connect({ connector: miniAppConnector() });
           setConnectionAttempts((prev) => prev + 1);
         } catch (error) {
           console.warn("Auto-connection failed:", error);
@@ -265,14 +266,7 @@ export default function Demo(
       const timeoutId = setTimeout(attemptConnection, 1000);
       return () => clearTimeout(timeoutId);
     }
-  }, [
-    isSDKLoaded,
-    context,
-    isConnected,
-    connect,
-    connectors,
-    connectionAttempts,
-  ]);
+  }, [isSDKLoaded, context, isConnected, connect, connectionAttempts]);
 
   // Fetch Neynar user object when context is available
   useEffect(() => {
@@ -662,11 +656,11 @@ export default function Demo(
   const handleManualConnect = useCallback(async () => {
     try {
       console.log("Manual connection attempt...");
-      await connect({ connector: connectors[0] });
+      await connect({ connector: miniAppConnector() });
     } catch (error) {
       console.error("Manual connection failed:", error);
     }
-  }, [connect, connectors]);
+  }, [connect]);
 
   // Function to get status text and styling
   const getStatusInfo = (
