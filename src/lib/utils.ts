@@ -36,7 +36,7 @@ interface MiniAppManifest {
     payload: string;
     signature: string;
   };
-  frame: MiniAppMetadata;
+  miniapp: MiniAppMetadata;
 }
 
 export function cn(...inputs: ClassValue[]) {
@@ -56,13 +56,13 @@ export function getSecretEnvVars() {
 
 export function getMiniAppEmbedMetadata(ogImageUrl?: string) {
   return {
-    version: "next",
+    version: "1",
     imageUrl: ogImageUrl ?? APP_OG_IMAGE_URL,
     button: {
-      title: APP_BUTTON_TEXT,
+      title: APP_BUTTON_TEXT ?? "Bet with Friends!",
       action: {
-        type: "launch_frame",
-        name: APP_NAME,
+        type: "launch_miniapp",
+        name: APP_NAME ?? "Betcaster",
         url: APP_URL,
         splashImageUrl: APP_SPLASH_URL,
         iconUrl: APP_ICON_URL,
@@ -144,19 +144,18 @@ export async function getFarcasterMetadata(): Promise<MiniAppManifest> {
 
   return {
     accountAssociation,
-    frame: {
+    miniapp: {
       version: "1",
       name: APP_NAME ?? "Betcaster",
       iconUrl: APP_ICON_URL,
       homeUrl: APP_URL,
-      imageUrl: APP_OG_IMAGE_URL,
-      buttonTitle: APP_BUTTON_TEXT ?? "Bet with Friends!",
       splashImageUrl: APP_SPLASH_URL,
       splashBackgroundColor: APP_SPLASH_BACKGROUND_COLOR,
       webhookUrl: APP_WEBHOOK_URL,
       description: APP_DESCRIPTION,
       primaryCategory: APP_PRIMARY_CATEGORY,
       tags: APP_TAGS,
+      buttonTitle: APP_BUTTON_TEXT ?? "Bet with Friends!",
     },
   };
 }
