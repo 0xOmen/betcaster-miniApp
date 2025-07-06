@@ -35,11 +35,15 @@ export default function UserSearchDropdown({
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
+  const [isUserSelected, setIsUserSelected] = useState(false);
 
   // Initialize search term with selected user's display name
   useEffect(() => {
     if (selectedUser) {
       setSearchTerm(selectedUser.displayName);
+      setIsUserSelected(true);
+    } else {
+      setIsUserSelected(false);
     }
   }, [selectedUser]);
 
@@ -115,8 +119,8 @@ export default function UserSearchDropdown({
   };
 
   const handleUserSelect = async (user: User) => {
-    //setSearchTerm(user.displayName);
     setShowDropdown(false);
+    setIsUserSelected(true);
 
     // Call onFidChange if provided
     if (onFidChange) {
@@ -135,6 +139,7 @@ export default function UserSearchDropdown({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+    setIsUserSelected(false);
     if (!e.target.value.trim()) {
       onUserSelect(null);
       if (onFidChange) {
@@ -144,7 +149,7 @@ export default function UserSearchDropdown({
   };
 
   const handleInputFocus = () => {
-    if (users.length > 0) {
+    if (users.length > 0 && !isUserSelected) {
       setShowDropdown(true);
     }
   };
@@ -154,13 +159,14 @@ export default function UserSearchDropdown({
   };
 
   useEffect(() => {
-    if (searchTerm.length > 0) {
+    // Only search if user is actively typing (not when a user was just selected)
+    if (searchTerm.length > 0 && !isUserSelected) {
       searchUsers(searchTerm);
-    } else {
+    } else if (searchTerm.length === 0) {
       setUsers([]);
       setShowDropdown(false);
     }
-  }, [searchTerm]);
+  }, [searchTerm, isUserSelected]);
 
   return (
     <div className={`relative ${className}`}>
