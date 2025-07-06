@@ -689,8 +689,8 @@ export default function Demo(
 
     switch (status) {
       case 0:
-        // Check if end time has passed and current user is the maker
-        if (now > end_time && isMaker) {
+        // Check if end time has passed and current user is the maker or taker
+        if (now > end_time && (isMaker || isTaker)) {
           return {
             text: "Bet timed out",
             bgColor:
