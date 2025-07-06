@@ -678,15 +678,19 @@ export default function Demo(
     const { status, end_time, makerProfile, takerProfile, arbiterProfile } =
       bet;
 
+    // Check if current user is the maker or taker
+    const isMaker =
+      (currentUserAddress &&
+        currentUserAddress.toLowerCase() === bet.maker_address.toLowerCase()) ||
+      (currentUserFid && currentUserFid === bet.maker_fid);
+    const isTaker =
+      (currentUserAddress &&
+        currentUserAddress.toLowerCase() === bet.taker_address.toLowerCase()) ||
+      (currentUserFid && currentUserFid === bet.taker_fid);
+
     switch (status) {
       case 0:
         // Check if current user is the taker (by address OR FID)
-        const isTaker =
-          (currentUserAddress &&
-            currentUserAddress.toLowerCase() ===
-              bet.taker_address.toLowerCase()) ||
-          (currentUserFid && currentUserFid === bet.taker_fid);
-
         if (isTaker) {
           return {
             text: "Accept Bet?",
@@ -736,33 +740,94 @@ export default function Demo(
           };
         }
       case 4:
-        return {
-          text: `${makerProfile?.username || "Maker"} Won`,
-          bgColor:
-            "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-        };
+        // Maker won - check if current user is the maker
+        if (isMaker) {
+          return {
+            text: "You Won!",
+            bgColor:
+              "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+          };
+        } else if (isTaker) {
+          return {
+            text: "You Lost",
+            bgColor:
+              "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+          };
+        } else {
+          return {
+            text: `${makerProfile?.username || "Maker"} Won`,
+            bgColor:
+              "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+          };
+        }
       case 5:
-        return {
-          text: `${takerProfile?.username || "Taker"} Won`,
-          bgColor:
-            "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-        };
+        // Taker won - check if current user is the taker
+        if (isTaker) {
+          return {
+            text: "You Won!",
+            bgColor:
+              "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+          };
+        } else if (isMaker) {
+          return {
+            text: "You Lost",
+            bgColor:
+              "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+          };
+        } else {
+          return {
+            text: `${takerProfile?.username || "Taker"} Won`,
+            bgColor:
+              "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+          };
+        }
       case 6:
-        return {
-          text: `${makerProfile?.username || "Maker"} Won`,
-          bgColor:
-            "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
-        };
+        // Maker claimed winnings - check if current user is the maker
+        if (isMaker) {
+          return {
+            text: "You Won!",
+            bgColor:
+              "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+          };
+        } else if (isTaker) {
+          return {
+            text: "You Lost",
+            bgColor:
+              "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+          };
+        } else {
+          return {
+            text: `${makerProfile?.username || "Maker"} Won`,
+            bgColor:
+              "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+          };
+        }
       case 7:
-        return {
-          text: `${takerProfile?.username || "Taker"} Won`,
-          bgColor:
-            "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
-        };
+        // Taker claimed winnings - check if current user is the taker
+        if (isTaker) {
+          return {
+            text: "You Won!",
+            bgColor:
+              "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+          };
+        } else if (isMaker) {
+          return {
+            text: "You Lost",
+            bgColor:
+              "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+          };
+        } else {
+          return {
+            text: `${takerProfile?.username || "Taker"} Won`,
+            bgColor:
+              "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+          };
+        }
       case 8:
         return {
           text: "Cancelled/Refunded",
-          bgColor: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+          bgColor:
+            "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
         };
       default:
         return {
