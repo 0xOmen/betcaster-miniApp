@@ -268,15 +268,12 @@ export default function CreateBet({
             const betNumber = betCreatedEvent.args.betNumber?.toString();
             console.log("Bet Number:", betNumber);
 
-            // Since the bet struct is indexed, we can't access its components directly
-            // We'll use the form data we already have, but log what we can from the event
-            console.log("Bet Details from Event:", {
-              betNumber: betNumber,
-              betStructHash: betCreatedEvent.args.bet, // This is the hash of the struct
-            });
+            // Extract all the bet data from the event
+            const betData = betCreatedEvent.args.bet;
+            console.log("Complete Bet Data from Event:", betData);
 
-            // Store bet data in Supabase using our form data and the bet_number from the event
-            if (betNumber) {
+            // Store bet data in Supabase using the actual blockchain data
+            if (betNumber && betData) {
               try {
                 // Use stored FIDs instead of making additional API calls
                 console.log("Using stored FIDs:", {
@@ -285,25 +282,42 @@ export default function CreateBet({
                   arbiterFid,
                 });
 
+                // Convert BigInt values to appropriate formats
+                const betAmountInWei = betData.betAmount;
+                const betAmountInTokens = parseFloat(betAmount); // Keep original for display
+
+                // Convert protocol fee from basis points to percentage
+                const protocolFeeBasisPoints = Number(betData.protocolFee);
+                const protocolFeePercent = protocolFeeBasisPoints / 100;
+
+                // Convert arbiter fee from basis points to percentage
+                const arbiterFeeBasisPoints = Number(betData.arbiterFee);
+                const arbiterFeePercent = arbiterFeeBasisPoints / 100;
+
                 const supabaseBetData = {
                   bet_number: parseInt(betNumber),
-                  maker_address: address as string,
-                  taker_address: selectedUser.primaryEthAddress as string,
-                  arbiter_address: selectedArbiter?.primaryEthAddress || null,
-                  bet_token_address:
-                    selectedToken.address ||
-                    "0x0000000000000000000000000000000000000000",
-                  bet_amount: parseFloat(betAmount),
-                  timestamp: Math.floor(Date.now() / 1000),
-                  end_time: getEndDateTimestamp(),
-                  protocol_fee: 100,
+                  maker_address: betData.maker as string,
+                  taker_address: betData.taker as string,
+                  arbiter_address: betData.arbiter as string,
+                  bet_token_address: betData.betTokenAddress as string,
+                  bet_amount: betAmountInTokens, // Keep original amount for display
+                  bet_amount_wei: betAmountInWei.toString(), // Store wei amount
+                  timestamp: Number(betData.timestamp),
+                  end_time: Number(betData.endTime),
+                  protocol_fee: protocolFeePercent,
                   arbiter_fee: arbiterFeePercent,
-                  bet_agreement: betDescription,
+                  bet_agreement: betData.betAgreement as string,
                   transaction_hash: receipt.transactionHash,
                   maker_fid: makerFid,
                   taker_fid: takerFid,
                   arbiter_fid: arbiterFid,
+                  status: Number(betData.status), // Store the bet status from blockchain
                 };
+
+                console.log(
+                  "Storing bet data with blockchain values:",
+                  supabaseBetData
+                );
 
                 const response = await fetch("/api/bets", {
                   method: "POST",
@@ -321,6 +335,8 @@ export default function CreateBet({
                   setActiveTab("bets");
                 } else {
                   console.error("Failed to store bet data");
+                  const errorData = await response.json();
+                  console.error("Error details:", errorData);
                 }
               } catch (error) {
                 console.error("Error storing bet data:", error);
