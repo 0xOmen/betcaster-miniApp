@@ -80,7 +80,12 @@ export type Tab = "create" | "bets" | "arbitrate" | "wallet" | "leaderboard";
 
 interface NeynarUser {
   fid: number;
-  score: number;
+  score: number; // Make score required, not optional
+  username?: string;
+  display_name?: string;
+  pfp_url?: string;
+  primaryEthAddress?: string;
+  primarySolanaAddress?: string;
 }
 
 interface UserProfile {
@@ -250,10 +255,10 @@ export default function Demo(
         const data = await response.json();
         const user = data.users?.[0];
         if (user) {
-          // Store in cache
+          // Store in cache immediately
           setUserCache((prev) => new Map(prev).set(fid, user));
           console.log(`✅ Cached user data for FID: ${fid}`);
-          return user;
+          return user; // Return the user data directly
         }
       }
     } catch (error) {
@@ -304,14 +309,12 @@ export default function Demo(
   useEffect(() => {
     const fetchNeynarUserObject = async () => {
       if (context?.user?.fid) {
-        try {
-          const response = await fetch(`/api/users?fids=${context.user.fid}`);
-          const data = await response.json();
-          if (data.users?.[0]) {
-            setNeynarUser(data.users[0]);
-          }
-        } catch (error) {
-          console.error("Failed to fetch Neynar user object:", error);
+        const user = await fetchUserWithCache(context.user.fid);
+        if (user) {
+          setNeynarUser({
+            ...user,
+            score: 0, // Add default score
+          });
         }
       }
     };
