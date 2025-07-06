@@ -1948,7 +1948,8 @@ export default function Demo(
                           {(address?.toLowerCase() ===
                             bet.taker_address.toLowerCase() ||
                             context?.user?.fid === bet.taker_fid) &&
-                            bet.status === 0 && (
+                            bet.status === 0 &&
+                            Math.floor(Date.now() / 1000) <= bet.end_time && (
                               <div className="flex space-x-2 mt-2">
                                 <button
                                   onClick={(e) => {
