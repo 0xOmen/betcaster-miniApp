@@ -47,7 +47,7 @@ import { useReadContract, useWriteContract } from "wagmi";
 import { amountToWei, getTokenByAddress } from "~/lib/tokens";
 import { getTimeRemaining } from "~/lib/utils";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
-import { farcasterMiniApp as miniAppConnector } from "@farcaster/miniapp-wagmi-connector";
+import { getChainId } from "@wagmi/core";
 
 // Add ERC20 ABI for allowance and approve functions
 const ERC20_ABI = [
