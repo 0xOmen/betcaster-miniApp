@@ -344,8 +344,25 @@ export default function Demo(
           const bets = data.bets || [];
           console.log("📊 Found bets:", bets.length, "bets:", bets);
 
+          // Filter out old cancelled bets (status 8) that are more than a day old
+          const oneDayAgo = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
+          const filteredBets = bets.filter((bet: Bet) => {
+            if (bet.status === 8) {
+              // Check if bet is more than a day old (using end_time or updated_at)
+              const betAge = bet.end_time || bet.timestamp || 0;
+              return betAge > oneDayAgo;
+            }
+            return true; // Keep all non-cancelled bets
+          });
+
+          console.log(
+            "📊 Filtered bets:",
+            filteredBets.length,
+            "bets after filtering"
+          );
+
           // Debug: Log user's role in each bet
-          bets.forEach((bet: Bet) => {
+          filteredBets.forEach((bet: Bet) => {
             const isMaker =
               address?.toLowerCase() === bet.maker_address.toLowerCase() ||
               context?.user?.fid === bet.maker_fid;
@@ -370,9 +387,9 @@ export default function Demo(
             });
           });
 
-          // Fetch profile data for each bet's maker and taker
+          // Fetch profile data for each bet's maker and taker (only for non-filtered bets)
           const betsWithProfiles = await Promise.all(
-            bets.map(async (bet: Bet) => {
+            filteredBets.map(async (bet: Bet) => {
               let makerFid = bet.maker_fid;
               let takerFid = bet.taker_fid;
               let arbiterFid = bet.arbiter_fid;
