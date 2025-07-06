@@ -2758,9 +2758,8 @@ export default function Demo(
                 <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-lg">
                   <strong>Arbiter Instructions:</strong>
                   <div className="mt-1 text-sm">
-                    If the bet agreement was fulfilled as written, select{" "}
-                    <b>Maker</b> as the winner. Otherwise, select <b>Taker</b>{" "}
-                    as the winner.
+                    Select whether the bet agreement is <b>True</b> or{" "}
+                    <b>False</b>.
                   </div>
                 </div>
 
@@ -2845,7 +2844,7 @@ export default function Demo(
                 {/* Winner Selection */}
                 <div className="mb-4">
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Select Winner
+                    Select Result
                   </h3>
                   <div className="flex space-x-3">
                     <button
@@ -2856,7 +2855,16 @@ export default function Demo(
                           : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
                       }`}
                     >
-                      Maker
+                      <div className="text-center">
+                        <div>True</div>
+                        <div className="text-xs opacity-75">
+                          (
+                          {selectedBet.makerProfile?.display_name ||
+                            selectedBet.makerProfile?.username ||
+                            "Maker"}{" "}
+                          wins)
+                        </div>
+                      </div>
                     </button>
                     <button
                       onClick={() => setSelectedWinner("taker")}
@@ -2866,7 +2874,16 @@ export default function Demo(
                           : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
                       }`}
                     >
-                      Taker
+                      <div className="text-center">
+                        <div>False</div>
+                        <div className="text-xs opacity-75">
+                          (
+                          {selectedBet.takerProfile?.display_name ||
+                            selectedBet.takerProfile?.username ||
+                            "Taker"}{" "}
+                          wins)
+                        </div>
+                      </div>
                     </button>
                   </div>
                 </div>
