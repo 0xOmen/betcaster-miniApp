@@ -170,8 +170,10 @@ export default function CreateBet({
   const [betAmount, setBetAmount] = useState("");
   const [betDescription, setBetDescription] = useState("");
   const [selectedTimeOption, setSelectedTimeOption] = useState<string>("");
-  const [customHours, setCustomHours] = useState("");
-  const [customDays, setCustomDays] = useState("");
+  const [customTimeValue, setCustomTimeValue] = useState("");
+  const [customTimeUnit, setCustomTimeUnit] = useState<"hours" | "days">(
+    "days"
+  );
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
@@ -571,8 +573,8 @@ export default function CreateBet({
     setSelectedTimeOption(option);
     setShowCustomInput(option === "custom");
     if (option !== "custom") {
-      setCustomHours("");
-      setCustomDays("");
+      setCustomTimeValue("");
+      setCustomTimeUnit("days");
     }
   };
 
@@ -587,9 +589,9 @@ export default function CreateBet({
       case "1month":
         return now + 30 * 24 * 60 * 60; // 30 days in seconds
       case "custom":
-        const hours = parseInt(customHours) || 0;
-        const days = parseInt(customDays) || 0;
-        const totalSeconds = hours * 60 * 60 + days * 24 * 60 * 60;
+        const value = parseInt(customTimeValue) || 0;
+        const totalSeconds =
+          value * (customTimeUnit === "hours" ? 60 * 60 : 24 * 60 * 60);
         if (totalSeconds > 0 && totalSeconds <= 365 * 24 * 60 * 60) {
           return now + totalSeconds; // Custom hours and days in seconds
         }
@@ -981,39 +983,32 @@ export default function CreateBet({
                   <input
                     type="number"
                     min="1"
-                    max="8760"
-                    placeholder="Enter hours (1-8760)"
-                    value={customHours}
+                    max={customTimeUnit === "hours" ? "8760" : "365"}
+                    placeholder={`Enter time value (1-${
+                      customTimeUnit === "hours" ? "8760" : "365"
+                    })`}
+                    value={customTimeValue}
                     onChange={(e) => {
                       const value = parseInt(e.target.value);
-                      if (value <= 8760) {
-                        setCustomHours(e.target.value);
+                      const maxValue = customTimeUnit === "hours" ? 8760 : 365;
+                      if (value <= maxValue) {
+                        setCustomTimeValue(e.target.value);
                       }
                     }}
                     className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    hours
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="number"
-                    min="1"
-                    max="365"
-                    placeholder="Enter days (1-365)"
-                    value={customDays}
+                  <select
+                    value={customTimeUnit}
                     onChange={(e) => {
-                      const value = parseInt(e.target.value);
-                      if (value <= 365) {
-                        setCustomDays(e.target.value);
-                      }
+                      setCustomTimeUnit(e.target.value as "hours" | "days");
+                      // Reset value when switching units to ensure it's within the new unit's limits
+                      setCustomTimeValue("");
                     }}
                     className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    days
-                  </span>
+                  >
+                    <option value="hours">Hours</option>
+                    <option value="days">Days</option>
+                  </select>
                 </div>
               </div>
             )}
