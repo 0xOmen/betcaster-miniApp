@@ -189,7 +189,10 @@ export default function Demo(
   const [editEndTime, setEditEndTime] = useState<string>("");
   const [editBetAgreement, setEditBetAgreement] = useState<string>("");
   const [editTimeOption, setEditTimeOption] = useState<string>("");
-  const [editCustomDays, setEditCustomDays] = useState<string>("");
+  const [editCustomTimeValue, setEditCustomTimeValue] = useState("");
+  const [editCustomTimeUnit, setEditCustomTimeUnit] = useState<
+    "hours" | "days"
+  >("days");
 
   // Select Winner state
   const [isSelectWinnerModalOpen, setIsSelectWinnerModalOpen] = useState(false);
@@ -1395,10 +1398,12 @@ export default function Demo(
 
       // Calculate new end time
       let newEndTime: number;
-      if (editTimeOption === "custom" && editCustomDays) {
-        const days = parseInt(editCustomDays);
-        if (days > 0 && days <= 365) {
-          newEndTime = Math.floor(Date.now() / 1000) + days * 24 * 60 * 60;
+      if (editTimeOption === "custom" && editCustomTimeValue) {
+        const value = parseInt(editCustomTimeValue);
+        const totalSeconds =
+          value * (editCustomTimeUnit === "hours" ? 60 * 60 : 24 * 60 * 60);
+        if (value > 0 && totalSeconds <= 365 * 24 * 60 * 60) {
+          newEndTime = Math.floor(Date.now() / 1000) + totalSeconds;
         } else {
           newEndTime = selectedBet.end_time; // Keep original if invalid
         }
@@ -1550,7 +1555,8 @@ export default function Demo(
 
     setEditBetAgreement(bet.bet_agreement);
     setEditTimeOption("");
-    setEditCustomDays("");
+    setEditCustomTimeValue("");
+    setEditCustomTimeUnit("days");
     setIsEditModalOpen(true);
   };
 
@@ -1563,7 +1569,8 @@ export default function Demo(
     setEditArbiterFid(null);
     setEditBetAgreement("");
     setEditTimeOption("");
-    setEditCustomDays("");
+    setEditCustomTimeValue("");
+    setEditCustomTimeUnit("days");
   };
 
   // Function to open select winner modal
@@ -2532,20 +2539,37 @@ export default function Demo(
                           <input
                             type="number"
                             min="1"
-                            max="365"
-                            placeholder="Enter days (1-365)"
-                            value={editCustomDays}
+                            max={
+                              editCustomTimeUnit === "hours" ? "8760" : "365"
+                            }
+                            placeholder={`Enter time value (1-${
+                              editCustomTimeUnit === "hours" ? "8760" : "365"
+                            })`}
+                            value={editCustomTimeValue}
                             onChange={(e) => {
                               const value = parseInt(e.target.value);
-                              if (value <= 365) {
-                                setEditCustomDays(e.target.value);
+                              const maxValue =
+                                editCustomTimeUnit === "hours" ? 8760 : 365;
+                              if (value <= maxValue) {
+                                setEditCustomTimeValue(e.target.value);
                               }
                             }}
                             className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           />
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            days
-                          </span>
+                          <select
+                            value={editCustomTimeUnit}
+                            onChange={(e) => {
+                              setEditCustomTimeUnit(
+                                e.target.value as "hours" | "days"
+                              );
+                              // Reset value when switching units to ensure it's within the new unit's limits
+                              setEditCustomTimeValue("");
+                            }}
+                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          >
+                            <option value="hours">Hours</option>
+                            <option value="days">Days</option>
+                          </select>
                         </div>
                       )}
                     </div>
