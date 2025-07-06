@@ -193,6 +193,9 @@ export default function CreateBet({
     useState<boolean>(false);
   const [customArbiterFee, setCustomArbiterFee] = useState<string>("");
 
+  // Protocol fee percentage
+  const PROTOCOL_FEE_PERCENT = 0.5;
+
   // Store FIDs for maker, taker, and arbiter
   const [makerFid, setMakerFid] = useState<number | null>(null);
   const [takerFid, setTakerFid] = useState<number | null>(null);
@@ -724,7 +727,7 @@ export default function CreateBet({
         selectedToken.address as `0x${string}`, // _betTokenAddress (zero address for native ETH)
         betAmountWei, // _betAmount
         BigInt(endTimestamp), // _endTime
-        BigInt(100), // _protocolFee
+        BigInt(PROTOCOL_FEE_PERCENT * 100), // _protocolFee
         BigInt(arbiterFeePercent * 100), // _arbiterFee
         betDescription, // _betAgreement
       ] as const;
@@ -949,6 +952,11 @@ export default function CreateBet({
               </div>
             )}
           </div>
+        </div>
+
+        {/* Protocol Fee Information */}
+        <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          Protocol fee is {PROTOCOL_FEE_PERCENT}% on all completed bets
         </div>
 
         {/* End Time Selection */}
