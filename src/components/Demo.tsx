@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { signIn, signOut, getCsrfToken } from "next-auth/react";
 import sdk, { SignIn as SignInCore, type Haptics } from "@farcaster/frame-sdk";
 import {
@@ -232,19 +232,17 @@ export default function Demo(
     },
   });
 
-  // Add this at the top of the component, after the state declarations
-  const [userCache, setUserCache] = useState<Map<number, UserProfile>>(
-    new Map()
-  );
+  // Replace the userCache state with a ref for immediate access
+  const userCacheRef = useRef<Map<number, UserProfile>>(new Map());
 
-  // Add this helper function
+  // Update the fetchUserWithCache function
   const fetchUserWithCache = async (
     fid: number
   ): Promise<UserProfile | null> => {
-    // Check cache first
-    if (userCache.has(fid)) {
+    // Check cache first using ref for immediate access
+    if (userCacheRef.current.has(fid)) {
       console.log(`📋 Using cached data for FID: ${fid}`);
-      return userCache.get(fid) || null;
+      return userCacheRef.current.get(fid) || null;
     }
 
     // Fetch from API if not cached
@@ -255,10 +253,8 @@ export default function Demo(
         const data = await response.json();
         const user = data.users?.[0];
         if (user) {
-          // Update cache immediately and return user data
-          const newCache = new Map(userCache);
-          newCache.set(fid, user);
-          setUserCache(newCache);
+          // Store in ref immediately for subsequent calls
+          userCacheRef.current.set(fid, user);
           console.log(`✅ Cached user data for FID: ${fid}`);
           return user;
         }
