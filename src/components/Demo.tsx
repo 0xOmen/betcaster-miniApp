@@ -690,6 +690,15 @@ export default function Demo(
 
     switch (status) {
       case 0:
+        // Check if end time has passed and current user is the maker
+        if (now > end_time && isMaker) {
+          return {
+            text: "Bet timed out",
+            bgColor:
+              "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+          };
+        }
+
         // Check if current user is the taker (by address OR FID)
         if (isTaker) {
           return {
