@@ -10,7 +10,7 @@
         "iconUrl": "https://betcaster.vercel.app/icon.png",
         "homeUrl": "https://betcaster.vercel.app",
         "splashImageUrl": "https://betcaster.vercel.app/icon.png",
-        "splashBackgroundColor": "#f7f7f7",
+        "splashBackgroundColor": "#ffc8dc",
         "webhookUrl": "https://betcaster.vercel.app/api/webhook",
         "subtitle": "Bet with Friends on Farcaster",
         "description": "Create, accept, and settle bets with friends on Farcaster. Secure blockchain-based betting with smart contract enforcement.",
@@ -35,6 +35,7 @@
         "requiredChains": [
             "eip155:8453"
         ],
-        "noindex": false
+        "noindex": false,
+        "buttonTitle": "Bet with Friends!"
     }
 }
