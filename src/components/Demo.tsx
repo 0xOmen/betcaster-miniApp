@@ -227,6 +227,41 @@ export default function Demo(
     },
   });
 
+  // Add this at the top of the component, after the state declarations
+  const [userCache, setUserCache] = useState<Map<number, UserProfile>>(
+    new Map()
+  );
+
+  // Add this helper function
+  const fetchUserWithCache = async (
+    fid: number
+  ): Promise<UserProfile | null> => {
+    // Check cache first
+    if (userCache.has(fid)) {
+      console.log(`📋 Using cached data for FID: ${fid}`);
+      return userCache.get(fid) || null;
+    }
+
+    // Fetch from API if not cached
+    try {
+      console.log(` Fetching user data for FID: ${fid}`);
+      const response = await fetch(`/api/users?fids=${fid}`);
+      if (response.ok) {
+        const data = await response.json();
+        const user = data.users?.[0];
+        if (user) {
+          // Store in cache
+          setUserCache((prev) => new Map(prev).set(fid, user));
+          console.log(`✅ Cached user data for FID: ${fid}`);
+          return user;
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Failed to fetch user data for FID: ${fid}:`, error);
+    }
+    return null;
+  };
+
   // Set initial tab to bets (Pending Bets) on page load
   useEffect(() => {
     if (isSDKLoaded) {
@@ -411,61 +446,15 @@ export default function Demo(
               let arbiterProfile = null;
 
               if (makerFid) {
-                try {
-                  console.log(`👤 Fetching maker profile for FID: ${makerFid}`);
-                  const makerResponse = await fetch(
-                    `/api/users?fids=${makerFid}`
-                  );
-                  const makerData = await makerResponse.json();
-                  console.log("👤 Maker API response:", makerData);
-                  makerProfile = makerData.users?.[0] || null;
-                  console.log("👤 Maker profile:", makerProfile);
-                } catch (error) {
-                  console.error("❌ Failed to fetch maker profile:", error);
-                }
-              } else {
-                console.log(
-                  "⚠️ No maker FID available for bet #",
-                  bet.bet_number
-                );
+                makerProfile = await fetchUserWithCache(makerFid);
               }
 
               if (takerFid) {
-                try {
-                  console.log(`👤 Fetching taker profile for FID: ${takerFid}`);
-                  const takerResponse = await fetch(
-                    `/api/users?fids=${takerFid}`
-                  );
-                  const takerData = await takerResponse.json();
-                  console.log("👤 Taker API response:", takerData);
-                  takerProfile = takerData.users?.[0] || null;
-                  console.log("👤 Taker profile:", takerProfile);
-                } catch (error) {
-                  console.error("❌ Failed to fetch taker profile:", error);
-                }
-              } else {
-                console.log(
-                  "⚠️ No taker FID available for bet #",
-                  bet.bet_number
-                );
+                takerProfile = await fetchUserWithCache(takerFid);
               }
 
-              // Fetch arbiter profile if arbiter_fid exists
               if (arbiterFid) {
-                try {
-                  console.log(
-                    `👤 Fetching arbiter profile for FID: ${arbiterFid}`
-                  );
-                  const arbiterResponse = await fetch(
-                    `/api/users?fids=${arbiterFid}`
-                  );
-                  const arbiterData = await arbiterResponse.json();
-                  console.log("👤 Arbiter API response:", arbiterData);
-                  arbiterProfile = arbiterData.users?.[0] || null;
-                  console.log("👤 Arbiter profile:", arbiterProfile);
-                } catch (error) {
-                  console.error("❌ Failed to fetch arbiter profile:", error);
-                }
+                arbiterProfile = await fetchUserWithCache(arbiterFid);
               }
 
               const betWithProfiles = {
