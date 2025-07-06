@@ -115,7 +115,7 @@ export default function UserSearchDropdown({
   };
 
   const handleUserSelect = async (user: User) => {
-    setSearchTerm(user.displayName);
+    //setSearchTerm(user.displayName);
     setShowDropdown(false);
 
     // Call onFidChange if provided
