@@ -812,6 +812,7 @@ export default function CreateBet({
           selectedUser={selectedUser}
           onUserSelect={setSelectedUser}
           onFidChange={setTakerFid}
+          currentUserFid={userFid}
         />
 
         {/* Token Selection */}
@@ -896,6 +897,7 @@ export default function CreateBet({
           selectedUser={selectedArbiter}
           onUserSelect={setSelectedArbiter}
           onFidChange={setArbiterFid}
+          currentUserFid={userFid}
         />
 
         {/* Arbiter Fee Selection */}

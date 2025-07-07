@@ -19,6 +19,7 @@ interface UserSearchDropdownProps {
   onFidChange?: (fid: number | null) => void;
   className?: string;
   disabled?: boolean;
+  currentUserFid?: number | null;
 }
 
 export default function UserSearchDropdown({
@@ -29,6 +30,7 @@ export default function UserSearchDropdown({
   onFidChange,
   className = "",
   disabled = false,
+  currentUserFid = null,
 }: UserSearchDropdownProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState<User[]>([]);
@@ -62,7 +64,13 @@ export default function UserSearchDropdown({
       if (response.ok) {
         const data = await response.json();
         console.log("API response:", data);
-        setUsers(data.users || []);
+
+        // Filter out the current user from search results
+        const filteredUsers = (data.users || []).filter(
+          (user: User) => user.fid !== currentUserFid
+        );
+
+        setUsers(filteredUsers);
         setShowDropdown(true);
       } else {
         setUsers([]);

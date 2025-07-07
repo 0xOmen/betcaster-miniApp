@@ -2586,6 +2586,7 @@ export default function Demo(
                     selectedUser={editTakerUser}
                     onUserSelect={setEditTakerUser}
                     onFidChange={setEditTakerFid}
+                    currentUserFid={context?.user?.fid || null}
                   />
 
                   {/* Arbiter Selection */}
@@ -2595,6 +2596,7 @@ export default function Demo(
                     selectedUser={editArbiterUser}
                     onUserSelect={setEditArbiterUser}
                     onFidChange={setEditArbiterFid}
+                    currentUserFid={context?.user?.fid || null}
                   />
 
                   {/* End Time */}
