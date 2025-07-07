@@ -711,6 +711,19 @@ export default function Demo(
           bgColor:
             "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
         };
+      case 9:
+        // Rejected bet - show who rejected it
+        if (isMaker) {
+          return {
+            text: `${takerProfile?.username || "Taker"} Rejected Bet`,
+            bgColor:
+              "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+          };
+        }
+        return {
+          text: "Bet Rejected",
+          bgColor: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+        };
       case 1:
         // Check if current user is the arbiter (by address OR FID)
         const isArbiter =
@@ -1773,6 +1786,49 @@ export default function Demo(
     }
   };
 
+  // Add a new function to handle bet rejection
+  const handleRejectBet = async (bet: Bet) => {
+    try {
+      console.log("Rejecting bet #", bet.bet_number);
+
+      // Update database to mark bet as rejected
+      const updateResponse = await fetch(
+        `/api/bets?betNumber=${bet.bet_number}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: 9,
+          }),
+        }
+      );
+
+      if (!updateResponse.ok) {
+        console.error("Failed to update bet status in database");
+      } else {
+        console.log("Bet status updated to rejected in database");
+
+        // Refresh bets list
+        if (address || context?.user?.fid) {
+          const params = new URLSearchParams();
+          if (address) params.append("address", address);
+          if (context?.user?.fid)
+            params.append("fid", context.user.fid.toString());
+
+          const response = await fetch(`/api/bets?${params.toString()}`);
+          if (response.ok) {
+            const data = await response.json();
+            setUserBets(data.bets || []);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error rejecting bet:", error);
+    }
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -1960,6 +2016,15 @@ export default function Demo(
                                   className="px-2 py-1 text-xs bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
                                 >
                                   Accept Bet
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRejectBet(bet);
+                                  }}
+                                  className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                >
+                                  Reject
                                 </button>
                               </div>
                             )}
