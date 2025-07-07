@@ -15,9 +15,9 @@
         "subtitle": "Bet with Friends on Farcaster",
         "description": "Create, accept, and settle bets with friends on Farcaster. Secure blockchain-based betting with smart contract enforcement.",
         "screenshotUrls": [
-            "https://betcaster.vercel.app/Bets1.png",
-            "https://betcaster.vercel.app/Bets2.png",
-            "https://betcaster.vercel.app/create.png"
+            "https://betcaster.vercel.app/BetcasterSN1.png",
+            "https://betcaster.vercel.app/BetcasterSN2.png",
+            "https://betcaster.vercel.app/BetcasterSN3.png"
         ],
         "primaryCategory": "social",
         "tags": [
@@ -27,11 +27,11 @@
             "blockchain",
             "defi"
         ],
-        "heroImageUrl": "https://betcaster.vercel.app/arbitrate.png",
+        "heroImageUrl": "https://betcaster.vercel.app/BetcasterSN1.png",
         "tagline": "Bet with friends on Farcaster",
         "ogTitle": "Betcaster",
         "ogDescription": "Decentralized betting platform on Farcaster",
-        "ogImageUrl": "https://betcaster.vercel.app/arbitrate.png",
+        "ogImageUrl": "https://betcaster.vercel.app/BetcasterSN1.png",
         "requiredChains": [
             "eip155:8453"
         ],
