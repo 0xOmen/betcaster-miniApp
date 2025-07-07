@@ -1551,7 +1551,7 @@ export default function Demo(
             setTimeout(async () => {
               setIsEditModalOpen(false);
               setIsModalOpen(false);
-              // Update database with new parameters
+              // Update database with new parameters and reset status to 0
               try {
                 const updateResponse = await fetch(
                   `/api/bets?betNumber=${selectedBet.bet_number}`,
@@ -1569,6 +1569,7 @@ export default function Demo(
                           : newArbiter,
                       end_time: newEndTime,
                       bet_agreement: newBetAgreement,
+                      status: 0, // Reset status to 0 after edit
                       transaction_hash: hash,
                     }),
                   }
@@ -1577,7 +1578,9 @@ export default function Demo(
                 if (!updateResponse.ok) {
                   console.error("Failed to update bet parameters in database");
                 } else {
-                  console.log("Bet parameters updated in database");
+                  console.log(
+                    "Bet parameters updated and status reset to 0 in database"
+                  );
                 }
               } catch (error) {
                 console.error("Error updating bet parameters:", error);
