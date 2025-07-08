@@ -68,8 +68,16 @@ export function getMiniAppEmbedMetadata(ogImageUrl?: string) {
         iconUrl: APP_ICON_URL,
         splashBackgroundColor: APP_SPLASH_BACKGROUND_COLOR,
         description: APP_DESCRIPTION,
-        primaryCategory: APP_PRIMARY_CATEGORY,
-        tags: APP_TAGS,
+        primaryCategory: APP_PRIMARY_CATEGORY || "social",
+        tags: APP_TAGS || [
+          "betting",
+          "prediction",
+          "social",
+          "blockchain",
+          "defi",
+        ],
+        requiredChains: ["eip155:8453"], // Base chain
+        noindex: false,
       },
     },
   };

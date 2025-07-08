@@ -14,3 +14,20 @@ export const APP_WEBHOOK_URL =
     ? `https://api.neynar.com/f/app/${process.env.NEYNAR_CLIENT_ID}/event`
     : `${APP_URL}/api/webhook`;
 export const USE_WALLET = process.env.NEXT_PUBLIC_USE_WALLET === "true";
+
+export const APP_METADATA = {
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
+  url: APP_URL,
+  siteName: APP_NAME,
+  images: {
+    og: APP_OG_IMAGE_URL,
+    icon: APP_ICON_URL,
+    splash: APP_SPLASH_URL,
+  },
+  colors: {
+    splashBackground: APP_SPLASH_BACKGROUND_COLOR,
+  },
+  tags: APP_TAGS || ["betting", "prediction", "social", "blockchain", "defi"],
+  category: APP_PRIMARY_CATEGORY || "social",
+};
