@@ -33,15 +33,15 @@ export const Footer: React.FC<FooterProps> = ({ activeTab, setActiveTab }) => (
         <span className="text-xs mt-1">Pending Bets</span>
       </button>
       <button
-        onClick={() => setActiveTab("arbitrate")}
+        onClick={() => setActiveTab("explore")}
         className={`flex flex-col items-center justify-center w-full h-full ${
-          activeTab === "arbitrate"
+          activeTab === "explore"
             ? "text-purple-500 dark:text-purple-400"
             : "text-gray-500 dark:text-gray-400"
         }`}
       >
-        <img src="/arbitrate.png" alt="Arbitrate" className="w-6 h-6" />
-        <span className="text-xs mt-1">Arbitrate</span>
+        <img src="/arbitrate.png" alt="Explore" className="w-6 h-6" />
+        <span className="text-xs mt-1">Explore</span>
       </button>
       <button
         onClick={() => setActiveTab("leaderboard")}
