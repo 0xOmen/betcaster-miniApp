@@ -51,22 +51,53 @@ export default function Explore({ userFid }: ExploreProps) {
     setError(null);
     setIsLoading(true);
 
+    console.log("🔍 Searching for bet number:", betNumber);
+
     try {
-      const response = await fetch(`/api/bets?betNumber=${betNumber}`);
+      // Log the API URL being called
+      const apiUrl = `/api/bets?betNumber=${betNumber}`;
+      console.log("📡 Making API request to:", apiUrl);
+
+      const response = await fetch(apiUrl);
+      console.log("📥 API response status:", response.status);
+
       if (!response.ok) {
-        throw new Error("Failed to fetch bet");
+        console.error("❌ API response not OK:", {
+          status: response.status,
+          statusText: response.statusText,
+        });
+        throw new Error(`Failed to fetch bet: ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log("📦 API response data:", data);
+
       if (data.bet) {
+        console.log("✅ Bet found:", data.bet);
         setSelectedBet(data.bet);
         setIsModalOpen(true);
       } else {
-        setError("Bet not found");
+        console.log("❌ Bet not found in response data");
+        // Check if we have a maxBetNumber in the response
+        if (data.maxBetNumber !== undefined) {
+          console.log("📊 Max bet number in database:", data.maxBetNumber);
+          if (parseInt(betNumber) > data.maxBetNumber) {
+            setError(
+              `Bet number ${betNumber} doesn't exist yet. The highest bet number is ${data.maxBetNumber}`
+            );
+          } else {
+            setError("Bet not found in database. Checking blockchain...");
+            // TODO: Implement blockchain lookup
+          }
+        } else {
+          setError("Bet not found");
+        }
       }
     } catch (error) {
-      setError("Error fetching bet details");
-      console.error("Error:", error);
+      console.error("❌ Error in handleSubmit:", error);
+      setError(
+        error instanceof Error ? error.message : "Error fetching bet details"
+      );
     } finally {
       setIsLoading(false);
     }
