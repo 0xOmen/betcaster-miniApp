@@ -24,11 +24,7 @@ export function ShareModal({
     if (!userFid) return;
 
     const shareUrl = `${APP_URL}/share/${userFid}`;
-    const text = `I just created a ${betDetails.amount} ${
-      betDetails.token
-    } bet with ${betDetails.taker}${
-      betDetails.arbiter ? ` and ${betDetails.arbiter} as arbiter` : ""
-    } on @betcaster\n\nJoin us and start betting with friends!`;
+    const text = `I just created a ${betDetails.amount} ${betDetails.token} bet with @${betDetails.taker} on @betcaster\n\nCome bet with friends on Betcaster!`;
 
     // Open Warpcast with pre-filled cast
     window.open(

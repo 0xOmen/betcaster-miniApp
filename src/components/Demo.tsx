@@ -1851,6 +1851,21 @@ export default function Demo(
     }
   };
 
+  // Add this function near other state management functions
+  const handleShareBet = (bet: Bet) => {
+    setShareBetDetails({
+      amount: bet.bet_amount.toString(),
+      token: getTokenName(bet.bet_token_address),
+      taker:
+        bet.takerProfile?.display_name ||
+        bet.takerProfile?.username ||
+        "Unknown",
+      arbiter: bet.arbiterProfile?.display_name || bet.arbiterProfile?.username,
+    });
+    setShowShareModal(true);
+    closeModal();
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -2656,6 +2671,16 @@ export default function Demo(
                     className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
                   >
                     Close
+                  </button>
+                </div>
+
+                {/* Add Share Button */}
+                <div className="mt-4">
+                  <button
+                    onClick={() => handleShareBet(selectedBet)}
+                    className="w-full px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                  >
+                    Share on Farcaster
                   </button>
                 </div>
               </div>
