@@ -13,12 +13,23 @@ export async function GET(request: NextRequest) {
 
   return new ImageResponse(
     (
-      <div tw="flex h-full w-full flex-col justify-center items-center relative bg-gradient-to-br from-purple-600 to-pink-600">
-        {/* Background pattern */}
-        <div tw="absolute inset-0 opacity-10">
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          width: "100%",
+          position: "relative",
+          background: "linear-gradient(to bottom right, #9333ea, #db2777)",
+        }}
+      >
+        <div style={{ position: "absolute", inset: 0, opacity: 0.1 }}>
           <div
-            tw="absolute inset-0"
             style={{
+              position: "absolute",
+              inset: 0,
               backgroundImage:
                 "radial-gradient(circle at 25% 25%, white 2px, transparent 2px)",
               backgroundSize: "50px 50px",
@@ -26,42 +37,102 @@ export async function GET(request: NextRequest) {
           />
         </div>
 
-        {/* Main content */}
-        <div tw="flex flex-col items-center justify-center relative z-10">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10,
+          }}
+        >
           {user?.pfp_url && (
-            <div tw="flex w-32 h-32 rounded-full overflow-hidden mb-6 border-4 border-white shadow-lg">
+            <div
+              style={{
+                width: "128px",
+                height: "128px",
+                borderRadius: "9999px",
+                overflow: "hidden",
+                marginBottom: "24px",
+                border: "4px solid white",
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+              }}
+            >
               <img
                 src={user.pfp_url}
                 alt="Profile"
-                tw="w-full h-full object-cover"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
             </div>
           )}
 
-          <h1 tw="text-6xl font-bold text-white text-center mb-4">
+          <h1
+            style={{
+              fontSize: "60px",
+              fontWeight: "bold",
+              color: "white",
+              textAlign: "center",
+              marginBottom: "16px",
+            }}
+          >
             {user?.display_name || user?.username
               ? `${user.display_name || user.username} is betting!`
               : "Join the betting fun!"}
           </h1>
 
-          <div tw="flex items-center space-x-4 text-white text-3xl">
-            <span tw="text-4xl">💸</span>
-            <span tw="font-semibold">{APP_NAME}</span>
-            <span tw="text-4xl">💸</span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "16px",
+              color: "white",
+              fontSize: "30px",
+            }}
+          >
+            <span style={{ fontSize: "40px" }}>💸</span>
+            <span style={{ fontWeight: 600 }}>{APP_NAME}</span>
+            <span style={{ fontSize: "40px" }}>💸</span>
           </div>
 
-          <p tw="text-2xl mt-6 text-white opacity-90 text-center">
+          <p
+            style={{
+              fontSize: "24px",
+              marginTop: "24px",
+              color: "white",
+              opacity: 0.9,
+              textAlign: "center",
+            }}
+          >
             Bet with friends on Farcaster
           </p>
         </div>
 
-        {/* Bottom branding */}
-        <div tw="absolute bottom-8 left-8 right-8 flex justify-between items-center">
-          <div tw="flex items-center space-x-2 text-white text-xl">
-            <span tw="text-2xl">💸</span>
+        <div
+          style={{
+            position: "absolute",
+            bottom: "32px",
+            left: "32px",
+            right: "32px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              color: "white",
+              fontSize: "20px",
+            }}
+          >
+            <span style={{ fontSize: "24px" }}>💸</span>
             <span>Powered by Neynar</span>
           </div>
-          <div tw="text-white text-xl opacity-80">betcaster.vercel.app</div>
+          <div style={{ color: "white", fontSize: "20px", opacity: 0.8 }}>
+            betcaster.vercel.app
+          </div>
         </div>
       </div>
     ),
