@@ -20,6 +20,7 @@ import { base } from "wagmi/chains";
 import { supabase } from "~/lib/supabase";
 import { BASE_TOKENS, Token, amountToWei } from "~/lib/tokens";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
+import { ShareModal } from "~/components/ShareModal";
 
 interface User {
   fid: number;
@@ -236,7 +237,16 @@ export default function CreateBet({
       hash: approvalTxHash,
     });
 
-  // Parse BetCreated event when receipt is available
+  // Add state for share modal
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareBetDetails, setShareBetDetails] = useState<{
+    amount: string;
+    token: string;
+    taker: string;
+    arbiter?: string;
+  } | null>(null);
+
+  // Modify handleTransactionReceipt to show share modal
   useEffect(() => {
     const handleTransactionReceipt = async () => {
       if (receipt && isReceiptSuccess && selectedUser && selectedToken) {
@@ -333,6 +343,15 @@ export default function CreateBet({
 
                   // Switch to the Pending Bets tab after successful bet creation
                   setActiveTab("bets");
+
+                  // Set share details and show modal
+                  setShareBetDetails({
+                    amount: betAmount,
+                    token: selectedToken.symbol,
+                    taker: selectedUser.displayName,
+                    arbiter: selectedArbiter?.displayName,
+                  });
+                  setShowShareModal(true);
                 } else {
                   console.error("Failed to store bet data");
                   const errorData = await response.json();
@@ -1103,6 +1122,16 @@ export default function CreateBet({
           </div>
         )}
       </div>
+
+      {/* Add ShareModal */}
+      {shareBetDetails && (
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          betDetails={shareBetDetails}
+          userFid={userFid}
+        />
+      )}
     </div>
   );
 }
