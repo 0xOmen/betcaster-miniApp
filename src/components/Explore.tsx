@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from "react";
 import { Button } from "~/components/ui/Button";
+import { BETCASTER_ABI, BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
+import { createPublicClient, http } from "viem";
+import { base } from "viem/chains";
 
 interface ExploreProps {
   userFid: number | null;
@@ -39,12 +42,67 @@ interface UserProfile {
   primarySolanaAddress?: string;
 }
 
+// Create a public client for Base blockchain
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http(),
+});
+
 export default function Explore({ userFid }: ExploreProps) {
   const [betNumber, setBetNumber] = useState<string>("");
   const [selectedBet, setSelectedBet] = useState<Bet | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchBetFromBlockchain = async (betNumber: number) => {
+    console.log("🔍 Fetching bet from blockchain:", betNumber);
+    try {
+      const blockchainBet = await publicClient.readContract({
+        address: BETCASTER_ADDRESS,
+        abi: BETCASTER_ABI,
+        functionName: "getBet",
+        args: [BigInt(betNumber)],
+      });
+
+      console.log("📦 Blockchain bet data:", blockchainBet);
+
+      // Convert blockchain data to our Bet interface format
+      const bet: Bet = {
+        bet_number: betNumber,
+        maker_address: blockchainBet.maker.toLowerCase(),
+        taker_address: blockchainBet.taker.toLowerCase(),
+        arbiter_address: blockchainBet.arbiter.toLowerCase(),
+        bet_token_address: blockchainBet.betTokenAddress.toLowerCase(),
+        bet_amount: Number(blockchainBet.betAmount),
+        timestamp: Number(blockchainBet.timestamp),
+        end_time: Number(blockchainBet.endTime),
+        status: blockchainBet.status,
+        protocol_fee: Number(blockchainBet.protocolFee),
+        arbiter_fee: Number(blockchainBet.arbiterFee),
+        bet_agreement: blockchainBet.betAgreement,
+        transaction_hash: null,
+      };
+
+      // Store bet in database
+      const storeResponse = await fetch("/api/bets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ bet }),
+      });
+
+      if (!storeResponse.ok) {
+        console.error("Failed to store bet in database");
+      }
+
+      return bet;
+    } catch (error) {
+      console.error("Error fetching bet from blockchain:", error);
+      return null;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,41 +112,28 @@ export default function Explore({ userFid }: ExploreProps) {
     console.log("🔍 Searching for bet number:", betNumber);
 
     try {
-      // Log the API URL being called
+      // Try to get bet from database
       const apiUrl = `/api/bets?betNumber=${betNumber}`;
       console.log("📡 Making API request to:", apiUrl);
 
       const response = await fetch(apiUrl);
-      console.log("📥 API response status:", response.status);
+      const data = await response.json();
 
-      if (!response.ok) {
-        console.error("❌ API response not OK:", {
-          status: response.status,
-          statusText: response.statusText,
-        });
-        throw new Error(`Failed to fetch bet: ${response.statusText}`);
+      let foundBet = data.bets?.find(
+        (bet: Bet) => bet.bet_number === parseInt(betNumber)
+      );
+
+      if (!foundBet) {
+        console.log("🔗 Bet not found in database, checking blockchain...");
+        foundBet = await fetchBetFromBlockchain(parseInt(betNumber));
       }
 
-      const data = await response.json();
-      console.log("📦 API response data:", data);
-
-      // Find the specific bet in the bets array
-      if (data.bets && Array.isArray(data.bets)) {
-        const foundBet = data.bets.find(
-          (bet: Bet) => bet.bet_number === parseInt(betNumber)
-        );
-        console.log("🎯 Found bet:", foundBet);
-
-        if (foundBet) {
-          setSelectedBet(foundBet);
-          setIsModalOpen(true);
-        } else {
-          console.log("❌ Bet not found in bets array");
-          setError("Bet not found");
-        }
+      if (foundBet) {
+        console.log("✅ Found bet:", foundBet);
+        setSelectedBet(foundBet);
+        setIsModalOpen(true);
       } else {
-        console.log("❌ Invalid response format - no bets array");
-        setError("Error: Invalid response format");
+        setError("Bet not found");
       }
     } catch (error) {
       console.error("❌ Error in handleSubmit:", error);
