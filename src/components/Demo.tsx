@@ -1632,20 +1632,6 @@ export default function Demo(
     }
   };
 
-  {
-    showShareModal && shareBetDetails && (
-      <ShareModal
-        isOpen={showShareModal}
-        onClose={() => {
-          console.log("Closing share modal");
-          setShowShareModal(false);
-        }}
-        betDetails={shareBetDetails}
-        userFid={context?.user?.fid || null}
-      />
-    );
-  }
-
   // Function to open edit modal and populate fields
   const openEditModal = (bet: Bet) => {
     setSelectedBet(bet);
@@ -3042,6 +3028,18 @@ export default function Demo(
               </div>
             </div>
           </div>
+        )}
+
+        {showShareModal && shareBetDetails && (
+          <ShareModal
+            isOpen={showShareModal}
+            onClose={() => {
+              console.log("Closing share modal");
+              setShowShareModal(false);
+            }}
+            betDetails={shareBetDetails}
+            userFid={context?.user?.fid || null}
+          />
         )}
       </div>
     </div>
