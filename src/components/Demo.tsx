@@ -45,33 +45,8 @@ import UserSearchDropdown from "~/components/UserSearchDropdown";
 import { farcasterMiniApp as miniAppConnector } from "@farcaster/miniapp-wagmi-connector";
 import { ShareModal } from "~/components/ShareModal";
 import Explore from "~/components/Explore";
-
-// Add ERC20 ABI for allowance and approve functions
-const ERC20_ABI = [
-  {
-    inputs: [
-      { name: "owner", type: "address" },
-      { name: "spender", type: "address" },
-    ],
-    name: "allowance",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      { name: "spender", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    name: "approve",
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
-
-const SPENDER_ADDRESS =
-  "0xEA358a9670a4f2113AA17e8d6C9A0dE68c2a0aEa" as `0x${string}`; //Betcaster contract on Base
+import { BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
+import { ERC20_ABI } from "~/lib/erc20Abi";
 
 export type Tab = "create" | "bets" | "explore" | "wallet" | "leaderboard";
 
@@ -225,7 +200,7 @@ export default function Demo(
     address: selectedBet?.bet_token_address as `0x${string}`,
     abi: ERC20_ABI,
     functionName: "allowance",
-    args: [address as `0x${string}`, SPENDER_ADDRESS],
+    args: [address as `0x${string}`, BETCASTER_ADDRESS],
     query: {
       enabled:
         !!selectedBet?.bet_token_address &&
@@ -1025,7 +1000,7 @@ export default function Demo(
             address: selectedBet.bet_token_address as `0x${string}`,
             abi: ERC20_ABI,
             functionName: "approve",
-            args: [SPENDER_ADDRESS, betAmountWei],
+            args: [BETCASTER_ADDRESS, betAmountWei],
           });
 
           if (hash) {
