@@ -350,10 +350,7 @@ export default function CreateBet({
                   const result = await response.json();
                   console.log("Bet stored successfully:", result);
 
-                  // Switch to the Pending Bets tab after successful bet creation
-                  setActiveTab("bets");
-
-                  // Set share details and show modal
+                  // Set share details and show modal BEFORE changing tabs
                   const shareDetails = {
                     amount: betAmount,
                     token: selectedToken.symbol,
@@ -1149,6 +1146,8 @@ export default function CreateBet({
           onClose={() => {
             console.log("Closing share modal");
             setShowShareModal(false);
+            // Change tab only after modal is closed
+            setActiveTab("bets");
           }}
           betDetails={shareBetDetails}
           userFid={userFid}
