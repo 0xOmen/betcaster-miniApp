@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   const user = fid ? await getNeynarUser(Number(fid)) : null;
 
-  return new ImageResponse(
+  const response = new ImageResponse(
     (
       <div
         style={{
@@ -149,4 +149,12 @@ export async function GET(request: NextRequest) {
       height: 630,
     }
   );
+
+  // Add cache control headers
+  response.headers.set(
+    "Cache-Control",
+    "public, max-age=60, stale-while-revalidate=300"
+  );
+
+  return response;
 }
