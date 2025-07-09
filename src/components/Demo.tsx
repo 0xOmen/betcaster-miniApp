@@ -48,6 +48,7 @@ import { amountToWei, getTokenByAddress } from "~/lib/tokens";
 import { getTimeRemaining } from "~/lib/utils";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
 import { farcasterMiniApp as miniAppConnector } from "@farcaster/miniapp-wagmi-connector";
+import { ShareModal } from "~/components/ShareModal";
 
 // Add ERC20 ABI for allowance and approve functions
 const ERC20_ABI = [
@@ -209,6 +210,15 @@ export default function Demo(
   const [selectedWinner, setSelectedWinner] = useState<
     "maker" | "taker" | null
   >(null);
+
+  // Add state near other state declarations
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareBetDetails, setShareBetDetails] = useState<{
+    amount: string;
+    token: string;
+    taker: string;
+    arbiter?: string;
+  } | null>(null);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -1581,6 +1591,15 @@ export default function Demo(
                   console.log(
                     "Bet parameters updated and status reset to 0 in database"
                   );
+
+                  // Set share details and show modal
+                  setShareBetDetails({
+                    amount: selectedBet.bet_amount.toString(),
+                    token: getTokenName(selectedBet.bet_token_address),
+                    taker: selectedBet.takerProfile?.display_name || "Unknown",
+                    arbiter: selectedBet.arbiterProfile?.display_name,
+                  });
+                  setShowShareModal(true);
                 }
               } catch (error) {
                 console.error("Error updating bet parameters:", error);
@@ -1610,6 +1629,20 @@ export default function Demo(
     } catch (error) {
       console.error("Error editing bet:", error);
       setIsEditing(false);
+    }
+
+    {
+      showShareModal && shareBetDetails && (
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => {
+            console.log("Closing share modal");
+            setShowShareModal(false);
+          }}
+          betDetails={shareBetDetails}
+          userFid={context?.user?.fid || null}
+        />
+      );
     }
   };
 
