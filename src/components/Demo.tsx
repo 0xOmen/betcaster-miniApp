@@ -1630,21 +1630,21 @@ export default function Demo(
       console.error("Error editing bet:", error);
       setIsEditing(false);
     }
-
-    {
-      showShareModal && shareBetDetails && (
-        <ShareModal
-          isOpen={showShareModal}
-          onClose={() => {
-            console.log("Closing share modal");
-            setShowShareModal(false);
-          }}
-          betDetails={shareBetDetails}
-          userFid={context?.user?.fid || null}
-        />
-      );
-    }
   };
+
+  {
+    showShareModal && shareBetDetails && (
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => {
+          console.log("Closing share modal");
+          setShowShareModal(false);
+        }}
+        betDetails={shareBetDetails}
+        userFid={context?.user?.fid || null}
+      />
+    );
+  }
 
   // Function to open edit modal and populate fields
   const openEditModal = (bet: Bet) => {
