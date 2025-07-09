@@ -72,26 +72,23 @@ export default function Explore({ userFid }: ExploreProps) {
       const data = await response.json();
       console.log("📦 API response data:", data);
 
-      if (data.bet) {
-        console.log("✅ Bet found:", data.bet);
-        setSelectedBet(data.bet);
-        setIsModalOpen(true);
-      } else {
-        console.log("❌ Bet not found in response data");
-        // Check if we have a maxBetNumber in the response
-        if (data.maxBetNumber !== undefined) {
-          console.log("📊 Max bet number in database:", data.maxBetNumber);
-          if (parseInt(betNumber) > data.maxBetNumber) {
-            setError(
-              `Bet number ${betNumber} doesn't exist yet. The highest bet number is ${data.maxBetNumber}`
-            );
-          } else {
-            setError("Bet not found in database. Checking blockchain...");
-            // TODO: Implement blockchain lookup
-          }
+      // Find the specific bet in the bets array
+      if (data.bets && Array.isArray(data.bets)) {
+        const foundBet = data.bets.find(
+          (bet: Bet) => bet.bet_number === parseInt(betNumber)
+        );
+        console.log("🎯 Found bet:", foundBet);
+
+        if (foundBet) {
+          setSelectedBet(foundBet);
+          setIsModalOpen(true);
         } else {
+          console.log("❌ Bet not found in bets array");
           setError("Bet not found");
         }
+      } else {
+        console.log("❌ Invalid response format - no bets array");
+        setError("Error: Invalid response format");
       }
     } catch (error) {
       console.error("❌ Error in handleSubmit:", error);
