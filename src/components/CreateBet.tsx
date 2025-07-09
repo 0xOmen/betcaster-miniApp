@@ -249,6 +249,13 @@ export default function CreateBet({
   // Modify handleTransactionReceipt to show share modal
   useEffect(() => {
     const handleTransactionReceipt = async () => {
+      console.log("Receipt status:", {
+        receipt,
+        isReceiptSuccess,
+        selectedUser,
+        selectedToken,
+      });
+
       if (receipt && isReceiptSuccess && selectedUser && selectedToken) {
         try {
           // Parse all events from the transaction receipt
@@ -271,6 +278,8 @@ export default function CreateBet({
           const betCreatedEvent = parsedEvents.find(
             (event) => event.eventName === "BetCreated"
           );
+
+          console.log("Bet created event:", betCreatedEvent);
 
           if (betCreatedEvent) {
             console.log("=== BET CREATED EVENT ===");
@@ -345,13 +354,21 @@ export default function CreateBet({
                   setActiveTab("bets");
 
                   // Set share details and show modal
-                  setShareBetDetails({
+                  const shareDetails = {
                     amount: betAmount,
                     token: selectedToken.symbol,
                     taker: selectedUser.displayName,
                     arbiter: selectedArbiter?.displayName,
-                  });
+                  };
+                  console.log("Setting share details:", shareDetails);
+
+                  setShareBetDetails(shareDetails);
                   setShowShareModal(true);
+
+                  console.log("Share modal state:", {
+                    showShareModal: true,
+                    shareBetDetails: shareDetails,
+                  });
                 } else {
                   console.error("Failed to store bet data");
                   const errorData = await response.json();
@@ -376,14 +393,10 @@ export default function CreateBet({
   }, [
     receipt,
     isReceiptSuccess,
-    address,
     selectedUser,
-    selectedArbiter,
     selectedToken,
     betAmount,
-    betDescription,
-    arbiterFeePercent,
-    setActiveTab,
+    selectedArbiter,
   ]);
 
   // Handle approval transaction receipt
@@ -1124,10 +1137,19 @@ export default function CreateBet({
       </div>
 
       {/* Add ShareModal */}
-      {shareBetDetails && (
+      {/* Debug info */}
+      <div className="hidden">
+        Modal State: {JSON.stringify({ showShareModal, shareBetDetails })}
+      </div>
+
+      {/* ShareModal */}
+      {showShareModal && shareBetDetails && (
         <ShareModal
           isOpen={showShareModal}
-          onClose={() => setShowShareModal(false)}
+          onClose={() => {
+            console.log("Closing share modal");
+            setShowShareModal(false);
+          }}
           betDetails={shareBetDetails}
           userFid={userFid}
         />
