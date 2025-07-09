@@ -25,7 +25,14 @@ export async function GET(request: NextRequest) {
           background: "linear-gradient(to bottom right, #9333ea, #db2777)",
         }}
       >
-        <div style={{ position: "absolute", inset: 0, opacity: 0.1 }}>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            opacity: 0.1,
+            display: "flex",
+          }}
+        >
           <div
             style={{
               position: "absolute",
@@ -49,6 +56,7 @@ export async function GET(request: NextRequest) {
           {user?.pfp_url && (
             <div
               style={{
+                display: "flex",
                 width: "128px",
                 height: "128px",
                 borderRadius: "9999px",
