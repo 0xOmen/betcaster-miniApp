@@ -106,6 +106,7 @@ export const Explore: FC = () => {
             makerFid = makerData.users?.[0]?.fid || null;
             // Add the profile information
             makerProfile = makerData.users?.[0] || null;
+            console.log("Maker profile:", makerProfile);
           }
           if (takerRes?.ok) {
             const takerData = await takerRes.json();
