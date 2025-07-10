@@ -15,9 +15,6 @@ export interface Bet {
   maker_fid?: number | null;
   taker_fid?: number | null;
   arbiter_fid?: number | null;
-  maker_username?: string | null;
-  taker_username?: string | null;
-  arbiter_username?: string | null;
   makerProfile?: UserProfile | null;
   takerProfile?: UserProfile | null;
   arbiterProfile?: UserProfile | null;
