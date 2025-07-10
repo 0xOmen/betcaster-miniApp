@@ -84,7 +84,7 @@ export const Explore: FC = () => {
             value={searchBetNumber}
             onChange={(e) => setSearchBetNumber(e.target.value)}
             placeholder="Enter bet number"
-            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100"
+            className="w-1/2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100"
           />
           <button
             onClick={handleSearch}
@@ -116,28 +116,6 @@ export const Explore: FC = () => {
           isAcceptingArbiter={isAcceptingArbiter}
           showApprovalSuccess={showApprovalSuccess}
         />
-      )}
-
-      {isLoadingBets ? (
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-        </div>
-      ) : userBets.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {userBets.map((bet) => (
-            <BetCard
-              key={bet.bet_number}
-              bet={bet}
-              currentUserAddress={address}
-              currentUserFid={context?.user?.fid}
-              onBetSelect={handleBetSelect}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-          No bets found. Try searching for a specific bet number.
-        </div>
       )}
     </div>
   );

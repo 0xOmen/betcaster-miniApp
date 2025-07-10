@@ -92,15 +92,24 @@ export async function GET(request: NextRequest) {
     const address = searchParams.get("address");
     const fid = searchParams.get("fid");
     const status = searchParams.get("status");
+    const betNumber = searchParams.get("betNumber");
 
-    console.log("🔍 API: Fetching bets with params:", { address, fid, status });
+    console.log("🔍 API: Fetching bets with params:", {
+      address,
+      fid,
+      status,
+      betNumber,
+    });
 
     let query = supabase
       .from("bets")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (address || fid) {
+    // If betNumber is provided, search by exact bet number
+    if (betNumber) {
+      query = query.eq("bet_number", parseInt(betNumber));
+    } else if (address || fid) {
       const conditions = [];
 
       if (address) {
@@ -134,8 +143,6 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("📊 API: Found bets from database:", data?.length || 0);
-    console.log("🎉 API: Returning bets with stored FIDs");
-
     return NextResponse.json({ bets: data || [] });
   } catch (error) {
     console.error("❌ API error:", error);
