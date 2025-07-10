@@ -21,7 +21,9 @@ export async function GET(request: NextRequest) {
     if (fids && fids.trim() !== "") {
       url += `/bulk?fids=${fids}`;
     } else if (address) {
-      url += `/bulk-by-address?addresses=${address}`;
+      url =
+        "https://api.neynar.com/v2/farcaster/users/bulk-by-address?addresses=" +
+        address; // Fix URL
     }
 
     console.log("🌐 Users API: Calling Neynar URL:", url);
