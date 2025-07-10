@@ -256,7 +256,9 @@ export function BetDetailsModal({
                   Maker:
                 </span>
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {bet.maker_address}
+                  {bet.makerProfile
+                    ? bet.makerProfile.display_name || bet.makerProfile.username
+                    : bet.maker_address}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
@@ -264,7 +266,9 @@ export function BetDetailsModal({
                   Taker:
                 </span>
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {bet.taker_address}
+                  {bet.takerProfile
+                    ? bet.takerProfile.display_name || bet.takerProfile.username
+                    : bet.taker_address}
                 </span>
               </div>
               {bet.arbiterProfile && (
