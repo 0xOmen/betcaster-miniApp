@@ -22,8 +22,10 @@ export async function GET(request: NextRequest) {
       url += `/bulk?fids=${fids}`;
     } else if (address) {
       url =
-        "https://api.neynar.com/v2/farcaster/users/bulk-by-address?addresses=" +
-        address; // Fix URL
+        "https://api.neynar.com/v2/farcaster/user/bulk-by-address?" +
+        new URLSearchParams({
+          addresses: address,
+        }).toString();
     }
 
     console.log("🌐 Users API: Calling Neynar URL:", url);
