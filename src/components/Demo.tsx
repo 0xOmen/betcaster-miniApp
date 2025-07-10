@@ -101,6 +101,54 @@ interface User {
   primarySolanaAddress?: string;
 }
 
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+
+const globalUserCache = new Map<
+  number,
+  { promise: Promise<UserProfile | null>; timestamp: number }
+>();
+
+const fetchUserWithCache = async (fid: number): Promise<UserProfile | null> => {
+  const now = Date.now();
+  const cached = globalUserCache.get(fid);
+
+  // Return cached data if it exists and hasn't expired
+  if (cached && now - cached.timestamp < CACHE_EXPIRY) {
+    console.log(`📋 Using cached promise for FID: ${fid}`);
+    return cached.promise;
+  }
+
+  // Remove expired cache entry if it exists
+  if (cached) {
+    globalUserCache.delete(fid);
+  }
+
+  const fetchPromise = (async () => {
+    try {
+      console.log(`🔍 Fetching user data for FID: ${fid}`);
+      const response = await fetch(`/api/users?fids=${fid}`);
+      if (response.ok) {
+        const data = await response.json();
+        const user = data.users?.[0];
+        if (user) {
+          console.log(`✅ Cached user data for FID: ${fid}`);
+          return user;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error(`❌ Failed to fetch user data for FID: ${fid}:`, error);
+      globalUserCache.delete(fid);
+      return null;
+    }
+  })();
+
+  // Store the promise and timestamp in the cache
+  globalUserCache.set(fid, { promise: fetchPromise, timestamp: now });
+
+  return fetchPromise;
+};
+
 export default function Demo(
   { title }: { title?: string } = { title: "Betcaster" }
 ) {
@@ -209,39 +257,6 @@ export default function Demo(
           "0x0000000000000000000000000000000000000000",
     },
   });
-
-  // Replace the userCache state with a ref for immediate access
-  const userCacheRef = useRef<Map<number, UserProfile>>(new Map());
-
-  // Update the fetchUserWithCache function
-  const fetchUserWithCache = async (
-    fid: number
-  ): Promise<UserProfile | null> => {
-    // Check cache first using ref for immediate access
-    if (userCacheRef.current.has(fid)) {
-      console.log(`📋 Using cached data for FID: ${fid}`);
-      return userCacheRef.current.get(fid) || null;
-    }
-
-    // Fetch from API if not cached
-    try {
-      console.log(` Fetching user data for FID: ${fid}`);
-      const response = await fetch(`/api/users?fids=${fid}`);
-      if (response.ok) {
-        const data = await response.json();
-        const user = data.users?.[0];
-        if (user) {
-          // Store in ref immediately for subsequent calls
-          userCacheRef.current.set(fid, user);
-          console.log(`✅ Cached user data for FID: ${fid}`);
-          return user;
-        }
-      }
-    } catch (error) {
-      console.error(`❌ Failed to fetch user data for FID: ${fid}:`, error);
-    }
-    return null;
-  };
 
   // Set initial tab to bets (Pending Bets) on page load
   useEffect(() => {
