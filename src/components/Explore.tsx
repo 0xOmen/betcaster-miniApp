@@ -67,7 +67,42 @@ export const Explore: FC = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.bets && data.bets.length > 0) {
-          setSelectedBet(data.bets[0]);
+          const dbBet = data.bets[0];
+
+          // Fetch profiles for maker, taker, and arbiter
+          const [makerRes, takerRes, arbiterRes] = await Promise.all([
+            fetch(`/api/users?address=${dbBet.maker_address}`),
+            dbBet.taker_address
+              ? fetch(`/api/users?address=${dbBet.taker_address}`)
+              : Promise.resolve(null),
+            dbBet.arbiter_address
+              ? fetch(`/api/users?address=${dbBet.arbiter_address}`)
+              : Promise.resolve(null),
+          ]);
+
+          let makerProfile = null,
+            takerProfile = null,
+            arbiterProfile = null;
+
+          if (makerRes?.ok) {
+            const makerData = await makerRes.json();
+            makerProfile = makerData.users?.[0] || null;
+          }
+          if (takerRes?.ok) {
+            const takerData = await takerRes.json();
+            takerProfile = takerData.users?.[0] || null;
+          }
+          if (arbiterRes?.ok) {
+            const arbiterData = await arbiterRes.json();
+            arbiterProfile = arbiterData.users?.[0] || null;
+          }
+
+          setSelectedBet({
+            ...dbBet,
+            makerProfile,
+            takerProfile,
+            arbiterProfile,
+          });
           setIsSearching(false);
           return;
         }
