@@ -1,374 +1,144 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import type { FC } from "react";
 import { useState } from "react";
-import { Button } from "~/components/ui/Button";
-import { BETCASTER_ABI, BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
-import { createPublicClient, http } from "viem";
-import { base } from "viem/chains";
+import { useAccount } from "wagmi";
+import { useMiniApp } from "@neynar/react";
+import { type Bet } from "~/types/bet";
+import { BetCard } from "./BetCard";
+import { BetDetailsModal } from "./BetDetailsModal";
+import { useBets } from "~/hooks/useBets";
+import { useBetActions } from "~/hooks/useBetActions";
 
-interface ExploreProps {
-  userFid: number | null;
-}
-
-// Using the same Bet interface from Demo.tsx
-interface Bet {
-  bet_number: number;
-  maker_address: string;
-  taker_address: string;
-  arbiter_address: string | null;
-  bet_token_address: string;
-  bet_amount: number;
-  timestamp: number;
-  end_time: number;
-  status: number;
-  protocol_fee: number;
-  arbiter_fee: number;
-  bet_agreement: string;
-  transaction_hash: string | null;
-  maker_fid?: number | null;
-  taker_fid?: number | null;
-  arbiter_fid?: number | null;
-  makerProfile?: UserProfile | null;
-  takerProfile?: UserProfile | null;
-  arbiterProfile?: UserProfile | null;
-}
-
-// Using the same UserProfile interface from Demo.tsx
-interface UserProfile {
-  fid: number;
-  username: string;
-  display_name: string;
-  pfp_url: string;
-  primaryEthAddress?: string;
-  primarySolanaAddress?: string;
-}
-
-// Create a public client for Base blockchain
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http(),
-});
-
-export default function Explore({ userFid }: ExploreProps) {
-  const [betNumber, setBetNumber] = useState<string>("");
+export const Explore: FC = () => {
+  const [searchBetNumber, setSearchBetNumber] = useState("");
   const [selectedBet, setSelectedBet] = useState<Bet | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
+  const { address } = useAccount();
+  const { context } = useMiniApp();
+  const { userBets, isLoadingBets, refreshBets, updateBetStatus } = useBets();
+  const {
+    isApproving,
+    isAccepting,
+    isCancelling,
+    isForfeiting,
+    isClaiming,
+    isAcceptingArbiter,
+    approvalTxHash,
+    acceptTxHash,
+    cancelTxHash,
+    forfeitTxHash,
+    claimTxHash,
+    acceptArbiterTxHash,
+    handleAcceptBet,
+    handleCancelBet,
+    handleForfeitBet,
+    handleClaimWinnings,
+    handleAcceptArbiterRole,
+    handleSelectWinner,
+  } = useBetActions({
+    onSuccess: refreshBets,
+  });
 
-  const fetchBetFromBlockchain = async (betNumber: number) => {
-    console.log("🔍 Fetching bet from blockchain:", betNumber);
+  const handleSearch = async () => {
+    if (!searchBetNumber) return;
+
     try {
-      const blockchainBet = await publicClient.readContract({
-        address: BETCASTER_ADDRESS,
-        abi: BETCASTER_ABI,
-        functionName: "getBet",
-        args: [BigInt(betNumber)],
-      });
-
-      console.log("📦 Blockchain bet data:", blockchainBet);
-
-      // Convert blockchain data to our Bet interface format
-      const bet: Bet = {
-        bet_number: betNumber,
-        maker_address: blockchainBet.maker.toLowerCase(),
-        taker_address: blockchainBet.taker.toLowerCase(),
-        arbiter_address: blockchainBet.arbiter.toLowerCase(),
-        bet_token_address: blockchainBet.betTokenAddress.toLowerCase(),
-        bet_amount: Number(blockchainBet.betAmount),
-        timestamp: Number(blockchainBet.timestamp),
-        end_time: Number(blockchainBet.endTime),
-        status: blockchainBet.status,
-        protocol_fee: Number(blockchainBet.protocolFee),
-        arbiter_fee: Number(blockchainBet.arbiterFee),
-        bet_agreement: blockchainBet.betAgreement,
-        transaction_hash: null,
-      };
-
-      // Store bet in database
-      const storeResponse = await fetch("/api/bets", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ bet }),
-      });
-
-      if (!storeResponse.ok) {
-        console.error("Failed to store bet in database");
+      const response = await fetch(`/api/bets?betNumber=${searchBetNumber}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.bets && data.bets.length > 0) {
+          setSelectedBet(data.bets[0]);
+        } else {
+          console.log("No bet found with that number");
+        }
       }
-
-      return bet;
     } catch (error) {
-      console.error("Error fetching bet from blockchain:", error);
-      return null;
+      console.error("Error searching for bet:", error);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsLoading(true);
-
-    console.log("🔍 Searching for bet number:", betNumber);
-
-    try {
-      // Try to get bet from database
-      const apiUrl = `/api/bets?betNumber=${betNumber}`;
-      console.log("📡 Making API request to:", apiUrl);
-
-      const response = await fetch(apiUrl);
-      const data = await response.json();
-
-      let foundBet = data.bets?.find(
-        (bet: Bet) => bet.bet_number === parseInt(betNumber)
-      );
-
-      if (!foundBet) {
-        console.log("🔗 Bet not found in database, checking blockchain...");
-        foundBet = await fetchBetFromBlockchain(parseInt(betNumber));
-      }
-
-      if (foundBet) {
-        console.log("✅ Found bet:", foundBet);
-        setSelectedBet(foundBet);
-        setIsModalOpen(true);
-      } else {
-        setError("Bet not found");
-      }
-    } catch (error) {
-      console.error("❌ Error in handleSubmit:", error);
-      setError(
-        error instanceof Error ? error.message : "Error fetching bet details"
-      );
-    } finally {
-      setIsLoading(false);
-    }
+  const handleBetSelect = (bet: Bet) => {
+    setSelectedBet(bet);
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
+  const handleModalClose = () => {
     setSelectedBet(null);
+    setShowApprovalSuccess(false);
   };
 
-  // Helper function to format end time
-  const formatEndTime = (timestamp: number): string => {
-    const date = new Date(timestamp * 1000);
-    return date
-      .toLocaleString("en-CA", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      })
-      .replace(",", "");
-  };
+  const handleShare = async (bet: Bet) => {
+    if (!context?.client) return;
 
-  // Helper function to get status info
-  const getStatusInfo = (bet: Bet) => {
-    const now = Math.floor(Date.now() / 1000);
-
-    switch (bet.status) {
-      case 0:
-        return {
-          text: "Pending Acceptance",
-          bgColor:
-            "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-        };
-      case 1:
-        return {
-          text: "Pending Arbiter",
-          bgColor:
-            "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
-        };
-      case 2:
-        return {
-          text: now > bet.end_time ? "Awaiting Arbiter" : "Active",
-          bgColor:
-            "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-        };
-      case 4:
-        return {
-          text: "Maker Won",
-          bgColor:
-            "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-        };
-      case 7:
-        return {
-          text: "Taker Won",
-          bgColor:
-            "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-        };
-      case 8:
-        return {
-          text: "Cancelled/Refunded",
-          bgColor:
-            "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
-        };
-      case 9:
-        return {
-          text: "Rejected",
-          bgColor: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-        };
-      default:
-        return {
-          text: "Unknown",
-          bgColor:
-            "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
-        };
-    }
+    console.log("🔍 Sharing bet:", bet);
   };
 
   return (
-    <div className="space-y-6 px-6 w-full max-w-md mx-auto">
-      <h2 className="text-xl font-semibold text-center">Explore Bets</h2>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Enter Bet Number
-          </label>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+          Explore Bets
+        </h1>
+        <div className="flex gap-4">
           <input
             type="number"
-            value={betNumber}
-            onChange={(e) => setBetNumber(e.target.value)}
-            placeholder="Enter bet number..."
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            value={searchBetNumber}
+            onChange={(e) => setSearchBetNumber(e.target.value)}
+            placeholder="Enter bet number"
+            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100"
           />
+          <button
+            onClick={handleSearch}
+            className="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+          >
+            Search
+          </button>
         </div>
+      </div>
 
-        {error && <div className="text-red-500 text-sm">{error}</div>}
+      {selectedBet && (
+        <BetDetailsModal
+          bet={selectedBet}
+          currentUserAddress={address}
+          currentUserFid={context?.user?.fid}
+          isOpen={true}
+          onClose={handleModalClose}
+          onShare={() => handleShare(selectedBet)}
+          onCancel={() => handleCancelBet(selectedBet)}
+          onAccept={() => handleAcceptBet(selectedBet)}
+          onForfeit={() => handleForfeitBet(selectedBet)}
+          onClaimWinnings={() => handleClaimWinnings(selectedBet)}
+          onAcceptArbiter={() => handleAcceptArbiterRole(selectedBet)}
+          isApproving={isApproving}
+          isAccepting={isAccepting}
+          isCancelling={isCancelling}
+          isForfeiting={isForfeiting}
+          isClaiming={isClaiming}
+          isAcceptingArbiter={isAcceptingArbiter}
+          showApprovalSuccess={showApprovalSuccess}
+        />
+      )}
 
-        <Button
-          type="submit"
-          disabled={!betNumber || isLoading}
-          className="w-full"
-        >
-          {isLoading ? "Searching..." : "Explore Bet"}
-        </Button>
-      </form>
-
-      {/* Bet Details Modal */}
-      {isModalOpen && selectedBet && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  Bet #{selectedBet.bet_number}
-                </h2>
-                <button
-                  onClick={closeModal}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Status Badge */}
-              <div className="mb-4">
-                <div
-                  className={`inline-block px-3 py-1 text-sm font-medium rounded-full ${
-                    getStatusInfo(selectedBet).bgColor
-                  }`}
-                >
-                  {getStatusInfo(selectedBet).text}
-                </div>
-              </div>
-
-              {/* Bet Agreement */}
-              <div className="mb-4">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Bet Agreement
-                </h3>
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
-                    {selectedBet.bet_agreement || "No description provided"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Participants */}
-              <div className="mb-4">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Participants
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      Maker:
-                    </span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {selectedBet.makerProfile?.display_name ||
-                        selectedBet.makerProfile?.username ||
-                        "Unknown"}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      Taker:
-                    </span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {selectedBet.takerProfile?.display_name ||
-                        selectedBet.takerProfile?.username ||
-                        "Unknown"}
-                    </span>
-                  </div>
-                  {selectedBet.arbiterProfile && (
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Arbiter:
-                      </span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {selectedBet.arbiterProfile.display_name ||
-                          selectedBet.arbiterProfile.username}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Bet Details */}
-              <div className="mb-4">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Bet Details
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      Wager:
-                    </span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {selectedBet.bet_amount}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      End Time:
-                    </span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {formatEndTime(selectedBet.end_time)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      {isLoadingBets ? (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+        </div>
+      ) : userBets.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {userBets.map((bet) => (
+            <BetCard
+              key={bet.bet_number}
+              bet={bet}
+              currentUserAddress={address}
+              currentUserFid={context?.user?.fid}
+              onBetSelect={handleBetSelect}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+          No bets found. Try searching for a specific bet number.
         </div>
       )}
     </div>
   );
-}
+};

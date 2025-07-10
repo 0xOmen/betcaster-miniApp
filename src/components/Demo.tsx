@@ -44,7 +44,7 @@ import { getTimeRemaining } from "~/lib/utils";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
 import { farcasterMiniApp as miniAppConnector } from "@farcaster/miniapp-wagmi-connector";
 import { ShareModal } from "~/components/ShareModal";
-import Explore from "~/components/Explore";
+import { Explore } from "~/components/Explore";
 import { BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
 import { ERC20_ABI } from "~/lib/erc20Abi";
 
@@ -2169,9 +2169,7 @@ export default function Demo(
           </div>
         )}
 
-        {currentTab === "explore" && (
-          <Explore userFid={context?.user?.fid || null} />
-        )}
+        {currentTab === "explore" && <Explore />}
 
         {currentTab === "wallet" && USE_WALLET && (
           <div className="space-y-3 px-6 w-full max-w-md mx-auto">
