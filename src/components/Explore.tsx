@@ -85,6 +85,9 @@ export const Explore: FC = () => {
         let makerFid = null,
           takerFid = null,
           arbiterFid = null;
+        let makerProfile = null,
+          takerProfile = null,
+          arbiterProfile = null;
 
         try {
           // Fetch FIDs for all addresses in parallel
@@ -101,14 +104,20 @@ export const Explore: FC = () => {
           if (makerRes?.ok) {
             const makerData = await makerRes.json();
             makerFid = makerData.users?.[0]?.fid || null;
+            // Add the profile information
+            makerProfile = makerData.users?.[0] || null;
           }
           if (takerRes?.ok) {
             const takerData = await takerRes.json();
             takerFid = takerData.users?.[0]?.fid || null;
+            // Add the profile information
+            takerProfile = takerData.users?.[0] || null;
           }
           if (arbiterRes?.ok) {
             const arbiterData = await arbiterRes.json();
             arbiterFid = arbiterData.users?.[0]?.fid || null;
+            // Add the profile information
+            arbiterProfile = arbiterData.users?.[0] || null;
           }
 
           console.log("Found FIDs:", {
@@ -144,6 +153,9 @@ export const Explore: FC = () => {
           maker_fid: makerFid,
           taker_fid: takerFid,
           arbiter_fid: arbiterFid,
+          makerProfile: makerProfile,
+          takerProfile: takerProfile,
+          arbiterProfile: arbiterProfile,
         } as Bet;
 
         setSelectedBet(transformedBet);
