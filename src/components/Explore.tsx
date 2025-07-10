@@ -74,11 +74,51 @@ export const Explore: FC = () => {
 
       // If not found in database, try blockchain
       const { data: chainBet } = await refetchBet();
+      console.log("Blockchain bet data:", chainBet);
 
       if (
         chainBet &&
         chainBet.maker !== "0x0000000000000000000000000000000000000000"
       ) {
+        // Try to fetch FIDs for addresses
+        let makerFid = null,
+          takerFid = null,
+          arbiterFid = null;
+
+        try {
+          // Fetch FIDs for all addresses in parallel
+          const [makerRes, takerRes, arbiterRes] = await Promise.all([
+            fetch(`/api/users?address=${chainBet.maker}`),
+            chainBet.taker !== "0x0000000000000000000000000000000000000000"
+              ? fetch(`/api/users?address=${chainBet.taker}`)
+              : Promise.resolve(null),
+            chainBet.arbiter !== "0x0000000000000000000000000000000000000000"
+              ? fetch(`/api/users?address=${chainBet.arbiter}`)
+              : Promise.resolve(null),
+          ]);
+
+          if (makerRes?.ok) {
+            const makerData = await makerRes.json();
+            makerFid = makerData.users?.[0]?.fid || null;
+          }
+          if (takerRes?.ok) {
+            const takerData = await takerRes.json();
+            takerFid = takerData.users?.[0]?.fid || null;
+          }
+          if (arbiterRes?.ok) {
+            const arbiterData = await arbiterRes.json();
+            arbiterFid = arbiterData.users?.[0]?.fid || null;
+          }
+
+          console.log("Found FIDs:", {
+            maker: makerFid || chainBet.maker,
+            taker: takerFid || chainBet.taker,
+            arbiter: arbiterFid || chainBet.arbiter,
+          });
+        } catch (error) {
+          console.error("Error fetching FIDs:", error);
+        }
+
         // Transform blockchain data to match our Bet type
         const transformedBet = {
           bet_number: parseInt(searchBetNumber),
@@ -86,18 +126,18 @@ export const Explore: FC = () => {
           taker_address: chainBet.taker,
           arbiter_address: chainBet.arbiter,
           bet_token_address: chainBet.betTokenAddress,
-          bet_amount: Number(chainBet.betAmount), // Convert to number instead of string
+          bet_amount: Number(chainBet.betAmount),
           timestamp: Number(chainBet.timestamp),
           end_time: Number(chainBet.endTime),
           status: Number(chainBet.status),
           protocol_fee: Number(chainBet.protocolFee),
           arbiter_fee: Number(chainBet.arbiterFee),
           bet_agreement: chainBet.betAgreement,
-          transaction_hash: null, // Not available from chain query
-          maker_fid: null, // Not available from chain query
-          taker_fid: null, // Not available from chain query
-          arbiter_fid: null, // Not available from chain query
-        } as Bet; // Type assertion to Bet
+          transaction_hash: null,
+          maker_fid: makerFid,
+          taker_fid: takerFid,
+          arbiter_fid: arbiterFid,
+        } as Bet;
 
         setSelectedBet(transformedBet);
       } else {
