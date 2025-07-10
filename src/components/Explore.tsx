@@ -8,9 +8,13 @@ import { BetCard } from "./BetCard";
 import { BetDetailsModal } from "./BetDetailsModal";
 import { useBets } from "~/hooks/useBets";
 import { useBetActions } from "~/hooks/useBetActions";
+import { BETCASTER_ABI, BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
+import { useContractRead } from "wagmi";
 
 export const Explore: FC = () => {
   const [searchBetNumber, setSearchBetNumber] = useState("");
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedBet, setSelectedBet] = useState<Bet | null>(null);
   const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
   const { address } = useAccount();
@@ -39,21 +43,71 @@ export const Explore: FC = () => {
     onSuccess: refreshBets,
   });
 
+  // Setup contract read for getBet
+  const { data: betFromChain, refetch: refetchBet } = useContractRead({
+    address: BETCASTER_ADDRESS,
+    abi: BETCASTER_ABI,
+    functionName: "getBet",
+    args: searchBetNumber ? [BigInt(searchBetNumber)] : undefined,
+    query: {
+      enabled: false, // Move enabled into query object
+    },
+  });
+
   const handleSearch = async () => {
     if (!searchBetNumber) return;
 
+    setIsSearching(true);
+    setSearchError(null);
+
     try {
+      // First try database
       const response = await fetch(`/api/bets?betNumber=${searchBetNumber}`);
       if (response.ok) {
         const data = await response.json();
         if (data.bets && data.bets.length > 0) {
           setSelectedBet(data.bets[0]);
-        } else {
-          console.log("No bet found with that number");
+          setIsSearching(false);
+          return;
         }
+      }
+
+      // If not found in database, try blockchain
+      const { data: chainBet } = await refetchBet();
+
+      if (
+        chainBet &&
+        chainBet.maker !== "0x0000000000000000000000000000000000000000"
+      ) {
+        // Transform blockchain data to match our Bet type
+        const transformedBet = {
+          bet_number: parseInt(searchBetNumber),
+          maker_address: chainBet.maker,
+          taker_address: chainBet.taker,
+          arbiter_address: chainBet.arbiter,
+          bet_token_address: chainBet.betTokenAddress,
+          bet_amount: Number(chainBet.betAmount), // Convert to number instead of string
+          timestamp: Number(chainBet.timestamp),
+          end_time: Number(chainBet.endTime),
+          status: Number(chainBet.status),
+          protocol_fee: Number(chainBet.protocolFee),
+          arbiter_fee: Number(chainBet.arbiterFee),
+          bet_agreement: chainBet.betAgreement,
+          transaction_hash: null, // Not available from chain query
+          maker_fid: null, // Not available from chain query
+          taker_fid: null, // Not available from chain query
+          arbiter_fid: null, // Not available from chain query
+        } as Bet; // Type assertion to Bet
+
+        setSelectedBet(transformedBet);
+      } else {
+        setSearchError(`No bet found with number ${searchBetNumber}`);
       }
     } catch (error) {
       console.error("Error searching for bet:", error);
+      setSearchError("Error occurred while searching");
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -78,21 +132,29 @@ export const Explore: FC = () => {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
           Explore Bets
         </h1>
-        <div className="flex gap-4">
-          <input
-            type="number"
-            value={searchBetNumber}
-            onChange={(e) => setSearchBetNumber(e.target.value)}
-            placeholder="Enter bet number"
-            className="w-1/2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100"
-          />
+        <div className="flex w-full gap-4">
+          <div className="flex-grow">
+            <input
+              type="number"
+              value={searchBetNumber}
+              onChange={(e) => setSearchBetNumber(e.target.value)}
+              placeholder="Enter bet number"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-gray-100"
+            />
+          </div>
           <button
             onClick={handleSearch}
-            className="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+            disabled={isSearching}
+            className={`px-6 py-2 bg-purple-500 text-white rounded-lg transition-colors ${
+              isSearching
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:bg-purple-600"
+            }`}
           >
-            Search
+            {isSearching ? "Searching..." : "Search"}
           </button>
         </div>
+        {searchError && <p className="mt-2 text-red-500">{searchError}</p>}
       </div>
 
       {selectedBet && (
