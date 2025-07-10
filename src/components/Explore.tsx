@@ -10,6 +10,7 @@ import { useBets } from "~/hooks/useBets";
 import { useBetActions } from "~/hooks/useBetActions";
 import { BETCASTER_ABI, BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
 import { useContractRead } from "wagmi";
+import { getTokenByAddress, weiToAmount } from "~/lib/tokens";
 
 export const Explore: FC = () => {
   const [searchBetNumber, setSearchBetNumber] = useState("");
@@ -80,13 +81,14 @@ export const Explore: FC = () => {
         chainBet &&
         chainBet.maker !== "0x0000000000000000000000000000000000000000"
       ) {
-        // Try to fetch FIDs for addresses
         let makerFid = null,
           takerFid = null,
           arbiterFid = null;
+        let makerUsername = null,
+          takerUsername = null,
+          arbiterUsername = null;
 
         try {
-          // Fetch FIDs for all addresses in parallel
           const [makerRes, takerRes, arbiterRes] = await Promise.all([
             fetch(`/api/users?address=${chainBet.maker}`),
             chainBet.taker !== "0x0000000000000000000000000000000000000000"
@@ -100,24 +102,34 @@ export const Explore: FC = () => {
           if (makerRes?.ok) {
             const makerData = await makerRes.json();
             makerFid = makerData.users?.[0]?.fid || null;
+            makerUsername = makerData.users?.[0]?.username || chainBet.maker;
           }
           if (takerRes?.ok) {
             const takerData = await takerRes.json();
             takerFid = takerData.users?.[0]?.fid || null;
+            takerUsername = takerData.users?.[0]?.username || chainBet.taker;
           }
           if (arbiterRes?.ok) {
             const arbiterData = await arbiterRes.json();
             arbiterFid = arbiterData.users?.[0]?.fid || null;
+            arbiterUsername =
+              arbiterData.users?.[0]?.username || chainBet.arbiter;
           }
 
-          console.log("Found FIDs:", {
-            maker: makerFid || chainBet.maker,
-            taker: takerFid || chainBet.taker,
-            arbiter: arbiterFid || chainBet.arbiter,
+          console.log("Found participants:", {
+            maker: { fid: makerFid, username: makerUsername },
+            taker: { fid: takerFid, username: takerUsername },
+            arbiter: { fid: arbiterFid, username: arbiterUsername },
           });
         } catch (error) {
           console.error("Error fetching FIDs:", error);
         }
+
+        // Convert bet amount using token decimals
+        const betAmountFormatted = weiToAmount(
+          BigInt(chainBet.betAmount.toString()),
+          chainBet.betTokenAddress
+        );
 
         // Transform blockchain data to match our Bet type
         const transformedBet = {
@@ -126,7 +138,7 @@ export const Explore: FC = () => {
           taker_address: chainBet.taker,
           arbiter_address: chainBet.arbiter,
           bet_token_address: chainBet.betTokenAddress,
-          bet_amount: Number(chainBet.betAmount),
+          bet_amount: betAmountFormatted,
           timestamp: Number(chainBet.timestamp),
           end_time: Number(chainBet.endTime),
           status: Number(chainBet.status),
@@ -137,6 +149,10 @@ export const Explore: FC = () => {
           maker_fid: makerFid,
           taker_fid: takerFid,
           arbiter_fid: arbiterFid,
+          // Add these new fields to the Bet type if needed
+          maker_username: makerUsername,
+          taker_username: takerUsername,
+          arbiter_username: arbiterUsername,
         } as Bet;
 
         setSelectedBet(transformedBet);
