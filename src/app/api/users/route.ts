@@ -52,7 +52,11 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     console.log("✅ Users API: Neynar response data:", data);
-    return NextResponse.json(data);
+
+    // Transform the response structure
+    const users = address ? Object.values(data).flat() : data.users;
+
+    return NextResponse.json({ users });
   } catch (error) {
     console.error("❌ Users API error:", error);
     return NextResponse.json(
