@@ -56,9 +56,9 @@ export async function GET(request: NextRequest) {
           <div
             style={{
               display: "flex",
-              width: "128px",
-              height: "128px",
-              borderRadius: "9999px",
+              width: "166px",
+              height: "166px",
+              borderRadius: "24px",
               overflow: "hidden",
               marginBottom: "24px",
               border: "4px solid white",
