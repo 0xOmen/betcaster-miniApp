@@ -238,6 +238,7 @@ export default function Demo(
     taker: string;
     arbiter?: string;
   } | null>(null);
+  const [initialParamsHandled, setInitialParamsHandled] = useState(false);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -258,9 +259,9 @@ export default function Demo(
     },
   });
 
-  // Add near the start of Demo component, with other useEffects
+  // Set initial tab based on URL parameter
   useEffect(() => {
-    if (isSDKLoaded) {
+    if (isSDKLoaded && !initialParamsHandled) {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get("tab");
 
@@ -271,8 +272,11 @@ export default function Demo(
       } else {
         setInitialTab("bets"); // Default tab
       }
+
+      // Mark that we've handled the initial params
+      setInitialParamsHandled(true);
     }
-  }, [isSDKLoaded, setInitialTab, setActiveTab]);
+  }, [isSDKLoaded, initialParamsHandled, setInitialTab, setActiveTab]);
 
   useEffect(() => {
     console.log("isSDKLoaded", isSDKLoaded);
