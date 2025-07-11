@@ -258,12 +258,21 @@ export default function Demo(
     },
   });
 
-  // Set initial tab to bets (Pending Bets) on page load
+  // Add near the start of Demo component, with other useEffects
   useEffect(() => {
     if (isSDKLoaded) {
-      setInitialTab("bets");
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get("tab");
+
+      // Set initial tab based on URL parameter
+      if (tabParam === "explore") {
+        setInitialTab("explore");
+        setActiveTab("explore");
+      } else {
+        setInitialTab("bets"); // Default tab
+      }
     }
-  }, [isSDKLoaded, setInitialTab]);
+  }, [isSDKLoaded, setInitialTab, setActiveTab]);
 
   useEffect(() => {
     console.log("isSDKLoaded", isSDKLoaded);

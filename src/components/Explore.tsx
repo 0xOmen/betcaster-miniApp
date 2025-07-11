@@ -229,8 +229,9 @@ export const Explore: FC = () => {
   };
 
   const handleShare = async (bet: Bet) => {
-    const baseUrl = window.location.origin + window.location.pathname;
-    const shareUrl = `${baseUrl}?betNumber=${bet.bet_number}`;
+    const baseUrl = window.location.origin;
+    // Add tab=explore to ensure users land on Explore tab
+    const shareUrl = `${baseUrl}?tab=explore&betNumber=${bet.bet_number}`;
     const shareText = `Check out this bet on Betcaster!\nBet #${bet.bet_number}`;
 
     if (context?.client) {
