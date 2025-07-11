@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
             }}
           >
             <img
-              src="/icon.png"
+              src={`${process.env.NEXT_PUBLIC_URL}/icon.png`}
               alt="Betcaster Logo"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
