@@ -53,26 +53,24 @@ export async function GET(request: NextRequest) {
             zIndex: 10,
           }}
         >
-          {user?.pfp_url && (
-            <div
-              style={{
-                display: "flex",
-                width: "128px",
-                height: "128px",
-                borderRadius: "9999px",
-                overflow: "hidden",
-                marginBottom: "24px",
-                border: "4px solid white",
-                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-              }}
-            >
-              <img
-                src={user.pfp_url}
-                alt="Profile"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            </div>
-          )}
+          <div
+            style={{
+              display: "flex",
+              width: "128px",
+              height: "128px",
+              borderRadius: "9999px",
+              overflow: "hidden",
+              marginBottom: "24px",
+              border: "4px solid white",
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            <img
+              src="/icon.png"
+              alt="Betcaster Logo"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
 
           <h1
             style={{
