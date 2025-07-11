@@ -2467,7 +2467,7 @@ export default function Demo(
                 {/* Bet Agreement */}
                 <div className="mb-4">
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Bet Agreement
+                    Maker wins if:
                   </h3>
                   <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
@@ -2808,7 +2808,7 @@ export default function Demo(
                   {/* Bet Agreement */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Bet Agreement
+                      Maker wins if:
                     </label>
                     <textarea
                       value={editBetAgreement}
@@ -2947,7 +2947,7 @@ export default function Demo(
                 {/* Bet Agreement */}
                 <div className="mb-4">
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Bet Agreement
+                    Maker wins if:
                   </h3>
                   <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
