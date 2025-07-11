@@ -198,4 +198,4 @@ export const ARBITER_MANAGEMENT_ENGINE_ABI = [
 
 // Contract address on Base blockchain
 export const ARBITER_MANAGEMENT_ENGINE_ADDRESS =
-  "0x7b8413D8ED6b1C3B2caFf65239F0b5b2a4dD86ab" as const;
+  "0xE5FD58A8716854a371FA0d16DFCe4204Aca0CEA4" as const;

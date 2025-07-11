@@ -1414,6 +1414,29 @@ export default function Demo(
                   console.error("Failed to update bet status in database");
                 } else {
                   console.log(`Bet status updated to ${newStatus} in database`);
+
+                  // Set up share details for winning bet
+                  const token = getTokenByAddress(
+                    selectedBet.bet_token_address
+                  );
+                  const tokenEmoji = token?.image
+                    ? `${token.name} 🪙`
+                    : token?.name || "tokens";
+
+                  // Create share text based on bet details
+                  const shareText = `I just won ${selectedBet.bet_amount} ${tokenEmoji} betting on "${selectedBet.bet_agreement}" on @betcaster! 🎯💰`;
+
+                  // Open Warpcast with pre-filled cast
+                  window.open(
+                    `https://warpcast.com/~/compose?text=${encodeURIComponent(
+                      shareText
+                    )}&embeds[]=${encodeURIComponent(
+                      `${process.env.NEXT_PUBLIC_URL}/share/${
+                        context?.user?.fid || ""
+                      }`
+                    )}`,
+                    "_blank"
+                  );
                 }
               } catch (error) {
                 console.error("Error updating bet status:", error);
