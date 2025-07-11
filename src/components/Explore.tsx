@@ -231,16 +231,23 @@ export const Explore: FC = () => {
   const handleShare = async (bet: Bet) => {
     const baseUrl = window.location.origin + window.location.pathname;
     const shareUrl = `${baseUrl}?betNumber=${bet.bet_number}`;
+    const shareText = `Check out this bet on Betcaster!\nBet #${bet.bet_number}`;
 
-    if (navigator.share) {
+    if (context?.client) {
       try {
-        await navigator.share({
-          title: `Betcaster - Bet #${bet.bet_number}`,
-          text: `Check out this bet on Betcaster!`,
-          url: shareUrl,
-        });
+        window.open(
+          `https://warpcast.com/~/compose?text=${encodeURIComponent(
+            shareText
+          )}&embeds[]=${encodeURIComponent(shareUrl)}`
+        );
       } catch (error) {
-        console.error("Error sharing:", error);
+        console.error("Error casting:", error);
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          alert("Share link copied to clipboard!");
+        } catch (clipError) {
+          console.error("Error copying to clipboard:", clipError);
+        }
       }
     } else {
       try {
