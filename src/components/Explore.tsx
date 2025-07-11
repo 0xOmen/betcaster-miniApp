@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type { FC } from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useMiniApp } from "@neynar/react";
 import { type Bet } from "~/types/bet";
@@ -44,6 +44,17 @@ export const Explore: FC = () => {
     onSuccess: refreshBets,
   });
 
+  // Add useEffect to check for bet number in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const betNumberFromUrl = urlParams.get("betNumber");
+    if (betNumberFromUrl) {
+      setSearchBetNumber(betNumberFromUrl);
+      // Trigger search automatically
+      handleSearch(betNumberFromUrl);
+    }
+  }, []); // Empty dependency array means this runs once on mount
+
   // Setup contract read for getBet
   const { data: betFromChain, refetch: refetchBet } = useContractRead({
     address: BETCASTER_ADDRESS,
@@ -55,15 +66,17 @@ export const Explore: FC = () => {
     },
   });
 
-  const handleSearch = async () => {
-    if (!searchBetNumber) return;
+  // Modify handleSearch to optionally accept a bet number parameter
+  const handleSearch = async (forcedBetNumber?: string) => {
+    const betNumberToSearch = forcedBetNumber || searchBetNumber;
+    if (!betNumberToSearch) return;
 
     setIsSearching(true);
     setSearchError(null);
 
     try {
       // First try database
-      const response = await fetch(`/api/bets?betNumber=${searchBetNumber}`);
+      const response = await fetch(`/api/bets?betNumber=${betNumberToSearch}`);
       if (response.ok) {
         const data = await response.json();
         if (data.bets && data.bets.length > 0) {
@@ -173,7 +186,7 @@ export const Explore: FC = () => {
 
         // Transform blockchain data to match our Bet type
         const transformedBet = {
-          bet_number: parseInt(searchBetNumber),
+          bet_number: parseInt(betNumberToSearch),
           maker_address: chainBet.maker,
           taker_address: chainBet.taker,
           arbiter_address: chainBet.arbiter,
@@ -196,7 +209,7 @@ export const Explore: FC = () => {
 
         setSelectedBet(transformedBet);
       } else {
-        setSearchError(`No bet found with number ${searchBetNumber}`);
+        setSearchError(`No bet found with number ${betNumberToSearch}`);
       }
     } catch (error) {
       console.error("Error searching for bet:", error);
@@ -216,9 +229,27 @@ export const Explore: FC = () => {
   };
 
   const handleShare = async (bet: Bet) => {
-    if (!context?.client) return;
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareUrl = `${baseUrl}?betNumber=${bet.bet_number}`;
 
-    console.log("🔍 Sharing bet:", bet);
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Betcaster - Bet #${bet.bet_number}`,
+          text: `Check out this bet on Betcaster!`,
+          url: shareUrl,
+        });
+      } catch (error) {
+        console.error("Error sharing:", error);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert("Share link copied to clipboard!");
+      } catch (error) {
+        console.error("Error copying to clipboard:", error);
+      }
+    }
   };
 
   return (
@@ -238,7 +269,7 @@ export const Explore: FC = () => {
             />
           </div>
           <button
-            onClick={handleSearch}
+            onClick={() => handleSearch()}
             disabled={isSearching}
             className={`px-6 py-2 bg-purple-500 text-white rounded-lg transition-colors ${
               isSearching
