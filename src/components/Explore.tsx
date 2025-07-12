@@ -237,19 +237,15 @@ export const Explore: FC = () => {
 
     // Create frame metadata
     const frameMetadata = {
-      version: "1",
+      buttons: [{ label: "View Bet", action: "link" }],
       image: {
         src: `${baseUrl}/api/og?betNumber=${bet.bet_number}&amount=${betAmount}&token=${tokenName}`,
         aspectRatio: "1.91:1",
       },
-      buttons: [
-        {
-          label: "View Bet Details",
-          action: "post_redirect",
-          target: shareUrl,
-        },
-      ],
-      postUrl: shareUrl,
+      post: {
+        title: `Betcaster Bet #${bet.bet_number}`,
+        description: `${betAmount} ${tokenName} bet. Click to view details!`,
+      },
     };
 
     if (context?.client) {
