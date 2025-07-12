@@ -230,7 +230,10 @@ export const Explore: FC = () => {
 
   const handleShare = async (bet: Bet) => {
     const baseUrl = window.location.origin;
-    const shareUrl = `${baseUrl}?tab=explore&betNumber=${bet.bet_number}`;
+    // Use the share endpoint with bet number parameter
+    const shareUrl = `${baseUrl}/share/${context?.user?.fid || ""}?betNumber=${
+      bet.bet_number
+    }`;
     const shareText = `Check out this bet on Betcaster!\nBet #${bet.bet_number}`;
     const betAmount = bet.bet_amount.toString();
     const tokenName = getTokenByAddress(bet.bet_token_address)?.symbol || "ETH";
@@ -250,10 +253,11 @@ export const Explore: FC = () => {
 
     if (context?.client) {
       try {
-        // Use Neynar's frame-aware compose URL
         const frameUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(
           shareText
-        )}&embeds[]=${encodeURIComponent(shareUrl)}`;
+        )}&embeds[]=${encodeURIComponent(shareUrl)}&frames=${encodeURIComponent(
+          JSON.stringify(frameMetadata)
+        )}`;
         window.open(frameUrl);
       } catch (error) {
         console.error("Error casting:", error);
