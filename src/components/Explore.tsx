@@ -253,9 +253,7 @@ export const Explore: FC = () => {
         // Use Neynar's frame-aware compose URL
         const frameUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(
           shareText
-        )}&embeds[]=${encodeURIComponent(shareUrl)}&frames=${encodeURIComponent(
-          JSON.stringify(frameMetadata)
-        )}`;
+        )}&embeds[]=${encodeURIComponent(shareUrl)}`;
         window.open(frameUrl);
       } catch (error) {
         console.error("Error casting:", error);
