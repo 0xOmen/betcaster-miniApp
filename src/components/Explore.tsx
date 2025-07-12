@@ -230,17 +230,33 @@ export const Explore: FC = () => {
 
   const handleShare = async (bet: Bet) => {
     const baseUrl = window.location.origin;
-    // Add tab=explore to ensure users land on Explore tab
     const shareUrl = `${baseUrl}?tab=explore&betNumber=${bet.bet_number}`;
     const shareText = `Check out this bet on Betcaster!\nBet #${bet.bet_number}`;
+    const betAmount = bet.bet_amount.toString();
+    const tokenName = getTokenByAddress(bet.bet_token_address)?.symbol || "ETH";
+
+    // Create frame metadata
+    const frameMetadata = {
+      buttons: [{ label: "View Bet", action: "link" }],
+      image: {
+        src: `${baseUrl}/api/og?betNumber=${bet.bet_number}&amount=${betAmount}&token=${tokenName}`,
+        aspectRatio: "1.91:1",
+      },
+      post: {
+        title: `Betcaster Bet #${bet.bet_number}`,
+        description: `${betAmount} ${tokenName} bet. Click to view details!`,
+      },
+    };
 
     if (context?.client) {
       try {
-        window.open(
-          `https://warpcast.com/~/compose?text=${encodeURIComponent(
-            shareText
-          )}&embeds[]=${encodeURIComponent(shareUrl)}`
-        );
+        // Use Neynar's frame-aware compose URL
+        const frameUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(
+          shareText
+        )}&embeds[]=${encodeURIComponent(shareUrl)}&frames=${encodeURIComponent(
+          JSON.stringify(frameMetadata)
+        )}`;
+        window.open(frameUrl);
       } catch (error) {
         console.error("Error casting:", error);
         try {
