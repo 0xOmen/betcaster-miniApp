@@ -17,14 +17,15 @@ export async function generateMetadata({
   searchParams,
 }: {
   params: Promise<{ fid: string }>;
-  searchParams: { betNumber?: string };
+  searchParams: Promise<{ betNumber?: string }>;
 }): Promise<Metadata> {
   const { fid } = await params;
+  const resolvedSearchParams = await searchParams;
 
   // Handle bet number case
-  if (searchParams.betNumber) {
-    const imageUrl = `${APP_URL}/api/og?betNumber=${searchParams.betNumber}`;
-    const title = `Check out Bet #${searchParams.betNumber} on Betcaster!`;
+  if (resolvedSearchParams.betNumber) {
+    const imageUrl = `${APP_URL}/api/og?betNumber=${resolvedSearchParams.betNumber}`;
+    const title = `Check out Bet #${resolvedSearchParams.betNumber} on Betcaster!`;
     const description = `View the details of this bet on Betcaster, the social betting platform for Farcaster.`;
 
     return {
@@ -35,7 +36,7 @@ export async function generateMetadata({
         type: "website",
         title,
         description,
-        url: `${APP_URL}?tab=explore&betNumber=${searchParams.betNumber}`,
+        url: `${APP_URL}?tab=explore&betNumber=${resolvedSearchParams.betNumber}`,
         siteName: APP_NAME,
         images: [
           {
