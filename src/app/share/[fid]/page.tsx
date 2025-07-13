@@ -106,7 +106,7 @@ export async function generateMetadata({
   }
 }
 
-export default function SharePage({ params }: { params: { fid: string } }) {
+export default function SharePage() {
   // redirect to home page
   redirect("/");
 }
