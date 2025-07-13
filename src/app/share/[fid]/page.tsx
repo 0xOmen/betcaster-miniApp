@@ -106,12 +106,11 @@ export async function generateMetadata({
   }
 }
 
-/*
 export default async function SharePage({
   params,
 }: {
   params: { fid: string };
-}): Promise<void> {
+}) {
   try {
     const { fid } = params;
 
@@ -127,4 +126,5 @@ export default async function SharePage({
     console.error("Error redirecting in SharePage:", error);
     throw error;
   }
-}*/
+  return null;
+}
