@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
   const betNumber = searchParams.get("betNumber");
   const amount = searchParams.get("amount");
   const token = searchParams.get("token");
+  console.log("Generating image from opengraph-image/route.tsx");
 
   // If we have bet details, generate bet-specific image
   if (betNumber && amount && token) {

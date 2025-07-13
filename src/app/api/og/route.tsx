@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
     const betNumber = searchParams.get("betNumber");
     const amount = searchParams.get("amount");
     const token = searchParams.get("token");
+    console.log("Generating image from og/route.tsx");
 
     // Validate required parameters
     if (!betNumber) {

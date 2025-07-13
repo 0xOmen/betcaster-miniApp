@@ -22,6 +22,7 @@ export async function generateMetadata({
   try {
     const { fid } = await params;
     const resolvedSearchParams = await searchParams;
+    console.log("Generating image from [fid]/page.tsx");
 
     // Handle bet number case
     if (resolvedSearchParams.betNumber) {

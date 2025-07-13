@@ -20,6 +20,10 @@ export async function generateMetadata({
     const title = `Check out Bet #${resolvedSearchParams.betNumber} on Betcaster!`;
     const description = `View the details of this bet on Betcaster, the social betting platform for Farcaster.`;
 
+    console.log("imageUrl", imageUrl);
+    console.log("title", title);
+    console.log("description", description);
+
     return {
       title,
       description,
