@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
           >
             {user?.display_name || user?.username
               ? `${user.display_name || user.username} is betting!`
-              : "Join the betting fun!"}
+              : "Join the betting fun!?!"}
           </h1>
 
           <div
