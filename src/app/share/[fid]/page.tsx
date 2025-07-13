@@ -106,6 +106,7 @@ export async function generateMetadata({
   }
 }
 
+/*
 export default async function SharePage({
   params,
 }: {
@@ -126,4 +127,4 @@ export default async function SharePage({
     console.error("Error redirecting in SharePage:", error);
     throw error;
   }
-}
+}*/
