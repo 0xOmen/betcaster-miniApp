@@ -24,7 +24,7 @@ export async function generateMetadata({
     // Check if this is a bet number (starts with 'B')
     if (fid.startsWith("B")) {
       const betNumber = fid.substring(1); // Remove the 'B' prefix
-      const imageUrl = `${APP_URL}/api/og?betNumber=${betNumber}`;
+      const imageUrl = `${APP_URL}/api/opengraph-image?betNumber=${betNumber}`;
       const title = `Check out Bet #${betNumber} on Betcaster!`;
       const description = `View the details of this bet on Betcaster, the social betting platform for Farcaster.`;
 
@@ -106,7 +106,22 @@ export async function generateMetadata({
   }
 }
 
-export default function SharePage() {
-  // redirect to home page
-  redirect("/");
+export default async function SharePage({
+  params,
+}: {
+  params: Promise<{ data: string }>;
+}): Promise<Metadata> {
+  try {
+    const resolvedSearchParams = await params;
+
+    // Redirect to the appropriate page based on whether we have a bet number
+    if (resolvedSearchParams.data.startsWith("B")) {
+      const betNumber = resolvedSearchParams.data.substring(1); // Remove the 'B' prefix
+      redirect(`/?tab=explore&betNumber=${betNumber}`);
+    }
+    redirect("/");
+  } catch (error) {
+    console.error("Error redirecting in SharePage:", error);
+    throw error;
+  }
 }
