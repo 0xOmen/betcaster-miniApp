@@ -109,18 +109,17 @@ export async function generateMetadata({
 export default async function SharePage({
   params,
 }: {
-  params: { fid: string };
+  params: Promise<{ fid: string }>;
 }) {
   try {
-    const { fid } = params;
+    const { fid } = await params;
 
     // Check if this is a bet number (starts with 'B')
     if (fid.startsWith("B")) {
-      const betNumber = fid.substring(1); // Remove the 'B' prefix
+      const betNumber = fid.substring(1);
       redirect(`/?tab=explore&betNumber=${betNumber}`);
     }
 
-    // Otherwise redirect to home (FID case)
     redirect("/");
   } catch (error) {
     console.error("Error redirecting in SharePage:", error);
