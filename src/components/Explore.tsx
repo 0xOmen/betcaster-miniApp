@@ -230,7 +230,8 @@ export const Explore: FC = () => {
 
   const handleShare = async (bet: Bet) => {
     const baseUrl = window.location.origin;
-    const shareUrl = `${baseUrl}/share/betNumber?${bet.bet_number}`;
+    // Change the URL format to use 'B' prefix for bet numbers
+    const shareUrl = `${baseUrl}/share/B${bet.bet_number}`;
     const shareText = `Check out this bet on Betcaster!\nBet #${bet.bet_number}`;
     const betAmount = bet.bet_amount.toString();
     const tokenName = getTokenByAddress(bet.bet_token_address)?.symbol || "ETH";
