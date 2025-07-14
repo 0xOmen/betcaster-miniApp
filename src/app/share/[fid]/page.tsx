@@ -15,10 +15,10 @@ export const revalidate = 300;
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ fid: string }>;
+  params: { fid: string };
 }): Promise<Metadata> {
   try {
-    const { fid } = await params;
+    const { fid } = params;
     console.log("Generating image from [fid]/page.tsx");
 
     // Check if this is a bet number (starts with 'B')
@@ -109,10 +109,10 @@ export async function generateMetadata({
 export default async function SharePage({
   params,
 }: {
-  params: Promise<{ fid: string }>;
+  params: { fid: string };
 }): Promise<void> {
   try {
-    const { fid } = await params;
+    const { fid } = params;
 
     // Redirect to the appropriate page based on whether we have a bet number
     if (fid.startsWith("B")) {
