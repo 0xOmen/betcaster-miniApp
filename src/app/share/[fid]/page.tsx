@@ -24,7 +24,7 @@ export async function generateMetadata({
     // Check if this is a bet number (starts with 'B')
     if (fid.startsWith("B")) {
       const betNumber = fid.substring(1); // Remove the 'B' prefix
-      const imageUrl = `${APP_URL}/api/opengraph-image?betNumber=${betNumber}`;
+      const imageUrl = `${APP_URL}/api/og?betNumber=${betNumber}`;
       const title = `Check out Bet #${betNumber} on Betcaster!`;
       const description = `View the details of this bet on Betcaster, the social betting platform for Farcaster.`;
 

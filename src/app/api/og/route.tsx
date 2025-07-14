@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
+import { supabase } from "~/lib/supabase";
+import { getTokenName } from "~/lib/betUtils";
 
 export const runtime = "edge";
 
@@ -27,19 +30,23 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const betNumber = searchParams.get("betNumber");
-    const amount = searchParams.get("amount");
-    const token = searchParams.get("token");
     console.log("Generating image from og/route.tsx");
 
     // Validate required parameters
     if (!betNumber) {
       return new Response("Missing bet number", { status: 400 });
     }
-    if (!amount) {
-      return new Response("Missing amount", { status: 400 });
-    }
-    if (!token) {
-      return new Response("Missing token", { status: 400 });
+
+    // Fetch bet details from database
+    const { data: bet, error } = await supabase
+      .from("bets")
+      .select("*")
+      .eq("bet_number", parseInt(betNumber))
+      .single();
+
+    if (error || !bet) {
+      console.error("Error fetching bet:", error);
+      return new Response("Bet not found", { status: 404 });
     }
 
     // Load Inter font
@@ -109,8 +116,8 @@ export async function GET(req: NextRequest) {
                 gap: "8px",
               }}
             >
-              <span>{formatAmount(amount)}</span>
-              <span>{token}</span>
+              <span>{formatAmount(bet.bet_amount.toString())}</span>
+              <span>{getTokenName(bet.bet_token_address)}</span>
             </div>
           </div>
         </div>
