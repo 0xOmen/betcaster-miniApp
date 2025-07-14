@@ -122,7 +122,6 @@ export async function GET(request: NextRequest) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            width: "calc(100% - 96px)", // Explicit width calculation
           }}
         >
           <div
@@ -132,7 +131,6 @@ export async function GET(request: NextRequest) {
               gap: "12px",
               color: "white",
               fontSize: "20px",
-              minWidth: "200px", // Ensure minimum width for text
             }}
           >
             <span style={{ fontSize: "24px" }}>💸</span>
