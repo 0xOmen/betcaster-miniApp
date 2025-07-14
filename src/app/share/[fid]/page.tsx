@@ -110,7 +110,7 @@ export default async function SharePage({
   params,
 }: {
   params: Promise<{ fid: string }>;
-}): Promise<Metadata> {
+}): Promise<void> {
   try {
     const { fid } = await params;
 
