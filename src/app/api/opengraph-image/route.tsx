@@ -1,29 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { getNeynarUser } from "~/lib/neynar";
 import { APP_NAME } from "~/lib/constants";
 
 export const dynamic = "force-dynamic";
-
-const formatAmount = (amount: string) => {
-  try {
-    const num = parseFloat(amount);
-    if (isNaN(num)) return amount;
-
-    // If the number is very small (scientific notation)
-    if (num < 0.0001) {
-      return num.toExponential(4);
-    }
-
-    // Otherwise format with up to 4 decimal places
-    return num.toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 4,
-    });
-  } catch {
-    return amount;
-  }
-};
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
