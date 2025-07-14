@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { getNeynarUser } from "~/lib/neynar";
@@ -10,7 +9,6 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const fid = searchParams.get("fid");
 
-  // If we have FID, generate user-specific image
   const user = fid ? await getNeynarUser(Number(fid)) : null;
 
   const response = new ImageResponse(
@@ -85,7 +83,7 @@ export async function GET(request: NextRequest) {
           >
             {user?.display_name || user?.username
               ? `${user.display_name || user.username} is betting!`
-              : "Join the betting fun!?!"}
+              : "Join the betting fun!"}
           </h1>
 
           <div
@@ -119,22 +117,20 @@ export async function GET(request: NextRequest) {
           style={{
             position: "absolute",
             bottom: "32px",
-            left: "48px", // Increased left padding
-            right: "48px", // Increased right padding
+            left: "32px",
+            right: "32px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            width: "calc(100% - 96px)", // Explicit width calculation
           }}
         >
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "12px", // Increased gap
+              gap: "8px",
               color: "white",
               fontSize: "20px",
-              minWidth: "200px", // Ensure minimum width for text
             }}
           >
             <span style={{ fontSize: "24px" }}>💸</span>

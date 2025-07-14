@@ -19,7 +19,6 @@ export async function generateMetadata({
 }) {
   try {
     const { fid } = await params;
-    console.log("Generating image from [fid]/page.tsx");
 
     // Check if this is a bet number (starts with 'B')
     if (fid.startsWith("B")) {
@@ -78,7 +77,7 @@ export async function generateMetadata({
           type: "website",
           title,
           description,
-          url: `${APP_URL}`,
+          url: `${APP_URL}/share/${fid}`,
           siteName: APP_NAME,
           images: [
             {
