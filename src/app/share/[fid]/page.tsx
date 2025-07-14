@@ -109,14 +109,14 @@ export async function generateMetadata({
 export default async function SharePage({
   params,
 }: {
-  params: Promise<{ data: string }>;
+  params: Promise<{ fid: string }>;
 }): Promise<Metadata> {
   try {
-    const resolvedSearchParams = await params;
+    const { fid } = await params;
 
     // Redirect to the appropriate page based on whether we have a bet number
-    if (resolvedSearchParams.data.startsWith("B")) {
-      const betNumber = resolvedSearchParams.data.substring(1); // Remove the 'B' prefix
+    if (fid.startsWith("B")) {
+      const betNumber = fid.substring(1); // Remove the 'B' prefix
       redirect(`/?tab=explore&betNumber=${betNumber}`);
     }
     redirect("/");
