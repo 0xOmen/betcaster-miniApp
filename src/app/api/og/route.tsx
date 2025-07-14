@@ -49,13 +49,6 @@ export async function GET(req: NextRequest) {
       return new Response("Bet not found", { status: 404 });
     }
 
-    // Load Inter font
-    const interFont = await fetch(
-      new URL(
-        "https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap"
-      )
-    ).then((res) => res.arrayBuffer());
-
     return new ImageResponse(
       (
         <div
@@ -125,20 +118,6 @@ export async function GET(req: NextRequest) {
       {
         width: 1200,
         height: 630,
-        fonts: [
-          {
-            name: "Inter",
-            data: interFont,
-            weight: 400,
-            style: "normal",
-          },
-          {
-            name: "Inter",
-            data: interFont,
-            weight: 700,
-            style: "normal",
-          },
-        ],
       }
     );
   } catch (e) {
