@@ -99,6 +99,20 @@ export async function GET(req: NextRequest) {
             </h2>
             <div
               style={{
+                fontSize: "28px",
+                color: "#9CA3AF",
+                marginBottom: "24px",
+                textAlign: "center",
+              }}
+            >
+              {bet.makerProfile?.username || "Maker"} vs{" "}
+              {bet.taker_address ===
+              "0x0000000000000000000000000000000000000000"
+                ? "Anyone"
+                : bet.takerProfile?.username || "Taker"}
+            </div>
+            <div
+              style={{
                 fontSize: "40px",
                 color: "#10B981",
                 fontWeight: "bold",
