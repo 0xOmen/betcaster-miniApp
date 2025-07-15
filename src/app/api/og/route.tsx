@@ -114,17 +114,23 @@ export async function GET(req: NextRequest) {
               }}
             >
               <span>{formatAmount(bet.bet_amount.toString())}</span>
-              {tokenImage && (
-                <img
-                  src={tokenImage}
-                  width="40"
-                  height="40"
-                  style={{
-                    borderRadius: "50%",
-                  }}
-                />
-              )}
-              <span>{tokenSymbol}</span>
+
+              <div className="flex items-center space-x-2">
+                {(() => {
+                  const token = getTokenByAddress(bet.bet_token_address);
+                  return (
+                    <>
+                      {token && (
+                        <img
+                          src={token.image}
+                          alt={token.name}
+                          className="w-5 h-5 rounded-full"
+                        />
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         </div>
