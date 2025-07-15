@@ -117,8 +117,8 @@ export async function GET(request: NextRequest) {
           style={{
             position: "absolute",
             bottom: "32px",
-            left: "48px",
-            right: "48px",
+            left: "100px",
+            right: "100px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
