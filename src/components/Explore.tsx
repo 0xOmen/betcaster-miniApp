@@ -50,8 +50,10 @@ export const Explore: FC = () => {
     const betNumberFromUrl = urlParams.get("betNumber");
     if (betNumberFromUrl) {
       setSearchBetNumber(betNumberFromUrl);
-      // Trigger search automatically
-      handleSearch(betNumberFromUrl);
+      // Trigger search automatically with a small delay to ensure component is fully mounted
+      setTimeout(() => {
+        handleSearch(betNumberFromUrl);
+      }, 100);
     }
   }, []); // Empty dependency array means this runs once on mount
 

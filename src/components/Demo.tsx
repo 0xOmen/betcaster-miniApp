@@ -264,6 +264,7 @@ export default function Demo(
     if (isSDKLoaded && !initialParamsHandled) {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get("tab");
+      const betNumber = urlParams.get("betNumber");
 
       // Set initial tab based on URL parameter
       if (tabParam === "explore") {
@@ -271,6 +272,12 @@ export default function Demo(
         setActiveTab("explore");
       } else {
         setInitialTab("bets"); // Default tab
+      }
+
+      // Remove the URL parameters after handling them
+      if (tabParam || betNumber) {
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
       }
 
       // Mark that we've handled the initial params
