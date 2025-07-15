@@ -2,7 +2,7 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { supabase } from "~/lib/supabase";
-import { getTokenName } from "~/lib/betUtils";
+import { getTokenByAddress } from "~/lib/tokens";
 
 export const runtime = "edge";
 
@@ -30,7 +30,6 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const betNumber = searchParams.get("betNumber");
-    console.log("Generating image from og/route.tsx");
 
     // Validate required parameters
     if (!betNumber) {
@@ -49,6 +48,11 @@ export async function GET(req: NextRequest) {
       return new Response("Bet not found", { status: 404 });
     }
 
+    // Get token details
+    const token = getTokenByAddress(bet.bet_token_address);
+    const tokenSymbol = token?.symbol || "Unknown";
+    const tokenImage = token?.image || "";
+
     return new ImageResponse(
       (
         <div
@@ -59,7 +63,7 @@ export async function GET(req: NextRequest) {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#1F2937",
+            backgroundColor: "#ffc8dc",
             padding: "40px",
             fontFamily: "Inter",
           }}
@@ -106,11 +110,21 @@ export async function GET(req: NextRequest) {
                 textAlign: "center",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
+                gap: "12px",
               }}
             >
               <span>{formatAmount(bet.bet_amount.toString())}</span>
-              <span>{getTokenName(bet.bet_token_address)}</span>
+              {tokenImage && (
+                <img
+                  src={tokenImage}
+                  width="40"
+                  height="40"
+                  style={{
+                    borderRadius: "50%",
+                  }}
+                />
+              )}
+              <span>{tokenSymbol}</span>
             </div>
           </div>
         </div>
