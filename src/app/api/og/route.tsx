@@ -2,7 +2,7 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { supabase } from "~/lib/supabase";
-import { getTokenByAddress } from "~/lib/tokens";
+import { getTokenName } from "~/lib/betUtils";
 
 export const runtime = "edge";
 
@@ -47,11 +47,6 @@ export async function GET(req: NextRequest) {
       console.error("Error fetching bet:", error);
       return new Response("Bet not found", { status: 404 });
     }
-
-    // Get token details
-    const token = getTokenByAddress(bet.bet_token_address);
-    const tokenSymbol = token?.symbol || "Unknown";
-    const tokenImage = token?.image || "";
 
     return new ImageResponse(
       (
@@ -114,23 +109,7 @@ export async function GET(req: NextRequest) {
               }}
             >
               <span>{formatAmount(bet.bet_amount.toString())}</span>
-
-              <div className="flex items-center space-x-2">
-                {(() => {
-                  const token = getTokenByAddress(bet.bet_token_address);
-                  return (
-                    <>
-                      {token && (
-                        <img
-                          src={token.image}
-                          alt={token.name}
-                          className="w-5 h-5 rounded-full"
-                        />
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
+              <span>{getTokenName(bet.bet_token_address)}</span>
             </div>
           </div>
         </div>
