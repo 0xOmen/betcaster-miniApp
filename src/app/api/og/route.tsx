@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              border: "2px solid #4B5563",
+              border: "2px solid #ffc8dc",
               borderRadius: "16px",
               padding: "32px",
               backgroundColor: "#111827",
