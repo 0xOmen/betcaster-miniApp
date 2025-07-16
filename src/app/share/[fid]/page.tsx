@@ -114,9 +114,9 @@ export default async function SharePage({
     const { fid } = await params;
 
     // Redirect to the appropriate page based on whether we have a bet number
-    if (fid.startsWith("B")) {
+    if (fid.toLowerCase().startsWith("b")) {
       const betNumber = fid.substring(1); // Remove the 'B' prefix
-      redirect(`/?tab=explore&betNumber=${betNumber}`);
+      redirect(`/?betNumber=${betNumber}`);
     }
     redirect("/");
   } catch (error) {

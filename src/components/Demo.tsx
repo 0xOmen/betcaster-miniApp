@@ -239,10 +239,68 @@ export default function Demo(
     arbiter?: string;
   } | null>(null);
   const [initialParamsHandled, setInitialParamsHandled] = useState(false);
+  const [isLoadingSpecificBet, setIsLoadingSpecificBet] = useState(false);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { writeContractAsync: writeApproveAsync } = useWriteContract();
+
+  // Function to fetch and display a specific bet
+  const fetchAndDisplayBet = async (betNumber: string) => {
+    setIsLoadingSpecificBet(true);
+    try {
+      // First try database
+      const response = await fetch(`/api/bets?betNumber=${betNumber}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.bets && data.bets.length > 0) {
+          const dbBet = data.bets[0];
+
+          // Fetch profiles for maker, taker, and arbiter
+          const [makerRes, takerRes, arbiterRes] = await Promise.all([
+            fetch(`/api/users?address=${dbBet.maker_address}`),
+            dbBet.taker_address
+              ? fetch(`/api/users?address=${dbBet.taker_address}`)
+              : Promise.resolve(null),
+            dbBet.arbiter_address
+              ? fetch(`/api/users?address=${dbBet.arbiter_address}`)
+              : Promise.resolve(null),
+          ]);
+
+          let makerProfile = null,
+            takerProfile = null,
+            arbiterProfile = null;
+
+          if (makerRes?.ok) {
+            const makerData = await makerRes.json();
+            makerProfile = makerData.users?.[0] || null;
+          }
+          if (takerRes?.ok) {
+            const takerData = await takerRes.json();
+            takerProfile = takerData.users?.[0] || null;
+          }
+          if (arbiterRes?.ok) {
+            const arbiterData = await arbiterRes.json();
+            arbiterProfile = arbiterData.users?.[0] || null;
+          }
+
+          const betWithProfiles = {
+            ...dbBet,
+            makerProfile,
+            takerProfile,
+            arbiterProfile,
+          };
+
+          setSelectedBet(betWithProfiles);
+          setIsModalOpen(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching specific bet:", error);
+    } finally {
+      setIsLoadingSpecificBet(false);
+    }
+  };
 
   // Read allowance for the selected bet's token
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
@@ -272,6 +330,11 @@ export default function Demo(
         setActiveTab("explore");
       } else {
         setInitialTab("bets"); // Default tab
+      }
+
+      // If we have a bet number, fetch and display it
+      if (betNumber) {
+        fetchAndDisplayBet(betNumber);
       }
 
       // Remove the URL parameters after handling them
