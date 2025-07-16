@@ -247,12 +247,15 @@ export default function Demo(
 
   // Function to fetch and display a specific bet
   const fetchAndDisplayBet = async (betNumber: string) => {
+    console.log("Demo: Fetching bet", betNumber);
     setIsLoadingSpecificBet(true);
     try {
       // First try database
       const response = await fetch(`/api/bets?betNumber=${betNumber}`);
+      console.log("Demo: Bet API response status", response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log("Demo: Bet data", data);
         if (data.bets && data.bets.length > 0) {
           const dbBet = data.bets[0];
 
@@ -291,12 +294,17 @@ export default function Demo(
             arbiterProfile,
           };
 
+          console.log("Demo: Setting bet and opening modal", betWithProfiles);
           setSelectedBet(betWithProfiles);
           setIsModalOpen(true);
+        } else {
+          console.log("Demo: No bet found");
         }
+      } else {
+        console.error("Demo: Failed to fetch bet", response.statusText);
       }
     } catch (error) {
-      console.error("Error fetching specific bet:", error);
+      console.error("Demo: Error fetching specific bet:", error);
     } finally {
       setIsLoadingSpecificBet(false);
     }
@@ -322,12 +330,12 @@ export default function Demo(
     const urlParams = new URLSearchParams(window.location.search);
     const betNumber = urlParams.get("betNumber");
 
+    console.log("Demo: URL params", { betNumber });
     if (betNumber) {
       fetchAndDisplayBet(betNumber);
       // Clean URL without waiting for SDK
       const newUrl = window.location.pathname;
       window.history.replaceState({}, "", newUrl);
-      console.log("Loading bet: ", betNumber);
     }
   }, []); // Run once on mount
 
