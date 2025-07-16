@@ -109,27 +109,17 @@ export async function generateMetadata({
 export default async function SharePage({
   params,
 }: {
-  params: Promise<{ fid: string }>;
+  params: { fid: string };
 }) {
   try {
-    console.log("SharePage: Received params", params);
-    const { fid } = await params;
-    console.log("SharePage: Processing fid", fid);
+    console.log("SharePage: Processing fid", params.fid);
 
     // Redirect to the appropriate page based on whether we have a bet number
-    if (fid.toLowerCase().startsWith("b")) {
-      const betNumber = fid.substring(1); // Remove the 'B' prefix
+    if (params.fid.toLowerCase().startsWith("b")) {
+      const betNumber = params.fid.substring(1); // Remove the 'B' prefix
       console.log("SharePage: Redirecting to bet", betNumber);
-      // Validate betNumber is numeric
-      if (!betNumber || isNaN(Number(betNumber))) {
-        console.error("SharePage: Invalid bet number", betNumber);
-        return redirect("/", "replace" as RedirectType);
-      }
-      const redirectUrl = `${APP_URL}/?betNumber=${betNumber}`;
-      console.log("SharePage: Redirect URL", redirectUrl);
-      return redirect(redirectUrl, "replace" as RedirectType);
+      return redirect(`/?betNumber=${betNumber}`, "replace" as RedirectType);
     }
-    console.log("SharePage: Redirecting to home");
     return redirect("/", "replace" as RedirectType);
   } catch (error) {
     console.error("Error in SharePage:", error);
