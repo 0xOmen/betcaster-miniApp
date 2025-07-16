@@ -125,7 +125,8 @@ export default async function SharePage({
         console.error("SharePage: Invalid bet number", betNumber);
         return redirect("/", "replace" as RedirectType);
       }
-      const redirectUrl = `${APP_URL}/?betNumber=${betNumber}`;
+      // Include tab=explore parameter to ensure the explore tab is active
+      const redirectUrl = `${APP_URL}/?tab=explore&betNumber=${betNumber}`;
       console.log("SharePage: Redirect URL", redirectUrl);
       return redirect(redirectUrl, "replace" as RedirectType);
     }
