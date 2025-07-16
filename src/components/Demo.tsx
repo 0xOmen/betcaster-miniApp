@@ -317,12 +317,25 @@ export default function Demo(
     },
   });
 
+  // Handle URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const betNumber = urlParams.get("betNumber");
+
+    if (betNumber) {
+      fetchAndDisplayBet(betNumber);
+      // Clean URL without waiting for SDK
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+      console.log("Loading bet: ", betNumber);
+    }
+  }, []); // Run once on mount
+
   // Set initial tab based on URL parameter
   useEffect(() => {
     if (isSDKLoaded && !initialParamsHandled) {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get("tab");
-      const betNumber = urlParams.get("betNumber");
 
       // Set initial tab based on URL parameter
       if (tabParam === "explore") {
@@ -332,18 +345,6 @@ export default function Demo(
         setInitialTab("bets"); // Default tab
       }
 
-      // If we have a bet number, fetch and display it
-      if (betNumber) {
-        fetchAndDisplayBet(betNumber);
-      }
-
-      // Remove the URL parameters after handling them
-      if (tabParam || betNumber) {
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, "", newUrl);
-      }
-
-      // Mark that we've handled the initial params
       setInitialParamsHandled(true);
     }
   }, [isSDKLoaded, initialParamsHandled, setInitialTab, setActiveTab]);
