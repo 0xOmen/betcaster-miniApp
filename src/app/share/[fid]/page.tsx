@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import type { RedirectType } from "next/navigation";
 import {
   APP_URL,
   APP_NAME,
@@ -116,9 +117,9 @@ export default async function SharePage({
     // Redirect to the appropriate page based on whether we have a bet number
     if (fid.toLowerCase().startsWith("b")) {
       const betNumber = fid.substring(1); // Remove the 'B' prefix
-      redirect(`/?betNumber=${betNumber}`);
+      return redirect(`/?betNumber=${betNumber}`, "replace" as RedirectType);
     }
-    redirect("/");
+    return redirect("/", "replace" as RedirectType);
   } catch (error) {
     console.error("Error redirecting in SharePage:", error);
     throw error;
