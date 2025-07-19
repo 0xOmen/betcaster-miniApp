@@ -902,7 +902,7 @@ export default function CreateBet({
                   Bet Condition
                 </h3>
                 <div className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                  You will win if the following is true. Be specific.
+                  You will win if the following is true. Be specific!
                 </div>
               </div>
             </div>
