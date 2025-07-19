@@ -1690,6 +1690,58 @@ export default function Demo(
                     "Bet parameters updated and status reset to 0 in database"
                   );
 
+                  // Send notification to taker about bet edit
+                  if (selectedBet.taker_fid) {
+                    try {
+                      const notificationResponse = await fetch(
+                        "/api/send-notification",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            type: "bet_edited",
+                            targetFid: selectedBet.taker_fid,
+                            data: {
+                              betNumber: selectedBet.bet_number,
+                              betAmount: selectedBet.bet_amount.toString(),
+                              tokenName: getTokenName(
+                                selectedBet.bet_token_address
+                              ),
+                              makerName:
+                                selectedBet.makerProfile?.display_name ||
+                                selectedBet.makerProfile?.username,
+                              takerName:
+                                selectedBet.takerProfile?.display_name ||
+                                selectedBet.takerProfile?.username,
+                              arbiterName:
+                                selectedBet.arbiterProfile?.display_name ||
+                                selectedBet.arbiterProfile?.username,
+                              betAgreement: newBetAgreement,
+                              endTime: new Date(
+                                newEndTime * 1000
+                              ).toLocaleString(),
+                            },
+                          }),
+                        }
+                      );
+
+                      if (notificationResponse.ok) {
+                        console.log(
+                          "Notification sent to taker about bet edit"
+                        );
+                      } else {
+                        console.error("Failed to send notification to taker");
+                      }
+                    } catch (notificationError) {
+                      console.error(
+                        "Error sending notification:",
+                        notificationError
+                      );
+                    }
+                  }
+
                   // Set share details and show modal
                   setShareBetDetails({
                     amount: selectedBet.bet_amount.toString(),
