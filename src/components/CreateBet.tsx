@@ -306,18 +306,19 @@ export default function CreateBet({
                 const betAmountInWei = betData.betAmount;
                 const betAmountInTokens = parseFloat(betAmount); // Keep original for display
 
-                // Convert protocol fee from basis points to percentage, if zero set as zero
-                let protocolFeeBasisPoints = 0;
-                if (betData.protocolFee == 0n) {
-                  protocolFeeBasisPoints = 0;
-                } else {
-                  protocolFeeBasisPoints = Number(betData.protocolFee);
-                }
+                // Convert protocol fee from basis points to percentage
+                const protocolFeeBasisPoints = Number(betData.protocolFee);
                 const protocolFeePercent = protocolFeeBasisPoints / 100;
 
                 // Convert arbiter fee from basis points to percentage
-                const arbiterFeeBasisPoints = Number(betData.arbiterFee);
-                const arbiterFeePercent = arbiterFeeBasisPoints / 100;
+                const rawArbiterFeeBasisPoints = betData.arbiterFee;
+                let arbiterFeeBasisPoints;
+                if (rawArbiterFeeBasisPoints == 0n) {
+                  arbiterFeeBasisPoints = 0;
+                } else {
+                  arbiterFeeBasisPoints = Number(betData.arbiterFee);
+                }
+                const arbiterFeePercent = Number(arbiterFeeBasisPoints) / 100;
 
                 const supabaseBetData = {
                   bet_number: parseInt(betNumber),
@@ -330,7 +331,7 @@ export default function CreateBet({
                   timestamp: Number(betData.timestamp),
                   end_time: Number(betData.endTime),
                   protocol_fee: protocolFeePercent,
-                  arbiter_fee: arbiterFeePercent,
+                  arbiter_fee: arbiterFeePercent || 0, // Ensure it's never undefined
                   bet_agreement: betData.betAgreement as string,
                   transaction_hash: receipt.transactionHash,
                   maker_fid: makerFid,
