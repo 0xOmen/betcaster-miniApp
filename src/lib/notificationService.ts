@@ -10,6 +10,7 @@ export type NotificationType =
   | "bet_cancelled"
   | "arbiter_accepted"
   | "arbiter_rejected"
+  | "invite_arbiter"
   | "winner_selected"
   | "bet_forfeited"
   | "winnings_claimed";
@@ -98,6 +99,14 @@ export class NotificationService {
           body: `${
             data.arbiterName || "An arbiter"
           } rejected this bet. Cancel to reclaim funds`,
+        };
+
+      case "invite_arbiter":
+        return {
+          title: `Arbiter Invitation for Bet #${data.betNumber}`,
+          body: `You have been invited to be the arbiter for a bet between ${
+            data.makerName || "a user"
+          } and ${data.takerName || "a user"}. Accept or decline the role.`,
         };
 
       case "winner_selected":
@@ -216,6 +225,17 @@ export class NotificationService {
   ): Promise<SendNotificationResult> {
     return this.sendNotification({
       type: "arbiter_accepted",
+      targetFid,
+      data,
+    });
+  }
+
+  static async sendInviteArbiterNotification(
+    targetFid: number,
+    data: NotificationData
+  ): Promise<SendNotificationResult> {
+    return this.sendNotification({
+      type: "invite_arbiter",
       targetFid,
       data,
     });

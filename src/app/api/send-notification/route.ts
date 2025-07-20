@@ -25,6 +25,7 @@ const betNotificationSchema = z.object({
     "bet_cancelled",
     "arbiter_accepted",
     "arbiter_rejected",
+    "invite_arbiter",
     "winner_selected",
     "bet_forfeited",
     "winnings_claimed",

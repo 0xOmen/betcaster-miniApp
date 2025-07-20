@@ -10,6 +10,7 @@ export const sendBetNotification = async (
     | "bet_cancelled"
     | "arbiter_accepted"
     | "arbiter_rejected"
+    | "invite_arbiter"
     | "winner_selected"
     | "bet_forfeited"
     | "winnings_claimed",
@@ -76,6 +77,11 @@ export const notifyArbiterRejected = (
   targetFid: number,
   data: NotificationData
 ) => sendBetNotification("arbiter_rejected", targetFid, data);
+
+export const notifyInviteArbiter = (
+  targetFid: number,
+  data: NotificationData
+) => sendBetNotification("invite_arbiter", targetFid, data);
 
 export const notifyWinnerSelected = (
   targetFid: number,

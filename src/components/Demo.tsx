@@ -47,7 +47,11 @@ import { ShareModal } from "~/components/ShareModal";
 import { Explore } from "~/components/Explore";
 import { BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
 import { ERC20_ABI } from "~/lib/erc20Abi";
-import { notifyBetRejected } from "~/lib/notificationUtils";
+import {
+  notifyBetRejected,
+  notifyInviteArbiter,
+  notifyArbiterAccepted,
+} from "~/lib/notificationUtils";
 
 export type Tab = "create" | "bets" | "explore" | "wallet" | "leaderboard";
 
@@ -1172,6 +1176,51 @@ export default function Demo(
                   console.error("Failed to update bet status in database");
                 } else {
                   console.log("Bet status updated to accepted in database");
+
+                  // Send notification to arbiter about being invited
+                  if (selectedBet.arbiter_fid) {
+                    try {
+                      const notificationResult = await notifyInviteArbiter(
+                        selectedBet.arbiter_fid,
+                        {
+                          betNumber: selectedBet.bet_number,
+                          betAmount: selectedBet.bet_amount.toString(),
+                          tokenName: getTokenName(
+                            selectedBet.bet_token_address
+                          ),
+                          makerName:
+                            selectedBet.makerProfile?.display_name ||
+                            selectedBet.makerProfile?.username,
+                          takerName:
+                            selectedBet.takerProfile?.display_name ||
+                            selectedBet.takerProfile?.username,
+                          arbiterName:
+                            selectedBet.arbiterProfile?.display_name ||
+                            selectedBet.arbiterProfile?.username,
+                          betAgreement: selectedBet.bet_agreement,
+                          endTime: new Date(
+                            selectedBet.end_time * 1000
+                          ).toLocaleString(),
+                        }
+                      );
+
+                      if (notificationResult.success) {
+                        console.log(
+                          "Notification sent to arbiter about invitation"
+                        );
+                      } else {
+                        console.error(
+                          "Failed to send notification to arbiter:",
+                          notificationResult.error
+                        );
+                      }
+                    } catch (notificationError) {
+                      console.error(
+                        "Error sending notification:",
+                        notificationError
+                      );
+                    }
+                  }
                 }
               } catch (error) {
                 console.error("Error updating bet status:", error);
@@ -1274,6 +1323,92 @@ export default function Demo(
                   console.log(
                     "Bet status updated to arbiter accepted in database"
                   );
+
+                  // Send notification to maker about arbiter acceptance
+                  if (selectedBet.maker_fid) {
+                    try {
+                      const makerNotificationResult =
+                        await notifyArbiterAccepted(selectedBet.maker_fid, {
+                          betNumber: selectedBet.bet_number,
+                          betAmount: selectedBet.bet_amount.toString(),
+                          tokenName: getTokenName(
+                            selectedBet.bet_token_address
+                          ),
+                          makerName:
+                            selectedBet.makerProfile?.display_name ||
+                            selectedBet.makerProfile?.username,
+                          takerName:
+                            selectedBet.takerProfile?.display_name ||
+                            selectedBet.takerProfile?.username,
+                          arbiterName:
+                            selectedBet.arbiterProfile?.display_name ||
+                            selectedBet.arbiterProfile?.username,
+                          betAgreement: selectedBet.bet_agreement,
+                          endTime: new Date(
+                            selectedBet.end_time * 1000
+                          ).toLocaleString(),
+                        });
+
+                      if (makerNotificationResult.success) {
+                        console.log(
+                          "Notification sent to maker about arbiter acceptance"
+                        );
+                      } else {
+                        console.error(
+                          "Failed to send notification to maker:",
+                          makerNotificationResult.error
+                        );
+                      }
+                    } catch (notificationError) {
+                      console.error(
+                        "Error sending notification to maker:",
+                        notificationError
+                      );
+                    }
+                  }
+
+                  // Send notification to taker about arbiter acceptance
+                  if (selectedBet.taker_fid) {
+                    try {
+                      const takerNotificationResult =
+                        await notifyArbiterAccepted(selectedBet.taker_fid, {
+                          betNumber: selectedBet.bet_number,
+                          betAmount: selectedBet.bet_amount.toString(),
+                          tokenName: getTokenName(
+                            selectedBet.bet_token_address
+                          ),
+                          makerName:
+                            selectedBet.makerProfile?.display_name ||
+                            selectedBet.makerProfile?.username,
+                          takerName:
+                            selectedBet.takerProfile?.display_name ||
+                            selectedBet.takerProfile?.username,
+                          arbiterName:
+                            selectedBet.arbiterProfile?.display_name ||
+                            selectedBet.arbiterProfile?.username,
+                          betAgreement: selectedBet.bet_agreement,
+                          endTime: new Date(
+                            selectedBet.end_time * 1000
+                          ).toLocaleString(),
+                        });
+
+                      if (takerNotificationResult.success) {
+                        console.log(
+                          "Notification sent to taker about arbiter acceptance"
+                        );
+                      } else {
+                        console.error(
+                          "Failed to send notification to taker:",
+                          takerNotificationResult.error
+                        );
+                      }
+                    } catch (notificationError) {
+                      console.error(
+                        "Error sending notification to taker:",
+                        notificationError
+                      );
+                    }
+                  }
                 }
               } catch (error) {
                 console.error("Error updating bet status:", error);
