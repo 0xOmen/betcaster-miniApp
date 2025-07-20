@@ -10,9 +10,7 @@ export const APP_SPLASH_URL = `${APP_URL}/icon.png`;
 export const APP_SPLASH_BACKGROUND_COLOR = "#ffc8dc";
 export const APP_BUTTON_TEXT = process.env.NEXT_PUBLIC_MINI_APP_BUTTON_TEXT;
 export const APP_WEBHOOK_URL =
-  process.env.NEYNAR_API_KEY && process.env.NEYNAR_CLIENT_ID
-    ? `https://api.neynar.com/f/app/${process.env.NEYNAR_CLIENT_ID}/event`
-    : `${APP_URL}/api/webhook`;
+  "https://api.neynar.com/f/app/7f5c805e-47e5-4013-8888-86bed79d77fe/event";
 export const USE_WALLET = process.env.NEXT_PUBLIC_USE_WALLET === "true";
 
 export const APP_METADATA = {
