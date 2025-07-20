@@ -306,8 +306,13 @@ export default function CreateBet({
                 const betAmountInWei = betData.betAmount;
                 const betAmountInTokens = parseFloat(betAmount); // Keep original for display
 
-                // Convert protocol fee from basis points to percentage
-                const protocolFeeBasisPoints = Number(betData.protocolFee);
+                // Convert protocol fee from basis points to percentage, if zero set as zero
+                let protocolFeeBasisPoints = 0;
+                if (betData.protocolFee == 0n) {
+                  protocolFeeBasisPoints = 0;
+                } else {
+                  protocolFeeBasisPoints = Number(betData.protocolFee);
+                }
                 const protocolFeePercent = protocolFeeBasisPoints / 100;
 
                 // Convert arbiter fee from basis points to percentage
