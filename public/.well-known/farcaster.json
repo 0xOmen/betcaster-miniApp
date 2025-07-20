@@ -11,7 +11,7 @@
         "homeUrl": "https://betcaster.vercel.app",
         "splashImageUrl": "https://betcaster.vercel.app/icon.png",
         "splashBackgroundColor": "#ffc8dc",
-        "webhookUrl": "https://betcaster.vercel.app/api/webhook",
+        "webhookUrl": "https://api.neynar.com/f/app/7f5c805e-47e5-4013-8888-86bed79d77fe/event",
         "subtitle": "Bet with Friends on Farcaster",
         "description": "Create, accept, and settle bets with friends on Farcaster. Secure blockchain-based betting with smart contract enforcement.",
         "screenshotUrls": [
