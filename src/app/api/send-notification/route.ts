@@ -18,6 +18,7 @@ const requestSchema = z.object({
 
 const betNotificationSchema = z.object({
   type: z.enum([
+    "bet_created",
     "bet_edited",
     "bet_accepted",
     "bet_rejected",

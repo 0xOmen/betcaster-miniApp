@@ -21,6 +21,7 @@ import { supabase } from "~/lib/supabase";
 import { BASE_TOKENS, Token, amountToWei } from "~/lib/tokens";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
 import { ShareModal } from "~/components/ShareModal";
+import { notifyBetCreated } from "~/lib/notificationUtils";
 
 interface User {
   fid: number;
@@ -349,6 +350,35 @@ export default function CreateBet({
                 if (response.ok) {
                   const result = await response.json();
                   console.log("Bet stored successfully:", result);
+
+                  // Send notification to taker about bet creation
+                  if (takerFid) {
+                    try {
+                      const notificationResult = await notifyBetCreated(
+                        takerFid,
+                        {
+                          betNumber: parseInt(betNumber),
+                          makerName: selectedUser.displayName,
+                        }
+                      );
+
+                      if (notificationResult.success) {
+                        console.log(
+                          "Notification sent to taker about bet creation"
+                        );
+                      } else {
+                        console.error(
+                          "Failed to send notification to taker:",
+                          notificationResult.error
+                        );
+                      }
+                    } catch (notificationError) {
+                      console.error(
+                        "Error sending notification:",
+                        notificationError
+                      );
+                    }
+                  }
 
                   // Set share details and show modal BEFORE changing tabs
                   const shareDetails = {

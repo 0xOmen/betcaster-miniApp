@@ -3,11 +3,13 @@ import { sendNeynarMiniAppNotification } from "./neynar";
 import { APP_URL } from "./constants";
 
 export type NotificationType =
+  | "bet_created"
   | "bet_edited"
   | "bet_accepted"
   | "bet_rejected"
   | "bet_cancelled"
-  | "arbiter_selected"
+  | "arbiter_accepted"
+  | "arbiter_rejected"
   | "winner_selected"
   | "bet_forfeited"
   | "winnings_claimed";
@@ -46,6 +48,12 @@ export class NotificationService {
     const { type, data } = config;
 
     switch (type) {
+      case "bet_created":
+        return {
+          title: `Bet #${data.betNumber} Created`,
+          body: `${data.makerName || "A user"} created a bet with you.`,
+        };
+
       case "bet_edited":
         return {
           title: `Bet #${data.betNumber} Updated`,
@@ -59,27 +67,37 @@ export class NotificationService {
           title: `Bet #${data.betNumber} Accepted`,
           body: `${
             data.takerName || "A user"
-          } has accepted your bet! The game is on.`,
+          } has accepted your bet! Awaiting arbiter acceptance.`,
         };
 
       case "bet_rejected":
         return {
           title: `Bet #${data.betNumber} Rejected`,
-          body: `${data.takerName || "A user"} has rejected your bet.`,
+          body: `${
+            data.takerName || "A user"
+          } rejected your bet.  Edit or cancel now.`,
         };
 
       case "bet_cancelled":
         return {
           title: `Bet #${data.betNumber} Cancelled`,
-          body: `${data.makerName || "A user"} has cancelled this bet.`,
+          body: `${data.makerName || "A user"} cancelled this bet.`,
         };
 
-      case "arbiter_selected":
+      case "arbiter_accepted":
         return {
-          title: `Arbiter Selected for Bet #${data.betNumber}`,
+          title: `Arbiter Accepted the Bet #${data.betNumber}`,
           body: `${
             data.arbiterName || "An arbiter"
-          } has been selected to judge this bet.`,
+          } agreed to judge this bet.  It's on!`,
+        };
+
+      case "arbiter_rejected":
+        return {
+          title: `Arbiter Rejected the Bet #${data.betNumber}`,
+          body: `${
+            data.arbiterName || "An arbiter"
+          } rejected this bet. Cancel to reclaim funds`,
         };
 
       case "winner_selected":
@@ -137,6 +155,17 @@ export class NotificationService {
     }
   }
 
+  static async sendBetCreatedNotification(
+    targetFid: number,
+    data: NotificationData
+  ): Promise<SendNotificationResult> {
+    return this.sendNotification({
+      type: "bet_created",
+      targetFid,
+      data,
+    });
+  }
+
   static async sendBetEditedNotification(
     targetFid: number,
     data: NotificationData
@@ -186,7 +215,7 @@ export class NotificationService {
     data: NotificationData
   ): Promise<SendNotificationResult> {
     return this.sendNotification({
-      type: "arbiter_selected",
+      type: "arbiter_accepted",
       targetFid,
       data,
     });

@@ -3,11 +3,13 @@ import { NotificationService, NotificationData } from "./notificationService";
 
 export const sendBetNotification = async (
   type:
+    | "bet_created"
     | "bet_edited"
     | "bet_accepted"
     | "bet_rejected"
     | "bet_cancelled"
-    | "arbiter_selected"
+    | "arbiter_accepted"
+    | "arbiter_rejected"
     | "winner_selected"
     | "bet_forfeited"
     | "winnings_claimed",
@@ -50,6 +52,9 @@ export const sendBetNotification = async (
 };
 
 // Convenience functions for common notification types
+export const notifyBetCreated = (targetFid: number, data: NotificationData) =>
+  sendBetNotification("bet_created", targetFid, data);
+
 export const notifyBetEdited = (targetFid: number, data: NotificationData) =>
   sendBetNotification("bet_edited", targetFid, data);
 
@@ -62,10 +67,15 @@ export const notifyBetRejected = (targetFid: number, data: NotificationData) =>
 export const notifyBetCancelled = (targetFid: number, data: NotificationData) =>
   sendBetNotification("bet_cancelled", targetFid, data);
 
-export const notifyArbiterSelected = (
+export const notifyArbiterAccepted = (
   targetFid: number,
   data: NotificationData
-) => sendBetNotification("arbiter_selected", targetFid, data);
+) => sendBetNotification("arbiter_accepted", targetFid, data);
+
+export const notifyArbiterRejected = (
+  targetFid: number,
+  data: NotificationData
+) => sendBetNotification("arbiter_rejected", targetFid, data);
 
 export const notifyWinnerSelected = (
   targetFid: number,
