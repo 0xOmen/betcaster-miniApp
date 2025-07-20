@@ -47,6 +47,7 @@ import { ShareModal } from "~/components/ShareModal";
 import { Explore } from "~/components/Explore";
 import { BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
 import { ERC20_ABI } from "~/lib/erc20Abi";
+import { notifyBetRejected } from "~/lib/notificationUtils";
 
 export type Tab = "create" | "bets" | "explore" | "wallet" | "leaderboard";
 
@@ -1981,6 +1982,37 @@ export default function Demo(
         console.error("Failed to update bet status in database");
       } else {
         console.log("Bet status updated to rejected in database");
+
+        // Send notification to maker about bet rejection
+        if (bet.maker_fid) {
+          try {
+            const notificationResult = await notifyBetRejected(bet.maker_fid, {
+              betNumber: bet.bet_number,
+              betAmount: bet.bet_amount.toString(),
+              tokenName: getTokenName(bet.bet_token_address),
+              makerName:
+                bet.makerProfile?.display_name || bet.makerProfile?.username,
+              takerName:
+                bet.takerProfile?.display_name || bet.takerProfile?.username,
+              arbiterName:
+                bet.arbiterProfile?.display_name ||
+                bet.arbiterProfile?.username,
+              betAgreement: bet.bet_agreement,
+              endTime: new Date(bet.end_time * 1000).toLocaleString(),
+            });
+
+            if (notificationResult.success) {
+              console.log("Notification sent to maker about bet rejection");
+            } else {
+              console.error(
+                "Failed to send notification to maker:",
+                notificationResult.error
+              );
+            }
+          } catch (notificationError) {
+            console.error("Error sending notification:", notificationError);
+          }
+        }
 
         // Refresh bets list
         if (address || context?.user?.fid) {
