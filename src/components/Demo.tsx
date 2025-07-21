@@ -441,7 +441,13 @@ export default function Demo(
 
           // Filter out old cancelled bets (status 8) that are more than a day old
           const oneDayAgo = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
+          const threeDaysAgo = Math.floor(Date.now() / 1000) - 3 * 24 * 60 * 60;
           const filteredBets = bets.filter((bet: Bet) => {
+            if (bet.status === 6 || bet.status === 7) {
+              // Check if bet is more than 3 days old (using end_time or could use last database update time)
+              const betAge = bet.end_time || 0;
+              return betAge > threeDaysAgo;
+            }
             if (bet.status === 8) {
               // Check if bet is more than a day old (using end_time or updated_at)
               const betAge = bet.end_time || bet.timestamp || 0;
