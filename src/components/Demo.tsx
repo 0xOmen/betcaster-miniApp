@@ -2442,6 +2442,42 @@ export default function Demo(
     }
   };
 
+  const handleRejectArbiterRole = async (bet: Bet) => {
+    try {
+      // Update database to mark bet as arbiter rejected (status 10)
+      const updateResponse = await fetch(
+        `/api/bets?betNumber=${bet.bet_number}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: 10 }),
+        }
+      );
+
+      if (!updateResponse.ok) {
+        console.error("Failed to update bet status in database");
+      } else {
+        console.log("Bet status updated to arbiter rejected in database");
+        // Optionally refresh bets list
+        if (address || context?.user?.fid) {
+          const params = new URLSearchParams();
+          if (address) params.append("address", address);
+          if (context?.user?.fid)
+            params.append("fid", context.user.fid.toString());
+          const response = await fetch(`/api/bets?${params.toString()}`);
+          if (response.ok) {
+            const data = await response.json();
+            setUserBets(data.bets || []);
+          }
+        }
+        // Optionally close modal if in modal
+        setIsModalOpen(false);
+      }
+    } catch (error) {
+      console.error("Error rejecting arbiter role:", error);
+    }
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -2685,6 +2721,16 @@ export default function Demo(
                                   className="px-2 py-1 text-xs bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors"
                                 >
                                   Accept Arbiter Role
+                                </button>
+                                {/* Reject Arbiter Role Button */}
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    await handleRejectArbiterRole(bet);
+                                  }}
+                                  className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                >
+                                  Reject Arbiter Role
                                 </button>
                               </div>
                             )}
@@ -3086,6 +3132,13 @@ export default function Demo(
                           {isAcceptingArbiter
                             ? "Accepting..."
                             : "Accept Arbiter Role"}
+                        </button>
+                        {/* Reject Arbiter Role Button */}
+                        <button
+                          onClick={() => handleRejectArbiterRole(selectedBet)}
+                          className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                        >
+                          Reject Arbiter Role
                         </button>
                       </div>
                     </div>
