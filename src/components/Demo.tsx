@@ -2613,29 +2613,31 @@ export default function Demo(
                               </div>
                             )}
 
-                          {/* Maker Actions for Status 9 */}
+                          {/* Maker Actions for Status 9 (Rejected) */}
                           {address === bet.maker_address &&
                             bet.status === 9 && (
-                              <div className="flex space-x-2 mt-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedBet(bet);
-                                    setIsModalOpen(true);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openEditModal(bet);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
-                                >
-                                  Edit
-                                </button>
+                              <div className="mb-4">
+                                <div className="flex space-x-3">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedBet(bet);
+                                      setIsModalOpen(true);
+                                    }}
+                                    className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditModal(bet);
+                                    }}
+                                    className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
+                                  >
+                                    Edit
+                                  </button>
+                                </div>
                               </div>
                             )}
 
