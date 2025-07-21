@@ -233,8 +233,8 @@ export function BetDetailsModal({
               </div>
             )}
 
-          {/* Cancel Bet Button for status 2 and Maker */}
-          {isMaker && bet.status === 2 && onCancel && (
+          {/* Cancel Bet Button for status 9 and Maker */}
+          {isMaker && bet.status === 9 && onCancel && (
             <div className="mb-4">
               <button
                 onClick={onCancel}
