@@ -233,6 +233,19 @@ export function BetDetailsModal({
               </div>
             )}
 
+          {/* Cancel Bet Button for status 2 and Maker */}
+          {isMaker && bet.status === 2 && onCancel && (
+            <div className="mb-4">
+              <button
+                onClick={onCancel}
+                disabled={isCancelling}
+                className="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCancelling ? "Cancelling..." : "Cancel Bet"}
+              </button>
+            </div>
+          )}
+
           {/* Bet Agreement */}
           <div className="mb-4">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
