@@ -53,6 +53,7 @@ import {
   notifyArbiterAccepted,
   notifyBetForfeited,
   notifyWinnerSelected,
+  notifyBetCancelled,
 } from "~/lib/notificationUtils";
 
 export type Tab = "create" | "bets" | "explore" | "wallet" | "leaderboard";
@@ -2335,6 +2336,112 @@ export default function Demo(
     closeModal();
   };
 
+  const handleNoArbiterCancelBet = async () => {
+    if (!selectedBet || !isConnected) {
+      console.error("Cannot cancel bet: not connected or no bet selected");
+      return;
+    }
+    if (chainId !== base.id) {
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+    try {
+      setIsCancelling(true);
+      const encodedData = encodeFunctionData({
+        abi: BET_MANAGEMENT_ENGINE_ABI,
+        functionName: "noArbiterCancelBet",
+        args: [BigInt(selectedBet.bet_number)],
+      });
+      sendTransaction(
+        {
+          to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+          data: encodedData as `0x${string}`,
+        },
+        {
+          onSuccess: async (hash: `0x${string}`) => {
+            setCancelTxHash(hash);
+            setTimeout(async () => {
+              closeModal();
+              try {
+                const updateResponse = await fetch(
+                  `/api/bets?betNumber=${selectedBet.bet_number}`,
+                  {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status: 8, transaction_hash: hash }),
+                  }
+                );
+                if (!updateResponse.ok) {
+                  console.error("Failed to update bet status in database");
+                } else {
+                  // Notify both Maker and Taker
+                  const notify = async (fid: number | null | undefined) => {
+                    if (fid) {
+                      try {
+                        await notifyBetCancelled(fid, {
+                          betNumber: selectedBet.bet_number,
+                          betAmount: selectedBet.bet_amount.toString(),
+                          tokenName: getTokenName(
+                            selectedBet.bet_token_address
+                          ),
+                          makerName:
+                            selectedBet.makerProfile?.display_name ||
+                            selectedBet.makerProfile?.username,
+                          takerName:
+                            selectedBet.takerProfile?.display_name ||
+                            selectedBet.takerProfile?.username,
+                          arbiterName:
+                            selectedBet.arbiterProfile?.display_name ||
+                            selectedBet.arbiterProfile?.username,
+                          betAgreement: selectedBet.bet_agreement,
+                          endTime: new Date(
+                            selectedBet.end_time * 1000
+                          ).toLocaleString(),
+                        });
+                      } catch (e) {
+                        console.error("Notification error", e);
+                      }
+                    }
+                  };
+                  await Promise.all([
+                    notify(selectedBet.maker_fid),
+                    notify(selectedBet.taker_fid),
+                  ]);
+                }
+              } catch (error) {
+                console.error("Error updating bet status:", error);
+              }
+              // Refresh bets list
+              if (address || context?.user?.fid) {
+                const params = new URLSearchParams();
+                if (address) params.append("address", address);
+                if (context?.user?.fid)
+                  params.append("fid", context.user.fid.toString());
+                const response = await fetch(`/api/bets?${params.toString()}`);
+                if (response.ok) {
+                  const data = await response.json();
+                  setUserBets(data.bets || []);
+                }
+              }
+            }, 2000);
+          },
+          onError: (error: Error) => {
+            console.error("Cancel transaction failed:", error);
+            setIsCancelling(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error cancelling bet:", error);
+      setIsCancelling(false);
+    }
+  };
+
   if (!isSDKLoaded) {
     return <div>Loading...</div>;
   }
@@ -3085,6 +3192,17 @@ export default function Demo(
                         >
                           {isForfeiting ? "Forfeiting..." : "Forfeit Bet"}
                         </button>
+                        {/* Cancel button if 24h since timestamp */}
+                        {Math.floor(Date.now() / 1000) - selectedBet.timestamp >
+                          24 * 60 * 60 && (
+                          <button
+                            onClick={handleNoArbiterCancelBet}
+                            disabled={isCancelling}
+                            className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isCancelling ? "Cancelling..." : "Cancel Bet"}
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
