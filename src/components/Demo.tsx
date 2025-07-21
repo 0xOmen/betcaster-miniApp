@@ -2983,7 +2983,7 @@ export default function Demo(
 
                 {/* Maker Actions */}
                 {address === selectedBet.maker_address &&
-                  selectedBet.status === 0 && (
+                  (selectedBet.status === 0 || selectedBet.status === 9) && (
                     <div className="mb-4">
                       <div className="flex space-x-3">
                         <button
