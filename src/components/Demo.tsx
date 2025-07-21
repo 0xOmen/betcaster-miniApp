@@ -54,6 +54,8 @@ import {
   notifyBetForfeited,
   notifyWinnerSelected,
   notifyBetCancelled,
+  notifyBetCancelledByTaker,
+  notifyArbiterRejected,
 } from "~/lib/notificationUtils";
 
 export type Tab = "create" | "bets" | "explore" | "wallet" | "leaderboard";
@@ -2388,29 +2390,57 @@ export default function Demo(
                   // Notify both Maker and Taker
                   const notify = async (fid: number | null | undefined) => {
                     if (fid) {
-                      try {
-                        await notifyBetCancelled(fid, {
-                          betNumber: selectedBet.bet_number,
-                          betAmount: selectedBet.bet_amount.toString(),
-                          tokenName: getTokenName(
-                            selectedBet.bet_token_address
-                          ),
-                          makerName:
-                            selectedBet.makerProfile?.display_name ||
-                            selectedBet.makerProfile?.username,
-                          takerName:
-                            selectedBet.takerProfile?.display_name ||
-                            selectedBet.takerProfile?.username,
-                          arbiterName:
-                            selectedBet.arbiterProfile?.display_name ||
-                            selectedBet.arbiterProfile?.username,
-                          betAgreement: selectedBet.bet_agreement,
-                          endTime: new Date(
-                            selectedBet.end_time * 1000
-                          ).toLocaleString(),
-                        });
-                      } catch (e) {
-                        console.error("Notification error", e);
+                      // If connected user is taker send bet_cancelled_by_taker notification
+                      if (context?.user?.fid === selectedBet.taker_fid) {
+                        try {
+                          await notifyBetCancelledByTaker(fid, {
+                            betNumber: selectedBet.bet_number,
+                            betAmount: selectedBet.bet_amount.toString(),
+                            tokenName: getTokenName(
+                              selectedBet.bet_token_address
+                            ),
+                            makerName:
+                              selectedBet.makerProfile?.display_name ||
+                              selectedBet.makerProfile?.username,
+                            takerName:
+                              selectedBet.takerProfile?.display_name ||
+                              selectedBet.takerProfile?.username,
+                            arbiterName:
+                              selectedBet.arbiterProfile?.display_name ||
+                              selectedBet.arbiterProfile?.username,
+                            betAgreement: selectedBet.bet_agreement,
+                            endTime: new Date(
+                              selectedBet.end_time * 1000
+                            ).toLocaleString(),
+                          });
+                        } catch (e) {
+                          console.error("Notification error", e);
+                        }
+                      } else if (context?.user?.fid === selectedBet.maker_fid) {
+                        try {
+                          await notifyBetCancelled(fid, {
+                            betNumber: selectedBet.bet_number,
+                            betAmount: selectedBet.bet_amount.toString(),
+                            tokenName: getTokenName(
+                              selectedBet.bet_token_address
+                            ),
+                            makerName:
+                              selectedBet.makerProfile?.display_name ||
+                              selectedBet.makerProfile?.username,
+                            takerName:
+                              selectedBet.takerProfile?.display_name ||
+                              selectedBet.takerProfile?.username,
+                            arbiterName:
+                              selectedBet.arbiterProfile?.display_name ||
+                              selectedBet.arbiterProfile?.username,
+                            betAgreement: selectedBet.bet_agreement,
+                            endTime: new Date(
+                              selectedBet.end_time * 1000
+                            ).toLocaleString(),
+                          });
+                        } catch (e) {
+                          console.error("Notification error", e);
+                        }
                       }
                     }
                   };
@@ -2464,6 +2494,29 @@ export default function Demo(
         console.error("Failed to update bet status in database");
       } else {
         console.log("Bet status updated to arbiter rejected in database");
+        // Notify both Maker and Taker
+        const notify = async (fid: number | null | undefined) => {
+          if (fid) {
+            try {
+              await notifyArbiterRejected(fid, {
+                betNumber: bet.bet_number,
+                betAmount: bet.bet_amount.toString(),
+                tokenName: getTokenName(bet.bet_token_address),
+                makerName:
+                  bet.makerProfile?.display_name || bet.makerProfile?.username,
+                takerName:
+                  bet.takerProfile?.display_name || bet.takerProfile?.username,
+                arbiterName:
+                  bet.arbiterProfile?.display_name ||
+                  bet.arbiterProfile?.username,
+                betAgreement: bet.bet_agreement,
+                endTime: new Date(bet.end_time * 1000).toLocaleString(),
+              });
+            } catch (e) {
+              console.error("Notification error", e);
+            }
+          }
+        };
         // Optionally refresh bets list
         if (address || context?.user?.fid) {
           const params = new URLSearchParams();

@@ -8,6 +8,7 @@ export type NotificationType =
   | "bet_accepted"
   | "bet_rejected"
   | "bet_cancelled"
+  | "bet_cancelled_by_taker"
   | "arbiter_accepted"
   | "arbiter_rejected"
   | "invite_arbiter"
@@ -82,7 +83,17 @@ export class NotificationService {
       case "bet_cancelled":
         return {
           title: `Bet #${data.betNumber} Cancelled`,
-          body: `${data.makerName || "A user"} cancelled this bet.`,
+          body: `${
+            data.makerName || "A user"
+          } cancelled this bet. User funds returned.`,
+        };
+
+      case "bet_cancelled_by_taker":
+        return {
+          title: `Bet #${data.betNumber} Cancelled`,
+          body: `${
+            data.takerName || "A user"
+          } cancelled the bet. All funds returned.`,
         };
 
       case "arbiter_accepted":
@@ -214,6 +225,17 @@ export class NotificationService {
   ): Promise<SendNotificationResult> {
     return this.sendNotification({
       type: "bet_cancelled",
+      targetFid,
+      data,
+    });
+  }
+
+  static async sendBetCancelledByTakerNotification(
+    targetFid: number,
+    data: NotificationData
+  ): Promise<SendNotificationResult> {
+    return this.sendNotification({
+      type: "bet_cancelled_by_taker",
       targetFid,
       data,
     });
