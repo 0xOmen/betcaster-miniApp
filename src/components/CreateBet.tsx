@@ -939,8 +939,9 @@ export default function CreateBet({
                 </h3>
                 <div className="mt-1 text-sm text-blue-700 dark:text-blue-300">
                   Write the Bet Description as a clear true/false statement.
-                  Make sure it's specific and leaves no room for interpretation.
-                  You will win if the Bet Description resolves true.
+                  Make sure it is specific and leaves no room for
+                  interpretation. You will win if the Bet Description resolves
+                  true.
                 </div>
               </div>
             </div>

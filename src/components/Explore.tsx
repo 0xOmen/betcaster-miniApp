@@ -18,7 +18,19 @@ export const Explore: FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedBet, setSelectedBet] = useState<Bet | null>(null);
   const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
-  const [blockchainBet, setBlockchainBet] = useState<any>(null); // Add state for blockchain bet
+  const [blockchainBet, setBlockchainBet] = useState<{
+    maker: string;
+    taker: string;
+    arbiter: string;
+    betTokenAddress: string;
+    betAmount: bigint;
+    timestamp: bigint;
+    endTime: bigint;
+    status: number;
+    protocolFee: bigint;
+    arbiterFee: bigint;
+    betAgreement: string;
+  } | null>(null); // Add state for blockchain bet
   const [isAddingToDb, setIsAddingToDb] = useState(false); // Add loading state
   const { address } = useAccount();
   const { context } = useMiniApp();
