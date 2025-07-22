@@ -650,10 +650,10 @@ export default function Demo(
         setIsApproving(false);
         setShowApprovalSuccess(true);
 
-        // Hide success message after 3 seconds
+        // Hide success message after 5 seconds
         setTimeout(() => {
           setShowApprovalSuccess(false);
-        }, 3000);
+        }, 5000);
 
         // Refetch allowance after successful approval
         setTimeout(() => {
@@ -3183,8 +3183,8 @@ export default function Demo(
                           </div>
                           <div>
                             <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                              Important: You will lose if the bet agreement is
-                              true
+                              Important: You will win if the bet agreement below
+                              resolves to false.
                             </h3>
                             <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
                               <p>

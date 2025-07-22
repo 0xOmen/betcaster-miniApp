@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       !timestamp ||
       !end_time ||
       !protocol_fee ||
-      !arbiter_fee ||
+      arbiter_fee === undefined || // Changed from !arbiter_fee to allow 0
       !bet_agreement ||
       !bet_number
     ) {

@@ -938,7 +938,9 @@ export default function CreateBet({
                   Bet Condition
                 </h3>
                 <div className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                  You will win if the following is true. Be specific!
+                  Write the Bet Description as a clear true/false statement.
+                  Make sure it's specific and leaves no room for interpretation.
+                  You will win if the Bet Description resolves true.
                 </div>
               </div>
             </div>
@@ -1039,7 +1041,8 @@ export default function CreateBet({
 
         {/* Protocol Fee Information */}
         <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-          Protocol fee is {PROTOCOL_FEE_PERCENT}% on all completed bets
+          An additional Protocol Fee of {PROTOCOL_FEE_PERCENT}% is applied on
+          all completed bets
         </div>
 
         {/* End Time Selection */}

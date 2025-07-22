@@ -47,7 +47,7 @@ export function ShareModal({
             Farcaster!
           </p>
           <div className="flex justify-end space-x-3">
-            <Button className="bg-gray-100 hover:bg-gray-200" onClick={onClose}>
+            <Button className="bg-gray-500 hover:bg-gray-800" onClick={onClose}>
               Cancel
             </Button>
             <Button
