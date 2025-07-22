@@ -18,6 +18,8 @@ export const Explore: FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedBet, setSelectedBet] = useState<Bet | null>(null);
   const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
+  const [blockchainBet, setBlockchainBet] = useState<any>(null); // Add state for blockchain bet
+  const [isAddingToDb, setIsAddingToDb] = useState(false); // Add loading state
   const { address } = useAccount();
   const { context } = useMiniApp();
   const { userBets, isLoadingBets, refreshBets, updateBetStatus } = useBets();
@@ -68,13 +70,71 @@ export const Explore: FC = () => {
     },
   });
 
-  // Modify handleSearch to optionally accept a bet number parameter
+  // Add function to add blockchain bet to database
+  const handleAddToDatabase = async () => {
+    if (!blockchainBet) return;
+
+    setIsAddingToDb(true);
+    try {
+      // Convert bet amount using token decimals
+      const betAmountFormatted = weiToAmount(
+        BigInt(blockchainBet.betAmount.toString()),
+        blockchainBet.betTokenAddress
+      );
+
+      // Prepare bet data for database
+      const betData = {
+        bet_number: parseInt(searchBetNumber),
+        maker_address: blockchainBet.maker,
+        taker_address: blockchainBet.taker,
+        arbiter_address: blockchainBet.arbiter,
+        bet_token_address: blockchainBet.betTokenAddress,
+        bet_amount: betAmountFormatted,
+        timestamp: Number(blockchainBet.timestamp),
+        end_time: Number(blockchainBet.endTime),
+        status: Number(blockchainBet.status),
+        protocol_fee: Number(blockchainBet.protocolFee) / 100, // Convert from basis points
+        arbiter_fee: Number(blockchainBet.arbiterFee) / 100, // Convert from basis points
+        bet_agreement: blockchainBet.betAgreement,
+        transaction_hash: null,
+        maker_fid: null,
+        taker_fid: null,
+        arbiter_fid: null,
+      };
+
+      const response = await fetch("/api/bets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(betData),
+      });
+
+      if (response.ok) {
+        // Refresh the search to show the newly added bet
+        await handleSearch();
+        setBlockchainBet(null); // Clear blockchain bet state
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to add bet to database:", errorData);
+        alert("Failed to add bet to database");
+      }
+    } catch (error) {
+      console.error("Error adding bet to database:", error);
+      alert("Error adding bet to database");
+    } finally {
+      setIsAddingToDb(false);
+    }
+  };
+
+  // Modify handleSearch to store blockchain bet data
   const handleSearch = async (forcedBetNumber?: string) => {
     const betNumberToSearch = forcedBetNumber || searchBetNumber;
     if (!betNumberToSearch) return;
 
     setIsSearching(true);
     setSearchError(null);
+    setBlockchainBet(null); // Reset blockchain bet state
 
     try {
       // First try database
@@ -131,6 +191,9 @@ export const Explore: FC = () => {
         chainBet &&
         chainBet.maker !== "0x0000000000000000000000000000000000000000"
       ) {
+        // Store blockchain bet data for potential database addition
+        setBlockchainBet(chainBet);
+
         // Try to fetch FIDs for addresses
         let makerFid = null,
           takerFid = null,
@@ -307,6 +370,33 @@ export const Explore: FC = () => {
           </button>
         </div>
         {searchError && <p className="mt-2 text-red-500">{searchError}</p>}
+
+        {/* Admin button to add blockchain bet to database */}
+        {blockchainBet && context?.user?.fid === 212074 && (
+          <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  Admin Action Required
+                </h3>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  Bet found on blockchain but not in database. Add to database?
+                </p>
+              </div>
+              <button
+                onClick={handleAddToDatabase}
+                disabled={isAddingToDb}
+                className={`px-4 py-2 bg-yellow-500 text-white rounded-lg transition-colors ${
+                  isAddingToDb
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-yellow-600"
+                }`}
+              >
+                {isAddingToDb ? "Adding..." : "Add to Database"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {selectedBet && (
