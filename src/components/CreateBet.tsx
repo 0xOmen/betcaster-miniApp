@@ -182,6 +182,8 @@ export default function CreateBet({
   const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [showBetAmountInfo, setShowBetAmountInfo] = useState(false);
+  const [showArbiterInfo, setShowArbiterInfo] = useState(false);
+  const [showEndTimeInfo, setShowEndTimeInfo] = useState(false);
 
   // Add arbiter selection state
   const [arbiterSearchTerm, setArbiterSearchTerm] = useState("");
@@ -943,6 +945,9 @@ export default function CreateBet({
 
         {/* Bet Description */}
         <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Bet Description
+          </label>
           <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <div className="flex items-start space-x-2">
               <div className="flex-shrink-0">
@@ -959,9 +964,6 @@ export default function CreateBet({
                 </svg>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                  Bet Condition
-                </h3>
                 <div className="mt-1 text-sm text-blue-700 dark:text-blue-300">
                   Write the Bet Description as a clear true/false statement.
                   Make sure it is specific and leaves no room for
@@ -971,9 +973,6 @@ export default function CreateBet({
               </div>
             </div>
           </div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Bet Description
-          </label>
           <textarea
             placeholder="The Eagles will not win the next Super Bowl..."
             rows={3}
@@ -984,14 +983,45 @@ export default function CreateBet({
         </div>
 
         {/* Arbiter Selection */}
-        <UserSearchDropdown
-          label="Select Arbiter"
-          placeholder="Search for an arbiter..."
-          selectedUser={selectedArbiter}
-          onUserSelect={setSelectedArbiter}
-          onFidChange={setArbiterFid}
-          currentUserFid={userFid}
-        />
+        <div>
+          <div className="flex items-center space-x-2 mb-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Select Arbiter
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowArbiterInfo(!showArbiterInfo)}
+              className="text-blue-400 hover:text-blue-600 dark:hover:text-blue-300"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+
+          {showArbiterInfo && (
+            <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="text-sm text-blue-700 dark:text-blue-300">
+                The Arbiter decides if the Bet Description was true or false and
+                earns a percentage of the bet amount for their service. The
+                Arbiter cannot be the Maker.
+              </div>
+            </div>
+          )}
+
+          <UserSearchDropdown
+            label=""
+            placeholder="Search for an arbiter..."
+            selectedUser={selectedArbiter}
+            onUserSelect={setSelectedArbiter}
+            onFidChange={setArbiterFid}
+            currentUserFid={userFid}
+          />
+        </div>
 
         {/* Arbiter Fee Selection */}
         <div>
@@ -1073,9 +1103,33 @@ export default function CreateBet({
 
         {/* End Time Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Bet End Time
-          </label>
+          <div className="flex items-center space-x-2 mb-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Bet End Time
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowEndTimeInfo(!showEndTimeInfo)}
+              className="text-blue-400 hover:text-blue-600 dark:hover:text-blue-300"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+
+          {showEndTimeInfo && (
+            <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="text-sm text-blue-700 dark:text-blue-300">
+                The End Time is the time after which the Taker can no longer
+                enter into the bet.
+              </div>
+            </div>
+          )}
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <button
