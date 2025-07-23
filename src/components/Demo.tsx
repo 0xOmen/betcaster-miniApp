@@ -995,6 +995,50 @@ export default function Demo(
     setSelectedBet(null);
   };
 
+  // Helper function to apply the same filtering logic as fetchUserBets
+  const applyBetFiltering = (bets: Bet[]): Bet[] => {
+    // Filter out old cancelled bets (status 8) that are more than a day old
+    const oneDayAgo = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
+    const threeDaysAgo = Math.floor(Date.now() / 1000) - 3 * 24 * 60 * 60;
+    const filteredBets = bets.filter((bet: Bet) => {
+      if (bet.status === 6 || bet.status === 7) {
+        // Check if bet is more than 3 days old (using end_time or could use last database update time)
+        const betAge = bet.end_time || 0;
+        return betAge > threeDaysAgo;
+      }
+      if (bet.status === 8) {
+        // Check if bet is more than a day old (using end_time or updated_at)
+        const betAge = bet.end_time || bet.timestamp || 0;
+        return betAge > oneDayAgo;
+      }
+      return true; // Keep all non-cancelled bets
+    });
+
+    console.log(
+      "📊 Filtered bets:",
+      filteredBets.length,
+      "bets after filtering"
+    );
+
+    return filteredBets;
+  };
+
+  // Helper function to refresh bets with filtering
+  const refreshBetsWithFiltering = async () => {
+    if (address || context?.user?.fid) {
+      const params = new URLSearchParams();
+      if (address) params.append("address", address);
+      if (context?.user?.fid) params.append("fid", context.user.fid.toString());
+
+      const response = await fetch(`/api/bets?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        const filteredBets = applyBetFiltering(data.bets || []);
+        setUserBets(filteredBets);
+      }
+    }
+  };
+
   // Function to cancel bet
   const handleCancelBet = async () => {
     if (!selectedBet || !isConnected) {
@@ -1066,19 +1110,8 @@ export default function Demo(
                 console.error("Error updating bet status:", error);
               }
 
-              // Refresh bets list
-              if (address || context?.user?.fid) {
-                const params = new URLSearchParams();
-                if (address) params.append("address", address);
-                if (context?.user?.fid)
-                  params.append("fid", context.user.fid.toString());
-
-                const response = await fetch(`/api/bets?${params.toString()}`);
-                if (response.ok) {
-                  const data = await response.json();
-                  setUserBets(data.bets || []);
-                }
-              }
+              // Refresh bets list with filtering
+              await refreshBetsWithFiltering();
             }, 2000);
           },
           onError: (error: Error) => {
@@ -1245,19 +1278,8 @@ export default function Demo(
                 console.error("Error updating bet status:", error);
               }
 
-              // Refresh bets list
-              if (address || context?.user?.fid) {
-                const params = new URLSearchParams();
-                if (address) params.append("address", address);
-                if (context?.user?.fid)
-                  params.append("fid", context.user.fid.toString());
-
-                const response = await fetch(`/api/bets?${params.toString()}`);
-                if (response.ok) {
-                  const data = await response.json();
-                  setUserBets(data.bets || []);
-                }
-              }
+              // Refresh bets list with filtering
+              await refreshBetsWithFiltering();
             }, 2000);
           },
           onError: (error: Error) => {
@@ -1433,19 +1455,8 @@ export default function Demo(
                 console.error("Error updating bet status:", error);
               }
 
-              // Refresh bets list
-              if (address || context?.user?.fid) {
-                const params = new URLSearchParams();
-                if (address) params.append("address", address);
-                if (context?.user?.fid)
-                  params.append("fid", context.user.fid.toString());
-
-                const response = await fetch(`/api/bets?${params.toString()}`);
-                if (response.ok) {
-                  const data = await response.json();
-                  setUserBets(data.bets || []);
-                }
-              }
+              // Refresh bets list with filtering
+              await refreshBetsWithFiltering();
             }, 2000);
           },
           onError: (error: Error) => {
@@ -1619,19 +1630,8 @@ export default function Demo(
                 console.error("Error updating bet status:", error);
               }
 
-              // Refresh bets list
-              if (address || context?.user?.fid) {
-                const params = new URLSearchParams();
-                if (address) params.append("address", address);
-                if (context?.user?.fid)
-                  params.append("fid", context.user.fid.toString());
-
-                const response = await fetch(`/api/bets?${params.toString()}`);
-                if (response.ok) {
-                  const data = await response.json();
-                  setUserBets(data.bets || []);
-                }
-              }
+              // Refresh bets list with filtering
+              await refreshBetsWithFiltering();
             }, 2000);
           },
           onError: (error: Error) => {
@@ -1753,19 +1753,8 @@ export default function Demo(
                 console.error("Error updating bet status:", error);
               }
 
-              // Refresh bets list
-              if (address || context?.user?.fid) {
-                const params = new URLSearchParams();
-                if (address) params.append("address", address);
-                if (context?.user?.fid)
-                  params.append("fid", context.user.fid.toString());
-
-                const response = await fetch(`/api/bets?${params.toString()}`);
-                if (response.ok) {
-                  const data = await response.json();
-                  setUserBets(data.bets || []);
-                }
-              }
+              // Refresh bets list with filtering
+              await refreshBetsWithFiltering();
             }, 2000);
           },
           onError: (error: Error) => {
@@ -1974,19 +1963,8 @@ export default function Demo(
                 console.error("Error updating bet parameters:", error);
               }
 
-              // Refresh bets list
-              if (address || context?.user?.fid) {
-                const params = new URLSearchParams();
-                if (address) params.append("address", address);
-                if (context?.user?.fid)
-                  params.append("fid", context.user.fid.toString());
-
-                const response = await fetch(`/api/bets?${params.toString()}`);
-                if (response.ok) {
-                  const data = await response.json();
-                  setUserBets(data.bets || []);
-                }
-              }
+              // Refresh bets list with filtering
+              await refreshBetsWithFiltering();
             }, 2000);
           },
           onError: (error: Error) => {
@@ -2236,19 +2214,8 @@ export default function Demo(
                 console.error("Error updating bet status:", error);
               }
 
-              // Refresh bets list
-              if (address || context?.user?.fid) {
-                const params = new URLSearchParams();
-                if (address) params.append("address", address);
-                if (context?.user?.fid)
-                  params.append("fid", context.user.fid.toString());
-
-                const response = await fetch(`/api/bets?${params.toString()}`);
-                if (response.ok) {
-                  const data = await response.json();
-                  setUserBets(data.bets || []);
-                }
-              }
+              // Refresh bets list with filtering
+              await refreshBetsWithFiltering();
             }, 2000);
           },
           onError: (error: Error) => {
@@ -2318,19 +2285,8 @@ export default function Demo(
           }
         }
 
-        // Refresh bets list
-        if (address || context?.user?.fid) {
-          const params = new URLSearchParams();
-          if (address) params.append("address", address);
-          if (context?.user?.fid)
-            params.append("fid", context.user.fid.toString());
-
-          const response = await fetch(`/api/bets?${params.toString()}`);
-          if (response.ok) {
-            const data = await response.json();
-            setUserBets(data.bets || []);
-          }
-        }
+        // Refresh bets list with filtering
+        await refreshBetsWithFiltering();
       }
     } catch (error) {
       console.error("Error rejecting bet:", error);
@@ -2460,18 +2416,8 @@ export default function Demo(
               } catch (error) {
                 console.error("Error updating bet status:", error);
               }
-              // Refresh bets list
-              if (address || context?.user?.fid) {
-                const params = new URLSearchParams();
-                if (address) params.append("address", address);
-                if (context?.user?.fid)
-                  params.append("fid", context.user.fid.toString());
-                const response = await fetch(`/api/bets?${params.toString()}`);
-                if (response.ok) {
-                  const data = await response.json();
-                  setUserBets(data.bets || []);
-                }
-              }
+              // Refresh bets list with filtering
+              await refreshBetsWithFiltering();
             }, 2000);
           },
           onError: (error: Error) => {
@@ -2525,18 +2471,8 @@ export default function Demo(
             }
           }
         };
-        // Optionally refresh bets list
-        if (address || context?.user?.fid) {
-          const params = new URLSearchParams();
-          if (address) params.append("address", address);
-          if (context?.user?.fid)
-            params.append("fid", context.user.fid.toString());
-          const response = await fetch(`/api/bets?${params.toString()}`);
-          if (response.ok) {
-            const data = await response.json();
-            setUserBets(data.bets || []);
-          }
-        }
+        // Refresh bets list with filtering
+        await refreshBetsWithFiltering();
         // Optionally close modal if in modal
         setIsModalOpen(false);
       }
