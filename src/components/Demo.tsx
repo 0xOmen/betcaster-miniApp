@@ -3201,6 +3201,13 @@ export default function Demo(
                   context?.user?.fid === selectedBet.arbiter_fid) &&
                   selectedBet.status === 1 && (
                     <div className="mb-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                          Notice: Only accept this arbiter role if the bet is
+                          clearly defined and you can confidently judge its
+                          outcome.
+                        </h3>
+                      </div>
                       <div className="flex space-x-3">
                         <button
                           onClick={handleAcceptArbiterRole}
