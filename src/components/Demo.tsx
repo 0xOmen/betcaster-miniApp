@@ -841,7 +841,9 @@ export default function Demo(
           };
         }
         return {
-          text: `${arbiterProfile?.username || "Arbiter"} needs to accept`,
+          text: `${
+            arbiterProfile?.username || "Arbiter"
+          } to accept arbiter role`,
           bgColor:
             "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
         };
@@ -2857,7 +2859,7 @@ export default function Demo(
                             )}
 
                           {/* Arbiter Declined - Cancel option for maker/taker after 24h */}
-                          {bet.status === 10 &&
+                          {(bet.status === 10 || bet.status === 1) &&
                             (address?.toLowerCase() ===
                               bet.maker_address.toLowerCase() ||
                               context?.user?.fid === bet.maker_fid ||
@@ -3075,7 +3077,7 @@ export default function Demo(
                 </div>
 
                 {/* Cancel button for status 10 */}
-                {selectedBet.status === 10 &&
+                {(selectedBet.status === 10 || selectedBet.status === 1) &&
                   (address?.toLowerCase() ===
                     selectedBet.maker_address.toLowerCase() ||
                     context?.user?.fid === selectedBet.maker_fid ||
