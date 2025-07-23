@@ -872,7 +872,7 @@ export default function CreateBet({
       <div className="space-y-4">
         {/* Taker Selection */}
         <UserSearchDropdown
-          label="Search for a user to bet with"
+          label="Select a user to bet with"
           placeholder="Enter username or display name..."
           selectedUser={selectedUser}
           onUserSelect={setSelectedUser}
@@ -915,7 +915,7 @@ export default function CreateBet({
                 </h3>
                 <div className="mt-1 text-sm text-blue-700 dark:text-blue-300">
                   The Bet Amount is what each party wagers and what the Maker
-                  wins if they're right, minus fees.
+                  wins if they are right, minus fees.
                 </div>
               </div>
             </div>
@@ -983,8 +983,8 @@ export default function CreateBet({
 
         {/* Arbiter Selection */}
         <UserSearchDropdown
-          label="Select Arbiter (Optional)"
-          placeholder="Search for an arbiter (optional)..."
+          label="Select Arbiter"
+          placeholder="Search for an arbiter..."
           selectedUser={selectedArbiter}
           onUserSelect={setSelectedArbiter}
           onFidChange={setArbiterFid}
