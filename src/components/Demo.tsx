@@ -3610,8 +3610,17 @@ export default function Demo(
                 <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-lg">
                   <strong>Arbiter Instructions:</strong>
                   <div className="mt-1 text-sm">
-                    Select whether the bet agreement is <b>True</b> or{" "}
+                    Select whether the following bet agreement is <b>True</b> or{" "}
                     <b>False</b>.
+                  </div>
+                </div>
+
+                {/* Bet Agreement */}
+                <div className="mb-4">
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                      {selectedBet.bet_agreement || "No description provided"}
+                    </p>
                   </div>
                 </div>
 
@@ -3678,18 +3687,6 @@ export default function Demo(
                         {formatEndTime(selectedBet.end_time)}
                       </span>
                     </div>
-                  </div>
-                </div>
-
-                {/* Bet Agreement */}
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Maker wins if:
-                  </h3>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
-                      {selectedBet.bet_agreement || "No description provided"}
-                    </p>
                   </div>
                 </div>
 
