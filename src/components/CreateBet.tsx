@@ -1337,7 +1337,7 @@ export default function CreateBet({
                     before the Arbiter accepts their role.
                   </li>
                   <li>
-                    If the Arbiter doesn't judge within 30 days after the bet
+                    If the Arbiter does not judge within 30 days after the bet
                     end time, the Maker or Taker can cancel for a full refund.
                   </li>
                   <li>
