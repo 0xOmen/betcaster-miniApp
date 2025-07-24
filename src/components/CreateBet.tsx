@@ -1317,8 +1317,8 @@ export default function CreateBet({
               <div className="space-y-3">
                 <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 dark:text-gray-300">
                   <li>
-                    Betcaster is a peer-to-peer agreement protocol for creating
-                    and settling contracts.
+                    Betcaster is a peer-to-peer protocol for creating and
+                    settling agreements.
                   </li>
                   <li>
                     Agreements require 3 parties: the Maker (creates the bet),
