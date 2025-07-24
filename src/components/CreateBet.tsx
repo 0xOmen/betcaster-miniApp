@@ -748,6 +748,7 @@ export default function CreateBet({
           capabilities[chainId] &&
           capabilities[chainId].atomic?.status === "supported";
         if (atomicSupported && window.ethereum) {
+          console.log("EIP-5792 batching supported");
           try {
             setIsApproving(true);
             // Prepare approve call
@@ -815,6 +816,7 @@ export default function CreateBet({
         // --- End EIP-5792 batching logic ---
         // Fallback: legacy approve-only path
         try {
+          console.log("Falling back to legacy approve-only path");
           setIsApproving(true);
           const hash = await writeApproveAsync({
             address: selectedToken.address as `0x${string}`,
