@@ -15,6 +15,7 @@ import {
   useWriteContract,
   useAccount,
   useWaitForTransactionReceipt,
+  useCapabilities,
 } from "wagmi";
 import { base } from "wagmi/chains";
 import { supabase } from "~/lib/supabase";
@@ -22,6 +23,7 @@ import { BASE_TOKENS, Token, amountToWei } from "~/lib/tokens";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
 import { ShareModal } from "~/components/ShareModal";
 import { notifyBetCreated } from "~/lib/notificationUtils";
+import { createWalletClient, custom } from "viem";
 
 interface User {
   fid: number;
@@ -211,6 +213,7 @@ export default function CreateBet({
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
   const { writeContractAsync: writeApproveAsync } = useWriteContract();
+  const { data: capabilities } = useCapabilities();
 
   // Read allowance for the selected token
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
@@ -739,8 +742,78 @@ export default function CreateBet({
       );
 
       if (!allowance || allowance < betAmountWei) {
-        console.log("Insufficient token allowance. Requesting approval...");
-
+        // --- EIP-5792 batching logic ---
+        const atomicSupported =
+          capabilities &&
+          capabilities[chainId] &&
+          capabilities[chainId].atomic?.status === "supported";
+        if (atomicSupported && window.ethereum) {
+          try {
+            setIsApproving(true);
+            // Prepare approve call
+            const approveCall = {
+              to: selectedToken.address as `0x${string}`,
+              data: encodeFunctionData({
+                abi: ERC20_ABI,
+                functionName: "approve",
+                args: [SPENDER_ADDRESS, betAmountWei],
+              }),
+              value: 0n,
+            };
+            // Prepare createBet call
+            const endTimestamp = getEndDateTimestamp();
+            const createBetParams = [
+              selectedUser.primaryEthAddress as `0x${string}`,
+              (selectedArbiter?.primaryEthAddress as `0x${string}`) ||
+                ("0x0000000000000000000000000000000000000000" as `0x${string}`),
+              selectedToken.address as `0x${string}`,
+              betAmountWei,
+              BigInt(endTimestamp),
+              BigInt(PROTOCOL_FEE_PERCENT * 100),
+              BigInt(arbiterFeePercent * 100),
+              betDescription,
+            ] as const;
+            const createBetCall = {
+              to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+              data: encodeFunctionData({
+                abi: BET_MANAGEMENT_ENGINE_ABI,
+                functionName: "createBet",
+                args: createBetParams,
+              }),
+              value: 0n,
+            };
+            // Use viem's sendCalls
+            const walletClient = createWalletClient({
+              chain: base,
+              transport: custom(window.ethereum),
+            });
+            const [account] = await walletClient.getAddresses();
+            const { id } = await walletClient.sendCalls({
+              account,
+              calls: [approveCall, createBetCall],
+              forceAtomic: true,
+            });
+            // Optionally, show a success message or track status
+            setIsApproving(false);
+            // You may want to poll for status or show a UI update here
+            return;
+          } catch (error) {
+            // If EIP-5792 fails, fallback to legacy path
+            const err = error as { code?: number; message?: string };
+            if (
+              err.code === 4200 ||
+              (err.message && err.message.includes("Unsupported Method"))
+            ) {
+              // Fallback below
+            } else {
+              setIsApproving(false);
+              console.error("Failed to batch approve+createBet:", error);
+              return;
+            }
+          }
+        }
+        // --- End EIP-5792 batching logic ---
+        // Fallback: legacy approve-only path
         try {
           setIsApproving(true);
           const hash = await writeApproveAsync({
@@ -749,16 +822,13 @@ export default function CreateBet({
             functionName: "approve",
             args: [SPENDER_ADDRESS, betAmountWei],
           });
-
           if (hash) {
-            console.log("Approval transaction sent:", hash);
             setApprovalTxHash(hash);
           }
-
           return;
         } catch (error) {
-          console.error("Failed to approve token allowance:", error);
           setIsApproving(false);
+          console.error("Failed to approve token allowance:", error);
           return;
         }
       }
