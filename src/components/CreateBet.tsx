@@ -747,6 +747,8 @@ export default function CreateBet({
           capabilities &&
           capabilities[chainId] &&
           capabilities[chainId].atomic?.status === "supported";
+        console.log("atomicSupported: ", atomicSupported);
+        console.log("window.ethereum: ", window.ethereum);
         if (atomicSupported && window.ethereum) {
           console.log("EIP-5792 batching supported");
           try {
