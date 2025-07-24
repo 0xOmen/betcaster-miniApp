@@ -1342,7 +1342,7 @@ export default function CreateBet({
                   </li>
                   <li>
                     Make sure you trust the Arbiter you select to judge fairly.
-                    Do not risk more than you are willing to lose.
+                    Do not risk more than you can afford to lose.
                   </li>
                 </ul>
               </div>
