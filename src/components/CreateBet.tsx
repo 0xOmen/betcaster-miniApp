@@ -184,6 +184,7 @@ export default function CreateBet({
   const [showBetAmountInfo, setShowBetAmountInfo] = useState(false);
   const [showArbiterInfo, setShowArbiterInfo] = useState(false);
   const [showEndTimeInfo, setShowEndTimeInfo] = useState(false);
+  const [showBasicGuide, setShowBasicGuide] = useState(false);
 
   // Add arbiter selection state
   const [arbiterSearchTerm, setArbiterSearchTerm] = useState("");
@@ -865,6 +866,17 @@ export default function CreateBet({
     <div className="space-y-6 px-6 w-full max-w-md mx-auto">
       <h2 className="text-xl font-semibold text-center">Create New Bet</h2>
 
+      {/* Basic Guide Link */}
+      <div className="text-center">
+        <button
+          type="button"
+          onClick={() => setShowBasicGuide(true)}
+          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline text-sm"
+        >
+          Betcaster Basic Guide
+        </button>
+      </div>
+
       {/* Approval Success Message */}
       {showApprovalSuccess && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
@@ -1271,6 +1283,72 @@ export default function CreateBet({
           betDetails={shareBetDetails}
           userFid={userFid}
         />
+      )}
+
+      {/* Basic Guide Modal */}
+      {showBasicGuide && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Betcaster Basic Guide
+                </h2>
+                <button
+                  onClick={() => setShowBasicGuide(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                  <li>
+                    Betcaster is a peer-to-peer agreement protocol for creating
+                    and settling contracts.
+                  </li>
+                  <li>
+                    Agreements require 3 parties: the Maker (creates the bet),
+                    Taker (accepts the bet), and Arbiter (judges the outcome).
+                  </li>
+                  <li>
+                    Funds are securely escrowed in a smart contract and can be
+                    retrieved if a party fails to fulfill their obligations.
+                  </li>
+                  <li>
+                    The Maker can cancel or edit the bet for a full refund any
+                    time before the Taker accepts.
+                  </li>
+                  <li>
+                    The Maker or Taker can cancel for a full refund any time
+                    before the Arbiter accepts their role.
+                  </li>
+                  <li>
+                    If the Arbiter doesn't judge within 30 days after the bet
+                    end time, the Maker or Taker can cancel for a full refund.
+                  </li>
+                  <li>
+                    Make sure you trust the Arbiter you select to judge fairly.
+                    Do not risk more than you are willing to lose.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
