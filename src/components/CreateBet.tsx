@@ -339,6 +339,7 @@ export default function CreateBet({
                   bet_token_address: betData.betTokenAddress as string,
                   bet_amount: betAmountInTokens, // Keep original amount for display
                   bet_amount_wei: betAmountInWei.toString(), // Store wei amount
+                  can_settle_early: betData.canSettleEarly, // Add this line
                   timestamp: Number(betData.timestamp),
                   end_time: Number(betData.endTime),
                   protocol_fee: protocolFeePercent,
