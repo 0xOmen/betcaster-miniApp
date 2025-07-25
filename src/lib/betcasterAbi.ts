@@ -122,7 +122,15 @@ export const BETCASTER_ABI = [
           { internalType: "address", name: "arbiter", type: "address" },
           { internalType: "address", name: "betTokenAddress", type: "address" },
           { internalType: "uint256", name: "betAmount", type: "uint256" },
+          {
+            internalType: "address",
+            name: "takerBetTokenAddress",
+            type: "address",
+          },
+          { internalType: "uint256", name: "takerBetAmount", type: "uint256" },
+          { internalType: "bool", name: "canSettleEarly", type: "bool" },
           { internalType: "uint256", name: "timestamp", type: "uint256" },
+          { internalType: "uint256", name: "takerDeadline", type: "uint256" },
           { internalType: "uint256", name: "endTime", type: "uint256" },
           {
             internalType: "enum BetTypes.Status",
@@ -172,7 +180,15 @@ export const BETCASTER_ABI = [
           { internalType: "address", name: "arbiter", type: "address" },
           { internalType: "address", name: "betTokenAddress", type: "address" },
           { internalType: "uint256", name: "betAmount", type: "uint256" },
+          {
+            internalType: "address",
+            name: "takerBetTokenAddress",
+            type: "address",
+          },
+          { internalType: "uint256", name: "takerBetAmount", type: "uint256" },
+          { internalType: "bool", name: "canSettleEarly", type: "bool" },
           { internalType: "uint256", name: "timestamp", type: "uint256" },
+          { internalType: "uint256", name: "takerDeadline", type: "uint256" },
           { internalType: "uint256", name: "endTime", type: "uint256" },
           {
             internalType: "enum BetTypes.Status",
@@ -375,7 +391,15 @@ export const BETCASTER_ABI = [
           { internalType: "address", name: "arbiter", type: "address" },
           { internalType: "address", name: "betTokenAddress", type: "address" },
           { internalType: "uint256", name: "betAmount", type: "uint256" },
+          {
+            internalType: "address",
+            name: "takerBetTokenAddress",
+            type: "address",
+          },
+          { internalType: "uint256", name: "takerBetAmount", type: "uint256" },
+          { internalType: "bool", name: "canSettleEarly", type: "bool" },
           { internalType: "uint256", name: "timestamp", type: "uint256" },
+          { internalType: "uint256", name: "takerDeadline", type: "uint256" },
           { internalType: "uint256", name: "endTime", type: "uint256" },
           {
             internalType: "enum BetTypes.Status",
@@ -426,8 +450,15 @@ export const BETCASTER_ABI = [
     stateMutability: "nonpayable",
     type: "function",
   },
+  {
+    inputs: [{ internalType: "uint256", name: "_betNumber", type: "uint256" }],
+    name: "updateBetTimestamp",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
 ] as const;
 
 // Contract address on Base blockchain
 export const BETCASTER_ADDRESS =
-  "0xEA358a9670a4f2113AA17e8d6C9A0dE68c2a0aEa" as const;
+  "0x72E9f64d8849c1FC0819C48b08599f74Ec9b39eF" as const;

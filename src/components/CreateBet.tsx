@@ -201,6 +201,9 @@ export default function CreateBet({
     useState<boolean>(false);
   const [customArbiterFee, setCustomArbiterFee] = useState<string>("");
 
+  // Add can settle early state
+  const [canSettleEarly, setCanSettleEarly] = useState<boolean>(true);
+
   // Protocol fee percentage
   const PROTOCOL_FEE_PERCENT = 0.5;
 
@@ -771,6 +774,7 @@ export default function CreateBet({
                 ("0x0000000000000000000000000000000000000000" as `0x${string}`),
               selectedToken.address as `0x${string}`,
               betAmountWei,
+              canSettleEarly,
               BigInt(endTimestamp),
               BigInt(PROTOCOL_FEE_PERCENT * 100),
               BigInt(arbiterFeePercent * 100),
@@ -855,6 +859,7 @@ export default function CreateBet({
     );
     console.log("Number of Tokens Wagered:", betAmount);
     console.log("Bet Description:", betDescription);
+    console.log("Can Settle Early:", canSettleEarly);
     console.log("Bet End Time (Unix Timestamp):", endTimestamp);
     console.log("Bet End Time (Human Readable):", formatEndDate(endTimestamp));
     console.log("================================");
@@ -885,6 +890,7 @@ export default function CreateBet({
           ("0x0000000000000000000000000000000000000000" as `0x${string}`), // _arbiter
         selectedToken.address as `0x${string}`, // _betTokenAddress (zero address for native ETH)
         betAmountWei, // _betAmount
+        canSettleEarly, // _canSettleEarly
         BigInt(endTimestamp), // _endTime
         BigInt(PROTOCOL_FEE_PERCENT * 100), // _protocolFee
         BigInt(arbiterFeePercent * 100), // _arbiterFee
@@ -1066,6 +1072,29 @@ export default function CreateBet({
             onChange={(e) => setBetDescription(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
           />
+        </div>
+
+        {/* Early Settlement Checkbox */}
+        <div>
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="canSettleEarly"
+              checked={canSettleEarly}
+              onChange={(e) => setCanSettleEarly(e.target.checked)}
+              className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+            />
+            <label
+              htmlFor="canSettleEarly"
+              className="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Can the arbiter settle this bet early if appropriate?
+            </label>
+          </div>
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            When enabled, the arbiter can settle the bet before the end time if
+            the outcome is already clear.
+          </div>
         </div>
 
         {/* Arbiter Selection */}

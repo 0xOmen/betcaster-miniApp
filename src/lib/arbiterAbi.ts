@@ -115,11 +115,37 @@ export const ARBITER_MANAGEMENT_ENGINE_ABI = [
         name: "betNumber",
         type: "uint256",
       },
+      { indexed: true, internalType: "bool", name: "winner", type: "bool" },
       {
-        indexed: true,
-        internalType: "address",
-        name: "winner",
-        type: "address",
+        components: [
+          { internalType: "address", name: "maker", type: "address" },
+          { internalType: "address", name: "taker", type: "address" },
+          { internalType: "address", name: "arbiter", type: "address" },
+          { internalType: "address", name: "betTokenAddress", type: "address" },
+          { internalType: "uint256", name: "betAmount", type: "uint256" },
+          {
+            internalType: "address",
+            name: "takerBetTokenAddress",
+            type: "address",
+          },
+          { internalType: "uint256", name: "takerBetAmount", type: "uint256" },
+          { internalType: "bool", name: "canSettleEarly", type: "bool" },
+          { internalType: "uint256", name: "timestamp", type: "uint256" },
+          { internalType: "uint256", name: "takerDeadline", type: "uint256" },
+          { internalType: "uint256", name: "endTime", type: "uint256" },
+          {
+            internalType: "enum BetTypes.Status",
+            name: "status",
+            type: "uint8",
+          },
+          { internalType: "uint256", name: "protocolFee", type: "uint256" },
+          { internalType: "uint256", name: "arbiterFee", type: "uint256" },
+          { internalType: "string", name: "betAgreement", type: "string" },
+        ],
+        indexed: false,
+        internalType: "struct BetTypes.Bet",
+        name: "bet",
+        type: "tuple",
       },
     ],
     name: "WinnerSelected",
@@ -163,7 +189,7 @@ export const ARBITER_MANAGEMENT_ENGINE_ABI = [
   {
     inputs: [
       { internalType: "uint256", name: "_betNumber", type: "uint256" },
-      { internalType: "address", name: "_winner", type: "address" },
+      { internalType: "bool", name: "_betParamsTrue", type: "bool" },
     ],
     name: "selectWinner",
     outputs: [],
@@ -198,4 +224,4 @@ export const ARBITER_MANAGEMENT_ENGINE_ABI = [
 
 // Contract address on Base blockchain
 export const ARBITER_MANAGEMENT_ENGINE_ADDRESS =
-  "0xE5FD58A8716854a371FA0d16DFCe4204Aca0CEA4" as const;
+  "0x0FEF3e2d93BC9c5633a6d4680FE31ed77D120786" as const;

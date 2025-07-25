@@ -5,6 +5,10 @@ export interface Bet {
   arbiter_address: string | null;
   bet_token_address: string;
   bet_amount: number;
+  taker_bet_token_address: string;
+  taker_bet_amount: number;
+  can_settle_early: boolean;
+  taker_deadline: number;
   timestamp: number;
   end_time: number;
   status: number;

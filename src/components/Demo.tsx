@@ -86,6 +86,7 @@ interface Bet {
   arbiter_address: string | null;
   bet_token_address: string;
   bet_amount: number;
+  can_settle_early: boolean;
   timestamp: number;
   end_time: number;
   status: number;
@@ -236,9 +237,9 @@ export default function Demo(
   const [selectWinnerTxHash, setSelectWinnerTxHash] = useState<
     `0x${string}` | undefined
   >(undefined);
-  const [selectedWinner, setSelectedWinner] = useState<
-    "maker" | "taker" | null
-  >(null);
+  const [selectedWinner, setSelectedWinner] = useState<"true" | "false" | null>(
+    null
+  );
 
   // Add state near other state declarations
   const [showShareModal, setShowShareModal] = useState(false);
@@ -254,6 +255,9 @@ export default function Demo(
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { writeContractAsync: writeApproveAsync } = useWriteContract();
+
+  // Add state for edit can settle early
+  const [editCanSettleEarly, setEditCanSettleEarly] = useState<boolean>(true);
 
   // Function to fetch and display a specific bet
   const fetchAndDisplayBet = async (betNumber: string) => {
@@ -1845,6 +1849,7 @@ export default function Demo(
           BigInt(selectedBet.bet_number),
           newTaker as `0x${string}`,
           newArbiter as `0x${string}`,
+          editCanSettleEarly,
           BigInt(newEndTime),
           newBetAgreement,
         ],
@@ -1883,6 +1888,7 @@ export default function Demo(
                         "0x0000000000000000000000000000000000000000"
                           ? null
                           : newArbiter,
+                      can_settle_early: editCanSettleEarly,
                       end_time: newEndTime,
                       bet_agreement: newBetAgreement,
                       status: 0, // Reset status to 0 after edit
@@ -2009,6 +2015,7 @@ export default function Demo(
     }
 
     setEditBetAgreement(bet.bet_agreement);
+    setEditCanSettleEarly(bet.can_settle_early);
     setEditTimeOption("");
     setEditCustomTimeValue("");
     setEditCustomTimeUnit("days");
@@ -2023,6 +2030,7 @@ export default function Demo(
     setEditTakerFid(null);
     setEditArbiterFid(null);
     setEditBetAgreement("");
+    setEditCanSettleEarly(true);
     setEditTimeOption("");
     setEditCustomTimeValue("");
     setEditCustomTimeUnit("days");
@@ -2067,21 +2075,18 @@ export default function Demo(
       console.log(
         "Selecting winner for bet #",
         selectedBet.bet_number,
-        "Winner:",
+        "Bet Parameters True:",
         selectedWinner
       );
 
-      // Determine the winner address
-      const winnerAddress =
-        selectedWinner === "maker"
-          ? selectedBet.maker_address
-          : selectedBet.taker_address;
+      // Convert string to boolean
+      const betParamsTrue = selectedWinner === "true";
 
       // Encode the function call
       const encodedData = encodeFunctionData({
         abi: ARBITER_MANAGEMENT_ENGINE_ABI,
         functionName: "selectWinner",
-        args: [BigInt(selectedBet.bet_number), winnerAddress as `0x${string}`],
+        args: [BigInt(selectedBet.bet_number), betParamsTrue],
       });
 
       console.log("Encoded select winner transaction data:", encodedData);
@@ -2102,7 +2107,7 @@ export default function Demo(
               closeSelectWinnerModal();
               // Update database with the winner status
               try {
-                const winnerStatus = selectedWinner === "maker" ? 4 : 5; // 4 = maker wins, 5 = taker wins
+                const winnerStatus = betParamsTrue ? 4 : 5; // 4 = maker wins (true), 5 = taker wins (false)
                 const updateResponse = await fetch(
                   `/api/bets?betNumber=${selectedBet.bet_number}`,
                   {
@@ -2209,13 +2214,13 @@ export default function Demo(
                       );
                     }
                   }
+
+                  // Refresh the bets list to show updated data
+                  await refreshBetsWithFiltering();
                 }
               } catch (error) {
                 console.error("Error updating bet status:", error);
               }
-
-              // Refresh bets list with filtering
-              await refreshBetsWithFiltering();
             }, 2000);
           },
           onError: (error: Error) => {
@@ -3563,6 +3568,31 @@ export default function Demo(
                     />
                   </div>
 
+                  {/* Early Settlement Checkbox */}
+                  <div>
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        id="editCanSettleEarly"
+                        checked={editCanSettleEarly}
+                        onChange={(e) =>
+                          setEditCanSettleEarly(e.target.checked)
+                        }
+                        className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      />
+                      <label
+                        htmlFor="editCanSettleEarly"
+                        className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >
+                        Can the arbiter settle this bet early if appropriate?
+                      </label>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                      When enabled, the arbiter can settle the bet before the
+                      end time if the outcome is already clear.
+                    </div>
+                  </div>
+
                   {/* Action Buttons */}
                   <div className="flex space-x-3">
                     <button
@@ -3704,42 +3734,30 @@ export default function Demo(
                   </h3>
                   <div className="flex space-x-3">
                     <button
-                      onClick={() => setSelectedWinner("maker")}
-                      className={`flex-1 px-4 py-2 rounded-lg border ${
-                        selectedWinner === "maker"
-                          ? "bg-green-500 text-white border-green-600"
-                          : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                      onClick={() => setSelectedWinner("true")}
+                      className={`w-full py-3 px-4 rounded-lg text-center ${
+                        selectedWinner === "true"
+                          ? "bg-purple-500 text-white"
+                          : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
                       }`}
                     >
-                      <div className="text-center">
-                        <div>True</div>
-                        <div className="text-xs opacity-75">
-                          (
-                          {selectedBet.makerProfile?.display_name ||
-                            selectedBet.makerProfile?.username ||
-                            "Maker"}{" "}
-                          wins)
-                        </div>
+                      <div className="font-semibold">
+                        Bet Parameters are TRUE
                       </div>
+                      <div className="text-sm opacity-75">Maker wins</div>
                     </button>
                     <button
-                      onClick={() => setSelectedWinner("taker")}
-                      className={`flex-1 px-4 py-2 rounded-lg border ${
-                        selectedWinner === "taker"
-                          ? "bg-blue-500 text-white border-blue-600"
-                          : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                      onClick={() => setSelectedWinner("false")}
+                      className={`w-full py-3 px-4 rounded-lg text-center ${
+                        selectedWinner === "false"
+                          ? "bg-purple-500 text-white"
+                          : "bg-blue-100 dark:bg-blue-900 text-gray-700 dark:text-gray-300"
                       }`}
                     >
-                      <div className="text-center">
-                        <div>False</div>
-                        <div className="text-xs opacity-75">
-                          (
-                          {selectedBet.takerProfile?.display_name ||
-                            selectedBet.takerProfile?.username ||
-                            "Taker"}{" "}
-                          wins)
-                        </div>
+                      <div className="font-semibold">
+                        Bet Parameters are FALSE
                       </div>
+                      <div className="text-sm opacity-75">Taker wins</div>
                     </button>
                   </div>
                 </div>

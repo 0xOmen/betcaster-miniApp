@@ -271,6 +271,7 @@ export const Explore: FC = () => {
           bet_amount: betAmountFormatted, // This is the only change we keep
           timestamp: Number(chainBet.timestamp),
           end_time: Number(chainBet.endTime),
+          can_settle_early: chainBet.canSettleEarly,
           status: Number(chainBet.status),
           protocol_fee: Number(chainBet.protocolFee),
           arbiter_fee: Number(chainBet.arbiterFee),
