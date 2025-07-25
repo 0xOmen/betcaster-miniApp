@@ -308,7 +308,7 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
     }
   };
 
-  const handleSelectWinner = async (bet: Bet, winner: "maker" | "taker") => {
+  const handleSelectWinner = async (bet: Bet, betParamsTrue: boolean) => {
     try {
       await ensureBaseChain();
 
@@ -316,19 +316,15 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
       console.log(
         "Selecting winner for bet #",
         bet.bet_number,
-        "Winner:",
-        winner
+        "Bet Parameters True:",
+        betParamsTrue
       );
-
-      // Determine the winner address
-      const winnerAddress =
-        winner === "maker" ? bet.maker_address : bet.taker_address;
 
       // Encode the function call
       const encodedData = encodeFunctionData({
         abi: ARBITER_MANAGEMENT_ENGINE_ABI,
         functionName: "selectWinner",
-        args: [BigInt(bet.bet_number), winnerAddress as `0x${string}`],
+        args: [BigInt(bet.bet_number), betParamsTrue],
       });
 
       console.log("Encoded select winner transaction data:", encodedData);
