@@ -743,7 +743,8 @@ export default function CreateBet({
         parseFloat(betAmount),
         selectedToken.address
       );
-
+      console.log("Allowance: ", allowance);
+      console.log("Bet Amount Wei: ", betAmountWei);
       if (!allowance || allowance < betAmountWei) {
         // --- EIP-5792 batching logic ---
         const atomicSupported =
