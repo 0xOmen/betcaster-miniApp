@@ -719,7 +719,7 @@ export default function CreateBet({
 
     // Check if we're on the correct chain (Base)
     if (chainId !== base.id) {
-      console.log("Switching to Base network...");
+      console.log("Switching to Base network..");
       try {
         await switchChain({ chainId: base.id });
         return;
