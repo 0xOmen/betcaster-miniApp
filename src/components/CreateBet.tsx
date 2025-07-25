@@ -8,6 +8,7 @@ import {
   BET_MANAGEMENT_ENGINE_ABI,
   BET_MANAGEMENT_ENGINE_ADDRESS,
 } from "~/lib/contracts";
+import { BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
 import {
   useChainId,
   useSwitchChain,
@@ -155,9 +156,6 @@ const ERC20_ABI = [
   },
 ] as const;
 
-const SPENDER_ADDRESS =
-  "0xEA358a9670a4f2113AA17e8d6C9A0dE68c2a0aEa" as `0x${string}`; //Betcaster contract on Base
-
 export default function CreateBet({
   isConnected,
   sendTransaction,
@@ -223,7 +221,7 @@ export default function CreateBet({
     address: selectedToken?.address as `0x${string}`,
     abi: ERC20_ABI,
     functionName: "allowance",
-    args: [address as `0x${string}`, SPENDER_ADDRESS],
+    args: [address as `0x${string}`, BETCASTER_ADDRESS],
     query: {
       enabled:
         !!selectedToken?.address && !!address && selectedToken.address !== "",
@@ -763,7 +761,7 @@ export default function CreateBet({
               data: encodeFunctionData({
                 abi: ERC20_ABI,
                 functionName: "approve",
-                args: [SPENDER_ADDRESS, betAmountWei],
+                args: [BETCASTER_ADDRESS, betAmountWei],
               }),
               value: 0n,
             };
@@ -829,7 +827,7 @@ export default function CreateBet({
             address: selectedToken.address as `0x${string}`,
             abi: ERC20_ABI,
             functionName: "approve",
-            args: [SPENDER_ADDRESS, betAmountWei],
+            args: [BETCASTER_ADDRESS, betAmountWei],
           });
           if (hash) {
             setApprovalTxHash(hash);
