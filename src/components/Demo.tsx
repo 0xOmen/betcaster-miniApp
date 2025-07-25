@@ -2646,6 +2646,12 @@ export default function Demo(
                           {/* Forfeit Actions for Status 2 */}
                           {bet.status === 2 && (
                             <>
+                              {console.log(
+                                "Status 2 bet - can_settle_early:",
+                                bet.can_settle_early,
+                                "bet:",
+                                bet
+                              )}
                               {/* Arbiter Select Winner Actions for Status 2 */}
                               {(address?.toLowerCase() ===
                                 bet.arbiter_address?.toLowerCase() ||
