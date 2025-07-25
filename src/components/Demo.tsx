@@ -2782,7 +2782,8 @@ export default function Demo(
                             bet.arbiter_address?.toLowerCase() ||
                             context?.user?.fid === bet.arbiter_fid) &&
                             bet.status === 2 &&
-                            Math.floor(Date.now() / 1000) > bet.end_time && (
+                            (bet.can_settle_early ||
+                              Math.floor(Date.now() / 1000) > bet.end_time) && (
                               <div className="flex space-x-2 mt-2">
                                 <button
                                   onClick={(e) => {
