@@ -2644,26 +2644,50 @@ export default function Demo(
                           </div>
 
                           {/* Forfeit Actions for Status 2 */}
-                          {bet.status === 2 &&
-                            (address?.toLowerCase() ===
-                              bet.maker_address.toLowerCase() ||
-                              context?.user?.fid === bet.maker_fid ||
-                              address?.toLowerCase() ===
-                                bet.taker_address.toLowerCase() ||
-                              context?.user?.fid === bet.taker_fid) && (
-                              <div className="flex space-x-2 mt-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedBet(bet);
-                                    setIsModalOpen(true);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                >
-                                  Forfeit Bet
-                                </button>
-                              </div>
-                            )}
+                          {bet.status === 2 && (
+                            <>
+                              {/* Arbiter Select Winner Actions for Status 2 */}
+                              {(address?.toLowerCase() ===
+                                bet.arbiter_address?.toLowerCase() ||
+                                context?.user?.fid === bet.arbiter_fid) &&
+                                (bet.can_settle_early ||
+                                  Math.floor(Date.now() / 1000) >
+                                    bet.end_time) && (
+                                  <div className="flex space-x-2 mt-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openSelectWinnerModal(bet);
+                                      }}
+                                      className="px-2 py-1 text-xs bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors"
+                                    >
+                                      Select Winner
+                                    </button>
+                                  </div>
+                                )}
+
+                              {/* Maker/Taker Forfeit Actions for Status 2 */}
+                              {(address?.toLowerCase() ===
+                                bet.maker_address.toLowerCase() ||
+                                context?.user?.fid === bet.maker_fid ||
+                                address?.toLowerCase() ===
+                                  bet.taker_address.toLowerCase() ||
+                                context?.user?.fid === bet.taker_fid) && (
+                                <div className="flex space-x-2 mt-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedBet(bet);
+                                      setIsModalOpen(true);
+                                    }}
+                                    className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                  >
+                                    Forfeit
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
 
                           {/* Maker Actions for Status 0 */}
                           {address === bet.maker_address &&
@@ -2719,13 +2743,10 @@ export default function Demo(
                               </div>
                             )}
 
-                          {/* Taker Actions for Status 0 - Only show if user is NOT the arbiter */}
+                          {/* Taker Actions for Status 0 */}
                           {(address?.toLowerCase() ===
                             bet.taker_address.toLowerCase() ||
                             context?.user?.fid === bet.taker_fid) &&
-                            address?.toLowerCase() !==
-                              bet.arbiter_address?.toLowerCase() &&
-                            context?.user?.fid !== bet.arbiter_fid &&
                             bet.status === 0 &&
                             Math.floor(Date.now() / 1000) <= bet.end_time && (
                               <div className="flex space-x-2 mt-2">
@@ -2776,26 +2797,6 @@ export default function Demo(
                                   className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                                 >
                                   Reject Arbiter Role
-                                </button>
-                              </div>
-                            )}
-
-                          {/* Arbiter Select Winner Actions for Status 2 */}
-                          {(address?.toLowerCase() ===
-                            bet.arbiter_address?.toLowerCase() ||
-                            context?.user?.fid === bet.arbiter_fid) &&
-                            bet.status === 2 &&
-                            (bet.can_settle_early ||
-                              Math.floor(Date.now() / 1000) > bet.end_time) && (
-                              <div className="flex space-x-2 mt-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openSelectWinnerModal(bet);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors"
-                                >
-                                  Select Winner
                                 </button>
                               </div>
                             )}
