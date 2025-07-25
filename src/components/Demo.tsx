@@ -657,15 +657,26 @@ export default function Demo(
         // Hide success message after 5 seconds
         setTimeout(() => {
           setShowApprovalSuccess(false);
-        }, 5000);
+        }, 3000);
 
         // Refetch allowance after successful approval
         setTimeout(() => {
           refetchAllowance();
+
+          // Automatically trigger bet acceptance after approval
+          if (selectedBet) {
+            console.log("Auto-triggering bet acceptance after approval");
+            handleAcceptBetAfterApproval();
+          }
         }, 1000);
       }
     }
-  }, [approvalReceipt, isApprovalReceiptSuccess, refetchAllowance]);
+  }, [
+    approvalReceipt,
+    isApprovalReceiptSuccess,
+    refetchAllowance,
+    selectedBet,
+  ]);
 
   const { disconnect } = useDisconnect();
 
@@ -1182,6 +1193,29 @@ export default function Demo(
           setIsApproving(false);
           return;
         }
+      }
+    }
+
+    // If no approval needed, proceed directly to bet acceptance
+    await handleAcceptBetAfterApproval();
+  };
+
+  // Add a new function to handle bet acceptance after approval
+  const handleAcceptBetAfterApproval = async () => {
+    if (!selectedBet || !isConnected) {
+      console.error("Cannot accept bet: not connected or no bet selected");
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
       }
     }
 
