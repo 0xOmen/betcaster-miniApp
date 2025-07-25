@@ -2719,10 +2719,13 @@ export default function Demo(
                               </div>
                             )}
 
-                          {/* Taker Actions for Status 0 */}
+                          {/* Taker Actions for Status 0 - Only show if user is NOT the arbiter */}
                           {(address?.toLowerCase() ===
                             bet.taker_address.toLowerCase() ||
                             context?.user?.fid === bet.taker_fid) &&
+                            address?.toLowerCase() !==
+                              bet.arbiter_address?.toLowerCase() &&
+                            context?.user?.fid !== bet.arbiter_fid &&
                             bet.status === 0 &&
                             Math.floor(Date.now() / 1000) <= bet.end_time && (
                               <div className="flex space-x-2 mt-2">
