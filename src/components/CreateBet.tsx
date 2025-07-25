@@ -466,13 +466,32 @@ export default function CreateBet({
         setTimeout(() => {
           refetchAllowance();
           setIsApproving(false);
+
+          // Automatically trigger bet creation after approval
+          if (
+            selectedUser &&
+            selectedToken &&
+            betAmount &&
+            selectedTimeOption
+          ) {
+            console.log("Auto-triggering bet creation after approval");
+            handleCreateBetAfterApproval();
+          }
         }, 1000);
       } else {
         console.log("Token approval failed!");
         setIsApproving(false);
       }
     }
-  }, [approvalReceipt, isApprovalReceiptSuccess, refetchAllowance]);
+  }, [
+    approvalReceipt,
+    isApprovalReceiptSuccess,
+    refetchAllowance,
+    selectedUser,
+    selectedToken,
+    betAmount,
+    selectedTimeOption,
+  ]);
 
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
@@ -847,6 +866,121 @@ export default function CreateBet({
     const endTimestamp = getEndDateTimestamp();
 
     console.log("=== CREATE BET SUBMISSION ===");
+    console.log(
+      "Selected User Primary ETH Address:",
+      selectedUser.primaryEthAddress || "Not available"
+    );
+    console.log(
+      "Selected Arbiter Primary ETH Address:",
+      selectedArbiter?.primaryEthAddress || "Not available"
+    );
+    console.log(
+      "Bet Token Contract Address:",
+      selectedToken.address || "Native ETH"
+    );
+    console.log("Number of Tokens Wagered:", betAmount);
+    console.log("Bet Description:", betDescription);
+    console.log("Can Settle Early:", canSettleEarly);
+    console.log("Bet End Time (Unix Timestamp):", endTimestamp);
+    console.log("Bet End Time (Human Readable):", formatEndDate(endTimestamp));
+    console.log("================================");
+
+    try {
+      // Check if user has an ETH address
+      if (!selectedUser.primaryEthAddress) {
+        console.error("Selected user does not have a primary ETH address");
+        return;
+      }
+
+      // Check if arbiter has an ETH address (if selected)
+      if (selectedArbiter && !selectedArbiter.primaryEthAddress) {
+        console.error("Selected arbiter does not have a primary ETH address");
+        return;
+      }
+
+      // Convert bet amount to wei (using token decimals)
+      const betAmountWei = amountToWei(
+        parseFloat(betAmount),
+        selectedToken.address
+      );
+
+      // Prepare the transaction parameters for createBet function
+      const createBetParams = [
+        selectedUser.primaryEthAddress as `0x${string}`, // _taker
+        (selectedArbiter?.primaryEthAddress as `0x${string}`) ||
+          ("0x0000000000000000000000000000000000000000" as `0x${string}`), // _arbiter
+        selectedToken.address as `0x${string}`, // _betTokenAddress (zero address for native ETH)
+        betAmountWei, // _betAmount
+        canSettleEarly, // _canSettleEarly
+        BigInt(endTimestamp), // _endTime
+        BigInt(PROTOCOL_FEE_PERCENT * 100), // _protocolFee
+        BigInt(arbiterFeePercent * 100), // _arbiterFee
+        betDescription, // _betAgreement
+      ] as const;
+
+      console.log("Transaction parameters:", createBetParams);
+
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: BET_MANAGEMENT_ENGINE_ABI,
+        functionName: "createBet",
+        args: createBetParams,
+      });
+
+      console.log("Encoded transaction data:", encodedData);
+
+      // Create the transaction object
+      const transaction = {
+        to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+        data: encodedData as `0x${string}`,
+      };
+
+      console.log("Transaction object:", transaction);
+
+      // Send the transaction
+      sendTransaction(transaction, {
+        onSuccess: async (hash: `0x${string}`) => {
+          console.log("Transaction sent successfully:", hash);
+          setTxHash(hash); // Store the transaction hash for receipt tracking
+
+          // Don't store bet data here anymore - wait for the event to get bet_number
+        },
+        onError: (error: Error) => {
+          console.error("Transaction failed:", error);
+        },
+      });
+    } catch (error) {
+      console.error("Error creating bet:", error);
+    }
+  };
+
+  // Add a new function to handle bet creation after approval
+  const handleCreateBetAfterApproval = async () => {
+    if (!isConnected) {
+      console.error("Wallet not connected");
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network..");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
+    if (!selectedUser || !selectedToken || !betAmount || !selectedTimeOption) {
+      console.error("Missing required fields for bet creation");
+      return;
+    }
+
+    const endTimestamp = getEndDateTimestamp();
+
+    console.log("=== CREATE BET SUBMISSION (After Approval) ===");
     console.log(
       "Selected User Primary ETH Address:",
       selectedUser.primaryEthAddress || "Not available"
