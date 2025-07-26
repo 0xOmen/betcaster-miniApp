@@ -57,6 +57,7 @@ import {
   notifyBetCancelledByTaker,
   notifyArbiterRejected,
 } from "~/lib/notificationUtils";
+import OpenBets from "~/components/OpenBets";
 
 export type Tab = "create" | "bets" | "explore" | "wallet" | "leaderboard";
 
@@ -2881,9 +2882,12 @@ export default function Demo(
 
             {/* Open Tab Content */}
             {betsTab === "open" && (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                Open bets coming soon...
-              </div>
+              <OpenBets
+                onBetSelect={(bet) => {
+                  setSelectedBet(bet);
+                  setIsModalOpen(true);
+                }}
+              />
             )}
 
             <ShareButton
