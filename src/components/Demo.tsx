@@ -3364,6 +3364,15 @@ export default function Demo(
                         })()}
                       </div>
                     </div>
+                    {/* Arbiter Fee */}
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Arbiter Fee:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedBet.arbiter_fee}%
+                      </span>
+                    </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         End Time:
@@ -3770,6 +3779,15 @@ export default function Demo(
                           );
                         })()}
                       </div>
+                    </div>
+                    {/* Arbiter Fee */}
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Arbiter Fee:
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedBet.arbiter_fee}%
+                      </span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
