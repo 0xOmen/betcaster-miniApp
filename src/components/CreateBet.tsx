@@ -16,7 +16,7 @@ import {
   useWriteContract,
   useAccount,
   useWaitForTransactionReceipt,
-  useCapabilities,
+  useSendCalls,
 } from "wagmi";
 import { base } from "wagmi/chains";
 import { supabase } from "~/lib/supabase";
@@ -24,7 +24,6 @@ import { BASE_TOKENS, Token, amountToWei } from "~/lib/tokens";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
 import { ShareModal } from "~/components/ShareModal";
 import { notifyBetCreated } from "~/lib/notificationUtils";
-import { createWalletClient, custom } from "viem";
 
 interface User {
   fid: number;
@@ -217,7 +216,7 @@ export default function CreateBet({
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
   const { writeContractAsync: writeApproveAsync } = useWriteContract();
-  const { data: capabilities } = useCapabilities();
+  const { sendCalls } = useSendCalls();
 
   // Read allowance for the selected token
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
@@ -766,104 +765,95 @@ export default function CreateBet({
       );
       console.log("Allowance: ", allowance);
       console.log("Bet Amount Wei: ", betAmountWei);
+
       if (!allowance || allowance < betAmountWei) {
-        // --- EIP-5792 batching logic ---
-        const atomicSupported =
-          capabilities &&
-          capabilities[chainId] &&
-          capabilities[chainId].atomic?.status === "supported";
-        console.log("atomicSupported: ", atomicSupported);
-        console.log("window.ethereum: ", window.ethereum);
-        if (atomicSupported && window.ethereum) {
-          console.log("EIP-5792 batching supported");
-          try {
-            setIsApproving(true);
-            // Prepare approve call
-            const approveCall = {
-              to: selectedToken.address as `0x${string}`,
-              data: encodeFunctionData({
-                abi: ERC20_ABI,
-                functionName: "approve",
-                args: [BETCASTER_ADDRESS, betAmountWei],
-              }),
-              value: 0n,
-            };
-            // Prepare createBet call
-            const endTimestamp = getEndDateTimestamp();
-            const createBetParams = [
-              selectedUser.primaryEthAddress as `0x${string}`,
-              (selectedArbiter?.primaryEthAddress as `0x${string}`) ||
-                ("0x0000000000000000000000000000000000000000" as `0x${string}`),
-              selectedToken.address as `0x${string}`,
-              betAmountWei,
-              canSettleEarly,
-              BigInt(endTimestamp),
-              BigInt(PROTOCOL_FEE_PERCENT * 100),
-              BigInt(arbiterFeePercent * 100),
-              betDescription,
-            ] as const;
-            const createBetCall = {
-              to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
-              data: encodeFunctionData({
-                abi: BET_MANAGEMENT_ENGINE_ABI,
-                functionName: "createBet",
-                args: createBetParams,
-              }),
-              value: 0n,
-            };
-            // Use viem's sendCalls
-            const walletClient = createWalletClient({
-              chain: base,
-              transport: custom(window.ethereum),
-            });
-            const [account] = await walletClient.getAddresses();
-            const { id } = await walletClient.sendCalls({
-              account,
-              calls: [approveCall, createBetCall],
-              forceAtomic: true,
-            });
-            // Optionally, show a success message or track status
-            setIsApproving(false);
-            // You may want to poll for status or show a UI update here
-            return;
-          } catch (error) {
-            // If EIP-5792 fails, fallback to legacy path
-            const err = error as { code?: number; message?: string };
-            if (
-              err.code === 4200 ||
-              (err.message && err.message.includes("Unsupported Method"))
-            ) {
-              // Fallback below
-            } else {
-              setIsApproving(false);
-              console.error("Failed to batch approve+createBet:", error);
-              return;
-            }
-          }
-        }
-        // --- End EIP-5792 batching logic ---
-        // Fallback: legacy approve-only path
+        // Try EIP-5792 batch transaction first
+        console.log(
+          "Attempting EIP-5792 batch transaction for approve + createBet"
+        );
         try {
-          console.log("Falling back to legacy approve-only path");
           setIsApproving(true);
-          const hash = await writeApproveAsync({
-            address: selectedToken.address as `0x${string}`,
-            abi: ERC20_ABI,
-            functionName: "approve",
-            args: [BETCASTER_ADDRESS, betAmountWei],
+
+          // Prepare approve call
+          const approveCall = {
+            to: selectedToken.address as `0x${string}`,
+            data: encodeFunctionData({
+              abi: ERC20_ABI,
+              functionName: "approve",
+              args: [BETCASTER_ADDRESS, betAmountWei],
+            }),
+          };
+
+          // Prepare createBet call
+          const endTimestamp = getEndDateTimestamp();
+          const createBetParams = [
+            selectedUser.primaryEthAddress as `0x${string}`,
+            (selectedArbiter?.primaryEthAddress as `0x${string}`) ||
+              ("0x0000000000000000000000000000000000000000" as `0x${string}`),
+            selectedToken.address as `0x${string}`,
+            betAmountWei,
+            canSettleEarly,
+            BigInt(endTimestamp),
+            BigInt(PROTOCOL_FEE_PERCENT * 100),
+            BigInt(arbiterFeePercent * 100),
+            betDescription,
+          ] as const;
+
+          const createBetCall = {
+            to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+            data: encodeFunctionData({
+              abi: BET_MANAGEMENT_ENGINE_ABI,
+              functionName: "createBet",
+              args: createBetParams,
+            }),
+          };
+
+          console.log("Sending batch transaction with calls:", {
+            approveCall,
+            createBetCall,
           });
-          if (hash) {
-            setApprovalTxHash(hash);
-          }
+
+          // Attempt batch transaction using EIP-5792
+          await sendCalls({
+            calls: [approveCall, createBetCall],
+          });
+
+          console.log("Batch transaction sent successfully");
+
+          // Note: sendCalls doesn't return a transaction hash, so we can't track it
+          // The transaction will be handled by the wallet's UI
+          setIsApproving(false);
+
           return;
         } catch (error) {
-          setIsApproving(false);
-          console.error("Failed to approve token allowance:", error);
-          return;
+          console.log(
+            "EIP-5792 batch transaction failed, falling back to legacy flow:",
+            error
+          );
+
+          // Fall back to legacy approve-only path
+          try {
+            console.log("Using legacy approve-only flow");
+            const hash = await writeApproveAsync({
+              address: selectedToken.address as `0x${string}`,
+              abi: ERC20_ABI,
+              functionName: "approve",
+              args: [BETCASTER_ADDRESS, betAmountWei],
+            });
+            if (hash) {
+              setApprovalTxHash(hash);
+            }
+            return;
+          } catch (approveError) {
+            setIsApproving(false);
+            console.error("Failed to approve token allowance:", approveError);
+            return;
+          }
         }
       }
     }
 
+    // If no approval needed or already approved, proceed with bet creation
     const endTimestamp = getEndDateTimestamp();
 
     console.log("=== CREATE BET SUBMISSION ===");
@@ -943,8 +933,6 @@ export default function CreateBet({
         onSuccess: async (hash: `0x${string}`) => {
           console.log("Transaction sent successfully:", hash);
           setTxHash(hash); // Store the transaction hash for receipt tracking
-
-          // Don't store bet data here anymore - wait for the event to get bet_number
         },
         onError: (error: Error) => {
           console.error("Transaction failed:", error);
