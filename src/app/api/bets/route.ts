@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
       maker_fid,
       taker_fid,
       arbiter_fid,
+      can_settle_early,
     } = body;
 
     // Validate required fields including bet_number since it's now the primary key
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
           maker_fid: body.maker_fid || null,
           taker_fid: body.taker_fid || null,
           arbiter_fid: body.arbiter_fid || null,
+          can_settle_early: body.can_settle_early || false,
         },
       ])
       .select()
