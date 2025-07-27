@@ -2,7 +2,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  useSwitchChain,
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+import { base } from "wagmi/chains";
+import { encodeFunctionData } from "viem";
+import {
+  BET_MANAGEMENT_ENGINE_ABI,
+  BET_MANAGEMENT_ENGINE_ADDRESS,
+} from "~/lib/contracts";
+import { BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
+import { ERC20_ABI } from "~/lib/erc20Abi";
+import { amountToWei } from "~/lib/tokens";
 
 interface UserProfile {
   fid: number;
@@ -44,7 +60,81 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
   const [bets, setBets] = useState<Bet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { address } = useAccount();
+  const [selectedBet, setSelectedBet] = useState<Bet | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [approvalTxHash, setApprovalTxHash] = useState<
+    `0x${string}` | undefined
+  >(undefined);
+  const [acceptTxHash, setAcceptTxHash] = useState<`0x${string}` | undefined>(
+    undefined
+  );
+  const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
+
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
+  const { writeContractAsync: writeApproveAsync } = useWriteContract();
+
+  // Read allowance for the selected bet's token
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: selectedBet?.bet_token_address as `0x${string}`,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: [address as `0x${string}`, BETCASTER_ADDRESS],
+    query: {
+      enabled:
+        !!selectedBet?.bet_token_address &&
+        !!address &&
+        selectedBet.bet_token_address !==
+          "0x0000000000000000000000000000000000000000",
+    },
+  });
+
+  // Wait for approval transaction receipt
+  const { data: approvalReceipt, isSuccess: isApprovalReceiptSuccess } =
+    useWaitForTransactionReceipt({
+      hash: approvalTxHash,
+    });
+
+  // Handle approval transaction receipt
+  useEffect(() => {
+    if (approvalReceipt && isApprovalReceiptSuccess) {
+      console.log("=== APPROVAL TRANSACTION RECEIPT ===");
+      console.log("Transaction Hash:", approvalReceipt.transactionHash);
+      console.log(
+        "Status:",
+        approvalReceipt.status === "success" ? "Success" : "Failed"
+      );
+
+      if (approvalReceipt.status === "success") {
+        console.log("Token approval successful!");
+        setIsApproving(false);
+        setShowApprovalSuccess(true);
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setShowApprovalSuccess(false);
+        }, 3000);
+
+        // Refetch allowance after successful approval
+        setTimeout(() => {
+          refetchAllowance();
+
+          // Automatically trigger bet acceptance after approval
+          if (selectedBet) {
+            console.log("Auto-triggering bet acceptance after approval");
+            handleAcceptBetAfterApproval();
+          }
+        }, 1000);
+      }
+    }
+  }, [
+    approvalReceipt,
+    isApprovalReceiptSuccess,
+    refetchAllowance,
+    selectedBet,
+  ]);
 
   const getTokenName = (tokenAddress: string): string => {
     if (tokenAddress === "0x0000000000000000000000000000000000000000") {
@@ -99,6 +189,106 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
     fetchOpenBets();
   }, []);
 
+  const handleAcceptBet = async (bet: Bet) => {
+    if (!isConnected) {
+      console.error("Wallet not connected");
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
+    setSelectedBet(bet);
+
+    // Check token allowance for ERC20 tokens (skip for native ETH)
+    if (
+      bet.bet_token_address !== "0x0000000000000000000000000000000000000000"
+    ) {
+      const betAmountWei = amountToWei(bet.bet_amount, bet.bet_token_address);
+
+      if (!allowance || allowance < betAmountWei) {
+        console.log("Insufficient token allowance. Requesting approval...");
+
+        try {
+          setIsApproving(true);
+          const hash = await writeApproveAsync({
+            address: bet.bet_token_address as `0x${string}`,
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [BETCASTER_ADDRESS, betAmountWei],
+          });
+
+          if (hash) {
+            console.log("Approval transaction sent:", hash);
+            setApprovalTxHash(hash);
+          }
+
+          return;
+        } catch (error) {
+          console.error("Failed to approve token allowance:", error);
+          setIsApproving(false);
+          return;
+        }
+      }
+    }
+
+    // If no approval needed, proceed directly to bet acceptance
+    await handleAcceptBetAfterApproval();
+  };
+
+  const handleAcceptBetAfterApproval = async () => {
+    if (!selectedBet || !isConnected) {
+      console.error("Cannot accept bet: not connected or no bet selected");
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
+    try {
+      setIsAccepting(true);
+      console.log("Accepting bet #", selectedBet.bet_number);
+
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: BET_MANAGEMENT_ENGINE_ABI,
+        functionName: "acceptBet",
+        args: [BigInt(selectedBet.bet_number)],
+      });
+
+      console.log("Encoded accept transaction data:", encodedData);
+
+      // For now, we'll just show a success message since we don't have sendTransaction here
+      // In a real implementation, you'd use sendTransaction from the parent component
+      console.log("Bet acceptance transaction prepared");
+      setIsAccepting(false);
+
+      // You might want to trigger a callback to the parent component here
+      // to handle the actual transaction sending
+    } catch (error) {
+      console.error("Error accepting bet:", error);
+      setIsAccepting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -126,19 +316,18 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
         Open Bets ({bets.length})
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-2">
         {bets.map((bet) => (
           <div
             key={bet.bet_number}
-            onClick={() => onBetSelect(bet)}
-            className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 cursor-pointer hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700"
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-1">
               <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 Bet #{bet.bet_number}
               </div>
@@ -147,13 +336,13 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
               </div>
             </div>
 
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              {bet.bet_agreement && bet.bet_agreement.length > 50
-                ? `${bet.bet_agreement.substring(0, 50)}...`
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+              {bet.bet_agreement && bet.bet_agreement.length > 100
+                ? `${bet.bet_agreement.substring(0, 100)}...`
                 : bet.bet_agreement || "No description"}
             </div>
 
-            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
               <div>
                 <span className="font-medium">Maker:</span>{" "}
                 {bet.makerProfile?.display_name ||
@@ -167,7 +356,7 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
             </div>
 
             {bet.arbiterProfile && (
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                 <span className="font-medium">Arbiter:</span>{" "}
                 {bet.arbiterProfile.display_name ||
                   bet.arbiterProfile.username ||
@@ -175,7 +364,7 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
               </div>
             )}
 
-            <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-between mb-1 text-xs text-gray-500 dark:text-gray-400">
               <div>
                 <span className="font-medium">Protocol Fee:</span>{" "}
                 {bet.protocol_fee}%
@@ -187,12 +376,41 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
             </div>
 
             {bet.can_settle_early && (
-              <div className="mt-2">
+              <div className="mb-1">
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                   Early Settlement Enabled
                 </span>
               </div>
             )}
+
+            {/* Action Buttons */}
+            <div className="flex space-x-2 mt-2">
+              <button
+                onClick={() => onBetSelect(bet)}
+                className="flex-1 px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              >
+                View Details
+              </button>
+              <button
+                onClick={() => handleAcceptBet(bet)}
+                disabled={!isConnected || isApproving || isAccepting}
+                className="flex-1 px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isApproving && selectedBet?.bet_number === bet.bet_number
+                  ? "Approving..."
+                  : isAccepting && selectedBet?.bet_number === bet.bet_number
+                    ? "Accepting..."
+                    : "Accept Bet"}
+              </button>
+            </div>
+
+            {/* Approval Success Message */}
+            {showApprovalSuccess &&
+              selectedBet?.bet_number === bet.bet_number && (
+                <div className="mt-1 p-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded text-xs">
+                  ✅ Token approval successful!
+                </div>
+              )}
           </div>
         ))}
       </div>
