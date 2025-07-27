@@ -2589,7 +2589,12 @@ export default function Demo(
                       className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => handleBetSelect(bet)}
                     >
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-start space-x-3">
+                        {/* Bet Number - moved to far left */}
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 flex-shrink-0">
+                          Bet #{bet.bet_number}
+                        </div>
+
                         {/* Profile Pictures */}
                         <div className="flex -space-x-2">
                           {bet.makerProfile && (
@@ -2618,10 +2623,7 @@ export default function Demo(
 
                         {/* Bet Details */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              Bet #{bet.bet_number}
-                            </div>
+                          <div className="flex items-center justify-end mb-1">
                             <div
                               className={`px-2 py-1 text-xs font-medium rounded-full ${
                                 getStatusInfo(bet, address, context?.user?.fid)
@@ -2634,11 +2636,12 @@ export default function Demo(
                               }
                             </div>
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                            {bet.bet_agreement && bet.bet_agreement.length > 35
-                              ? `${bet.bet_agreement.substring(0, 35)}...`
-                              : bet.bet_agreement || "No description"}
+
+                          {/* Bet Description - allow up to 2 lines */}
+                          <div className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-1">
+                            {bet.bet_agreement || "No description"}
                           </div>
+
                           <div className="text-xs text-gray-500 dark:text-gray-500">
                             {bet.makerProfile?.display_name || "Unknown"} vs{" "}
                             {bet.takerProfile?.display_name || "Unknown"}
