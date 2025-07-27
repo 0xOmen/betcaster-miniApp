@@ -93,18 +93,22 @@ export async function GET(request: NextRequest) {
     const fid = searchParams.get("fid");
     const status = searchParams.get("status");
     const betNumber = searchParams.get("betNumber");
+    const limit = searchParams.get("limit");
+    const exclude = searchParams.get("exclude");
 
     console.log("🔍 API: Fetching bets with params:", {
       address,
       fid,
       status,
       betNumber,
+      limit,
+      exclude,
     });
 
     let query = supabase
       .from("bets")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("bet_number", { ascending: false });
 
     // If betNumber is provided, search by exact bet number
     if (betNumber) {
@@ -130,6 +134,16 @@ export async function GET(request: NextRequest) {
 
     if (status !== null) {
       query = query.eq("status", parseInt(status));
+    }
+
+    // Exclude specific bet number if provided
+    if (exclude) {
+      query = query.neq("bet_number", parseInt(exclude));
+    }
+
+    // Apply limit if provided
+    if (limit) {
+      query = query.limit(parseInt(limit));
     }
 
     const { data, error } = await query;

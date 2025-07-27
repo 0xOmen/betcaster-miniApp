@@ -18,6 +18,8 @@ export const Explore: FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedBet, setSelectedBet] = useState<Bet | null>(null);
   const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
+  const [recentBets, setRecentBets] = useState<Bet[]>([]);
+  const [isLoadingRecentBets, setIsLoadingRecentBets] = useState(false);
   const [blockchainBet, setBlockchainBet] = useState<{
     maker: string;
     taker: string;
@@ -70,6 +72,69 @@ export const Explore: FC = () => {
       }, 100);
     }
   }, []); // Empty dependency array means this runs once on mount
+
+  // Fetch recent bets on component mount
+  useEffect(() => {
+    fetchRecentBets();
+  }, []);
+
+  // Function to fetch recent bets
+  const fetchRecentBets = async () => {
+    setIsLoadingRecentBets(true);
+    try {
+      const response = await fetch("/api/bets?limit=5&exclude=1000000");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.bets) {
+          // Fetch profiles for all bets in parallel
+          const betsWithProfiles = await Promise.all(
+            data.bets.map(async (bet: Bet) => {
+              const [makerRes, takerRes, arbiterRes] = await Promise.all([
+                fetch(`/api/users?address=${bet.maker_address}`),
+                bet.taker_address
+                  ? fetch(`/api/users?address=${bet.taker_address}`)
+                  : Promise.resolve(null),
+                bet.arbiter_address
+                  ? fetch(`/api/users?address=${bet.arbiter_address}`)
+                  : Promise.resolve(null),
+              ]);
+
+              let makerProfile = null,
+                takerProfile = null,
+                arbiterProfile = null;
+
+              if (makerRes?.ok) {
+                const makerData = await makerRes.json();
+                makerProfile = makerData.users?.[0] || null;
+              }
+              if (takerRes?.ok) {
+                const takerData = await takerRes.json();
+                takerProfile = takerData.users?.[0] || null;
+              }
+              if (arbiterRes?.ok) {
+                const arbiterData = await arbiterRes.json();
+                arbiterProfile = arbiterData.users?.[0] || null;
+              }
+
+              return {
+                ...bet,
+                makerProfile,
+                takerProfile,
+                arbiterProfile,
+              };
+            })
+          );
+          setRecentBets(betsWithProfiles);
+        }
+      } else {
+        console.error("Failed to fetch recent bets");
+      }
+    } catch (error) {
+      console.error("Error fetching recent bets:", error);
+    } finally {
+      setIsLoadingRecentBets(false);
+    }
+  };
 
   // Setup contract read for getBet
   const { data: betFromChain, refetch: refetchBet } = useContractRead({
@@ -408,6 +473,34 @@ export const Explore: FC = () => {
                 {isAddingToDb ? "Adding..." : "Add to Database"}
               </button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Recent Bets Section */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+          Recent Bets
+        </h2>
+        {isLoadingRecentBets ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+          </div>
+        ) : recentBets.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentBets.map((bet) => (
+              <BetCard
+                key={bet.bet_number}
+                bet={bet}
+                currentUserAddress={address}
+                currentUserFid={context?.user?.fid}
+                onBetSelect={handleBetSelect}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            No recent bets found
           </div>
         )}
       </div>
