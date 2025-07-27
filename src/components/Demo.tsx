@@ -58,6 +58,7 @@ import {
   notifyArbiterRejected,
 } from "~/lib/notificationUtils";
 import OpenBets from "~/components/OpenBets";
+import Leaderboard from "~/components/Leaderboard";
 
 export type Tab = "create" | "bets" | "explore" | "wallet" | "leaderboard";
 
@@ -2913,6 +2914,8 @@ export default function Demo(
         )}
 
         {currentTab === "explore" && <Explore />}
+
+        {currentTab === "leaderboard" && <Leaderboard />}
 
         {currentTab === "wallet" && USE_WALLET && (
           <div className="space-y-3 px-6 w-full max-w-md mx-auto">
