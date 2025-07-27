@@ -1405,6 +1405,36 @@ export default function Demo(
                     "Bet status updated to arbiter accepted in database"
                   );
 
+                  // Update leaderboard for maker and taker
+                  try {
+                    const leaderboardUpdateResponse = await fetch(
+                      "/api/leaderboard",
+                      {
+                        method: "PATCH",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                          maker_fid: selectedBet.maker_fid,
+                          taker_fid: selectedBet.taker_fid,
+                        }),
+                      }
+                    );
+
+                    if (leaderboardUpdateResponse.ok) {
+                      console.log(
+                        "Leaderboard updated successfully for maker and taker"
+                      );
+                    } else {
+                      console.error("Failed to update leaderboard");
+                    }
+                  } catch (leaderboardError) {
+                    console.error(
+                      "Error updating leaderboard:",
+                      leaderboardError
+                    );
+                  }
+
                   // Send notification to maker about arbiter acceptance
                   if (selectedBet.maker_fid) {
                     try {
@@ -1665,6 +1695,51 @@ export default function Demo(
                       );
                     }
                   }
+                }
+
+                // Update leaderboard for forfeit
+                try {
+                  let forfeiterFid: number | null = null;
+                  let winnerFid: number | null = null;
+
+                  if (isMaker) {
+                    // Maker forfeited, taker wins
+                    forfeiterFid = selectedBet.maker_fid || null;
+                    winnerFid = selectedBet.taker_fid || null;
+                  } else if (isTaker) {
+                    // Taker forfeited, maker wins
+                    forfeiterFid = selectedBet.taker_fid || null;
+                    winnerFid = selectedBet.maker_fid || null;
+                  }
+
+                  if (forfeiterFid && winnerFid) {
+                    const leaderboardUpdateResponse = await fetch(
+                      "/api/leaderboard",
+                      {
+                        method: "PATCH",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                          forfeiter_fid: forfeiterFid,
+                          winner_fid: winnerFid,
+                        }),
+                      }
+                    );
+
+                    if (leaderboardUpdateResponse.ok) {
+                      console.log(
+                        "Leaderboard updated successfully for forfeit"
+                      );
+                    } else {
+                      console.error("Failed to update leaderboard for forfeit");
+                    }
+                  }
+                } catch (leaderboardError) {
+                  console.error(
+                    "Error updating leaderboard for forfeit:",
+                    leaderboardError
+                  );
                 }
               } catch (error) {
                 console.error("Error updating bet status:", error);
@@ -2249,6 +2324,53 @@ export default function Demo(
                         notificationError
                       );
                     }
+                  }
+
+                  // Update leaderboard for winner selection
+                  try {
+                    let winnerFid: number | null = null;
+                    let loserFid: number | null = null;
+
+                    if (betParamsTrue) {
+                      // Maker wins (true)
+                      winnerFid = selectedBet.maker_fid || null;
+                      loserFid = selectedBet.taker_fid || null;
+                    } else {
+                      // Taker wins (false)
+                      winnerFid = selectedBet.taker_fid || null;
+                      loserFid = selectedBet.maker_fid || null;
+                    }
+
+                    if (winnerFid && loserFid) {
+                      const leaderboardUpdateResponse = await fetch(
+                        "/api/leaderboard",
+                        {
+                          method: "PATCH",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            winner_fid: winnerFid,
+                            loser_fid: loserFid,
+                          }),
+                        }
+                      );
+
+                      if (leaderboardUpdateResponse.ok) {
+                        console.log(
+                          "Leaderboard updated successfully for winner selection"
+                        );
+                      } else {
+                        console.error(
+                          "Failed to update leaderboard for winner selection"
+                        );
+                      }
+                    }
+                  } catch (leaderboardError) {
+                    console.error(
+                      "Error updating leaderboard for winner selection:",
+                      leaderboardError
+                    );
                   }
 
                   // Refresh the bets list to show updated data
