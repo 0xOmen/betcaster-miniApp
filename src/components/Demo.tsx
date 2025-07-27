@@ -1050,8 +1050,103 @@ export default function Demo(
       const response = await fetch(`/api/bets?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        const filteredBets = applyBetFiltering(data.bets || []);
-        setUserBets(filteredBets);
+        const bets = data.bets || [];
+
+        // Filter out old cancelled bets (status 8) that are more than a day old
+        const oneDayAgo = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
+        const threeDaysAgo = Math.floor(Date.now() / 1000) - 3 * 24 * 60 * 60;
+        const filteredBets = bets.filter((bet: Bet) => {
+          if (bet.status === 6 || bet.status === 7) {
+            // Check if bet is more than 3 days old (using end_time or could use last database update time)
+            const betAge = bet.end_time || 0;
+            return betAge > threeDaysAgo;
+          }
+          if (bet.status === 8) {
+            // Check if bet is more than a day old (using end_time or updated_at)
+            const betAge = bet.end_time || bet.timestamp || 0;
+            return betAge > oneDayAgo;
+          }
+          return true; // Keep all non-cancelled bets
+        });
+
+        // Fetch profile data for each bet's maker and taker (same logic as fetchUserBets)
+        const betsWithProfiles = await Promise.all(
+          filteredBets.map(async (bet: Bet) => {
+            let makerFid = bet.maker_fid;
+            let takerFid = bet.taker_fid;
+            let arbiterFid = bet.arbiter_fid;
+
+            // If maker_fid doesn't exist, fetch it using the address
+            if (!makerFid && bet.maker_address) {
+              try {
+                const makerFidResponse = await fetch(
+                  `/api/users?address=${bet.maker_address}`
+                );
+                if (makerFidResponse.ok) {
+                  const makerFidData = await makerFidResponse.json();
+                  makerFid = makerFidData.users?.[0]?.fid || null;
+                }
+              } catch (error) {
+                console.error("Failed to fetch maker FID:", error);
+              }
+            }
+
+            // If taker_fid doesn't exist, fetch it using the address
+            if (!takerFid && bet.taker_address) {
+              try {
+                const takerFidResponse = await fetch(
+                  `/api/users?address=${bet.taker_address}`
+                );
+                if (takerFidResponse.ok) {
+                  const takerFidData = await takerFidResponse.json();
+                  takerFid = takerFidData.users?.[0]?.fid || null;
+                }
+              } catch (error) {
+                console.error("Failed to fetch taker FID:", error);
+              }
+            }
+
+            // If arbiter_fid doesn't exist, fetch it using the address
+            if (!arbiterFid && bet.arbiter_address) {
+              try {
+                const arbiterFidResponse = await fetch(
+                  `/api/users?address=${bet.arbiter_address}`
+                );
+                if (arbiterFidResponse.ok) {
+                  const arbiterFidData = await arbiterFidResponse.json();
+                  arbiterFid = arbiterFidData.users?.[0]?.fid || null;
+                }
+              } catch (error) {
+                console.error("Failed to fetch arbiter FID:", error);
+              }
+            }
+
+            let makerProfile = null;
+            let takerProfile = null;
+            let arbiterProfile = null;
+
+            if (makerFid) {
+              makerProfile = await fetchUserWithCache(makerFid);
+            }
+
+            if (takerFid) {
+              takerProfile = await fetchUserWithCache(takerFid);
+            }
+
+            if (arbiterFid) {
+              arbiterProfile = await fetchUserWithCache(arbiterFid);
+            }
+
+            return {
+              ...bet,
+              makerProfile,
+              takerProfile,
+              arbiterProfile,
+            };
+          })
+        );
+
+        setUserBets(betsWithProfiles);
       }
     }
   };
@@ -1260,6 +1355,7 @@ export default function Demo(
                     body: JSON.stringify({
                       status: 1,
                       transaction_hash: hash,
+                      taker_address: address,
                     }),
                   }
                 );
