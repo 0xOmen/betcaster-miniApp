@@ -18,7 +18,6 @@ import {
   useWaitForTransactionReceipt,
 } from "wagmi";
 import { base } from "wagmi/chains";
-import { supabase } from "~/lib/supabase";
 import { BASE_TOKENS, Token, amountToWei } from "~/lib/tokens";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
 import { ShareModal } from "~/components/ShareModal";

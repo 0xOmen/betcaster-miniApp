@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "~/lib/supabase";
+import { supabase, supabaseAdmin } from "~/lib/supabase";
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Insert the bet into the database
-    const { data, error } = await supabase
+    // Insert the bet into the database using admin client
+    const { data, error } = await supabaseAdmin
       .from("bets")
       .insert([
         {
@@ -214,7 +214,7 @@ export async function PATCH(request: NextRequest) {
     console.log("🔄 API: Updating bet #", betNumber, "with data:", updateData);
 
     // Update the bet in the database
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("bets")
       .update(updateData)
       .eq("bet_number", parseInt(betNumber))
