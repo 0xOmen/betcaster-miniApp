@@ -2590,35 +2590,38 @@ export default function Demo(
                       onClick={() => handleBetSelect(bet)}
                     >
                       <div className="flex items-start space-x-3">
-                        {/* Bet Number - moved to far left */}
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 flex-shrink-0">
-                          Bet #{bet.bet_number}
-                        </div>
+                        {/* Left column: Bet Number and Profile Pictures */}
+                        <div className="flex flex-col items-center space-y-2 flex-shrink-0">
+                          {/* Bet Number - top left */}
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            Bet #{bet.bet_number}
+                          </div>
 
-                        {/* Profile Pictures */}
-                        <div className="flex -space-x-2">
-                          {bet.makerProfile && (
-                            <img
-                              src={bet.makerProfile.pfp_url || ""}
-                              alt={bet.makerProfile.display_name || "Maker"}
-                              className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = "none";
-                              }}
-                            />
-                          )}
-                          {bet.takerProfile && (
-                            <img
-                              src={bet.takerProfile.pfp_url || ""}
-                              alt={bet.takerProfile.display_name || "Taker"}
-                              className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = "none";
-                              }}
-                            />
-                          )}
+                          {/* Profile Pictures - below bet number */}
+                          <div className="flex -space-x-2">
+                            {bet.makerProfile && (
+                              <img
+                                src={bet.makerProfile.pfp_url || ""}
+                                alt={bet.makerProfile.display_name || "Maker"}
+                                className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = "none";
+                                }}
+                              />
+                            )}
+                            {bet.takerProfile && (
+                              <img
+                                src={bet.takerProfile.pfp_url || ""}
+                                alt={bet.takerProfile.display_name || "Taker"}
+                                className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = "none";
+                                }}
+                              />
+                            )}
+                          </div>
                         </div>
 
                         {/* Bet Details */}
