@@ -54,11 +54,79 @@ export const Explore: FC = () => {
     handleCancelBet,
     handleForfeitBet,
     handleClaimWinnings,
-    handleAcceptArbiterRole,
+    handleAcceptArbiterRole: originalHandleAcceptArbiterRole,
     handleSelectWinner,
   } = useBetActions({
     onSuccess: refreshBets,
   });
+
+  // Custom handler for accepting arbiter role that includes leaderboard update
+  const handleAcceptArbiterRole = async (bet: Bet) => {
+    try {
+      // Call the original handler from the hook
+      await originalHandleAcceptArbiterRole(bet);
+
+      // After successful transaction, update database and leaderboard
+      setTimeout(async () => {
+        try {
+          // Update database to mark bet as arbiter accepted
+          const updateResponse = await fetch(
+            `/api/bets?betNumber=${bet.bet_number}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                status: 2,
+                transaction_hash: acceptArbiterTxHash,
+              }),
+            }
+          );
+
+          if (!updateResponse.ok) {
+            console.error("Failed to update bet status in database");
+          } else {
+            console.log("Bet status updated to arbiter accepted in database");
+
+            // Update leaderboard for maker and taker
+            try {
+              const leaderboardUpdateResponse = await fetch(
+                "/api/leaderboard",
+                {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    maker_fid: bet.maker_fid,
+                    taker_fid: bet.taker_fid,
+                  }),
+                }
+              );
+
+              if (leaderboardUpdateResponse.ok) {
+                console.log(
+                  "Leaderboard updated successfully for maker and taker in Explore"
+                );
+              } else {
+                console.error("Failed to update leaderboard in Explore");
+              }
+            } catch (leaderboardError) {
+              console.error(
+                "Error updating leaderboard in Explore:",
+                leaderboardError
+              );
+            }
+          }
+        } catch (error) {
+          console.error("Error updating database and leaderboard:", error);
+        }
+      }, 2000); // Wait 2 seconds for transaction to be processed
+    } catch (error) {
+      console.error("Error in custom handleAcceptArbiterRole:", error);
+    }
+  };
 
   // Add useEffect to check for bet number in URL
   useEffect(() => {
