@@ -1257,44 +1257,37 @@ export default function Demo(
       }
     }
 
-    // Check token allowance for ERC20 tokens (skip for native ETH)
-    if (
-      selectedBet.bet_token_address !==
-      "0x0000000000000000000000000000000000000000"
-    ) {
-      const betAmountWei = amountToWei(
-        selectedBet.bet_amount,
-        selectedBet.bet_token_address
-      );
+    const betAmountWei = amountToWei(
+      selectedBet.bet_amount,
+      selectedBet.bet_token_address
+    );
 
-      if (!allowance || allowance < betAmountWei) {
-        console.log("Insufficient token allowance. Requesting approval...");
+    if (!allowance || allowance < betAmountWei) {
+      console.log("Insufficient token allowance. Requesting approval...");
 
-        try {
-          setIsApproving(true);
-          const hash = await writeApproveAsync({
-            address: selectedBet.bet_token_address as `0x${string}`,
-            abi: ERC20_ABI,
-            functionName: "approve",
-            args: [BETCASTER_ADDRESS, betAmountWei],
-          });
+      try {
+        setIsApproving(true);
+        const hash = await writeApproveAsync({
+          address: selectedBet.bet_token_address as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [BETCASTER_ADDRESS, betAmountWei],
+        });
 
-          if (hash) {
-            console.log("Approval transaction sent:", hash);
-            setApprovalTxHash(hash);
-          }
-
-          return;
-        } catch (error) {
-          console.error("Failed to approve token allowance:", error);
-          setIsApproving(false);
-          return;
+        if (hash) {
+          console.log("Approval transaction sent:", hash);
+          setApprovalTxHash(hash);
         }
-      }
-    }
 
-    // If no approval needed, proceed directly to bet acceptance
-    await handleAcceptBetAfterApproval();
+        return;
+      } catch (error) {
+        console.error("Failed to approve token allowance:", error);
+        setIsApproving(false);
+        return;
+      }
+    } else {
+      await handleAcceptBetAfterApproval();
+    }
   };
 
   // Add a new function to handle bet acceptance after approval
