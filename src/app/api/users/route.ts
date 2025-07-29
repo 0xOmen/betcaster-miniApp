@@ -16,6 +16,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Handle zero address case
+    if (address === "0x0000000000000000000000000000000000000000") {
+      console.log("👤 Users API: Returning default user for zero address");
+      const defaultUser = {
+        fid: 0,
+        username: "anyone",
+        display_name: "anyone",
+        pfp_url: "/unknownEntity.png",
+        verified_addresses: {
+          primary: {
+            eth_address: "0x0000000000000000000000000000000000000000",
+          },
+        },
+      };
+      return NextResponse.json({ users: [defaultUser] });
+    }
+
     let url = "https://api.neynar.com/v2/farcaster/user";
 
     if (fids && fids.trim() !== "") {
