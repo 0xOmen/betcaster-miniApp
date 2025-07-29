@@ -23,21 +23,10 @@ const STABLECOIN_ADDRESSES = [
 
 // Hook to fetch token price using checkTheChainAbi
 export const useTokenPrice = (tokenAddress: string | undefined) => {
-  // Check if it's a stablecoin
   const isStablecoin =
     tokenAddress && STABLECOIN_ADDRESSES.includes(tokenAddress);
 
-  // For stablecoins, return a mock result with price = 1
-  if (isStablecoin) {
-    return {
-      data: [BigInt(1000000), "1000000"] as [bigint, string], // 1 USDC in 6 decimals
-      isLoading: false,
-      error: null,
-      refetch: () => Promise.resolve(),
-    };
-  }
-
-  return useReadContract({
+  const contractResult = useReadContract({
     address: "0x0000000000cDC1F8d393415455E382c30FBc0a84" as `0x${string}`,
     abi: [
       {
@@ -56,7 +45,20 @@ export const useTokenPrice = (tokenAddress: string | undefined) => {
     query: {
       enabled:
         !!tokenAddress &&
-        tokenAddress !== "0x0000000000000000000000000000000000000000",
+        tokenAddress !== "0x0000000000000000000000000000000000000000" &&
+        !isStablecoin,
     },
   });
+
+  // For stablecoins, return price = 1
+  if (isStablecoin) {
+    return {
+      ...contractResult,
+      data: [BigInt(1000000), "1000000"] as [bigint, string],
+      isLoading: false,
+      error: null,
+    };
+  }
+
+  return contractResult;
 };
