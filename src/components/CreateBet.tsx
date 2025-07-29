@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "~/components/ui/Button";
 import { encodeFunctionData, parseEventLogs } from "viem";
 import {
@@ -22,6 +22,7 @@ import { BASE_TOKENS, Token, amountToWei } from "~/lib/tokens";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
 import { ShareModal } from "~/components/ShareModal";
 import { notifyBetCreated } from "~/lib/notificationUtils";
+import { calculateUSDValue } from "~/lib/prices";
 
 interface User {
   fid: number;
@@ -227,6 +228,30 @@ export default function CreateBet({
     },
   });
 
+  // Read token price
+  const { data: tokenPriceData, refetch: refetchTokenPrice } = useReadContract({
+    address: "0x0000000000cDC1F8d393415455E382c30FBc0a84" as `0x${string}`,
+    abi: [
+      {
+        inputs: [{ internalType: "address", name: "token", type: "address" }],
+        name: "checkPriceInETHToUSDC",
+        outputs: [
+          { internalType: "uint256", name: "price", type: "uint256" },
+          { internalType: "string", name: "priceStr", type: "string" },
+        ],
+        stateMutability: "view",
+        type: "function",
+      },
+    ],
+    functionName: "checkPriceInETHToUSDC",
+    args: [selectedToken?.address as `0x${string}`],
+    query: {
+      enabled:
+        !!selectedToken?.address &&
+        selectedToken.address !== "0x0000000000000000000000000000000000000000",
+    },
+  });
+
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
   const [approvalTxHash, setApprovalTxHash] = useState<
     `0x${string}` | undefined
@@ -253,6 +278,9 @@ export default function CreateBet({
     taker: string;
     arbiter?: string;
   } | null>(null);
+
+  // Add state for price tracking
+  const [isLoadingPrice, setIsLoadingPrice] = useState(false);
 
   // Modify handleTransactionReceipt to show share modal
   useEffect(() => {
@@ -990,6 +1018,20 @@ export default function CreateBet({
 
   const endDateTimestamp = getEndDateTimestamp();
 
+  // Update loading state when token price data changes
+  useEffect(() => {
+    if (tokenPriceData !== undefined) {
+      setIsLoadingPrice(false);
+    }
+  }, [tokenPriceData]);
+
+  // Set loading state when token changes
+  useEffect(() => {
+    if (selectedToken && selectedToken.address) {
+      setIsLoadingPrice(true);
+    }
+  }, [selectedToken]);
+
   useEffect(() => {
     if (userFid) {
       setMakerFid(userFid);
@@ -1088,6 +1130,23 @@ export default function CreateBet({
             onChange={(e) => setBetAmount(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
+
+          {/* USD Value Display */}
+          <div className="flex justify-end">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {isLoadingPrice
+                ? "Loading price..."
+                : betAmount && tokenPriceData?.[0]
+                  ? (() => {
+                      const usdValue = calculateUSDValue(
+                        parseFloat(betAmount),
+                        Number(tokenPriceData[0])
+                      );
+                      return usdValue ? `≈ $${usdValue.toFixed(2)} USD` : "";
+                    })()
+                  : null}
+            </div>
+          </div>
         </div>
 
         {/* Bet Description */}
