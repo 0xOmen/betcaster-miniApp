@@ -22,7 +22,7 @@ import { BASE_TOKENS, Token, amountToWei } from "~/lib/tokens";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
 import { ShareModal } from "~/components/ShareModal";
 import { notifyBetCreated } from "~/lib/notificationUtils";
-import { calculateUSDValue } from "~/lib/prices";
+import { calculateUSDValue, useTokenPrice } from "~/lib/prices";
 
 interface User {
   fid: number;
@@ -229,28 +229,9 @@ export default function CreateBet({
   });
 
   // Read token price
-  const { data: tokenPriceData, refetch: refetchTokenPrice } = useReadContract({
-    address: "0x0000000000cDC1F8d393415455E382c30FBc0a84" as `0x${string}`,
-    abi: [
-      {
-        inputs: [{ internalType: "address", name: "token", type: "address" }],
-        name: "checkPriceInETHToUSDC",
-        outputs: [
-          { internalType: "uint256", name: "price", type: "uint256" },
-          { internalType: "string", name: "priceStr", type: "string" },
-        ],
-        stateMutability: "view",
-        type: "function",
-      },
-    ],
-    functionName: "checkPriceInETHToUSDC",
-    args: [selectedToken?.address as `0x${string}`],
-    query: {
-      enabled:
-        !!selectedToken?.address &&
-        selectedToken.address !== "0x0000000000000000000000000000000000000000",
-    },
-  });
+  const { data: tokenPriceData, refetch: refetchTokenPrice } = useTokenPrice(
+    selectedToken?.address
+  );
 
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
   const [approvalTxHash, setApprovalTxHash] = useState<
