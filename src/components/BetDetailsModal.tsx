@@ -200,17 +200,23 @@ export function BetDetailsModal({
             </div>
           )}
 
-          {isArbiter && bet.status === 1 && onAcceptArbiter && (
-            <div className="mb-4">
-              <button
-                onClick={onAcceptArbiter}
-                disabled={isAcceptingArbiter}
-                className="w-full px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAcceptingArbiter ? "Accepting..." : "Accept Arbiter Role"}
-              </button>
-            </div>
-          )}
+          {(isArbiter ||
+            (bet.arbiter_address ===
+              "0x0000000000000000000000000000000000000000" &&
+              !isMaker &&
+              !isArbiter)) &&
+            bet.status === 1 &&
+            onAcceptArbiter && (
+              <div className="mb-4">
+                <button
+                  onClick={onAcceptArbiter}
+                  disabled={isAcceptingArbiter}
+                  className="w-full px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isAcceptingArbiter ? "Accepting..." : "Accept Arbiter Role"}
+                </button>
+              </div>
+            )}
 
           {bet.status === 2 && (isMaker || isTaker) && onForfeit && (
             <div className="mb-4">
