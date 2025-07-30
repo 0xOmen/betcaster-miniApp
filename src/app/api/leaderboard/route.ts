@@ -166,11 +166,11 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      // Update forfeiter's losses
+      // Update forfeiter's losses and pnl
       const { data: forfeiterData, error: forfeiterCheckError } =
         await supabaseAdmin
           .from("leaderboard")
-          .select("losses")
+          .select("losses, pnl")
           .eq("fid", forfeiter_fid)
           .single();
 
@@ -186,12 +186,14 @@ export async function PATCH(request: NextRequest) {
       }
 
       const forfeiterLosses = forfeiterData?.losses || 0;
+      const forfeiterPnl = forfeiterData?.pnl || 0;
       const { error: forfeiterError } = await supabaseAdmin
         .from("leaderboard")
         .upsert(
           {
             fid: forfeiter_fid,
             losses: forfeiterLosses + 1,
+            pnl: forfeiterPnl - (pnl_amount || 0),
           },
           {
             onConflict: "fid",
@@ -206,10 +208,10 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      // Update winner's wins
+      // Update winner's wins and pnl
       const { data: winnerData, error: winnerCheckError } = await supabaseAdmin
         .from("leaderboard")
-        .select("wins")
+        .select("wins, pnl")
         .eq("fid", winner_fid)
         .single();
 
@@ -222,12 +224,14 @@ export async function PATCH(request: NextRequest) {
       }
 
       const winnerWins = winnerData?.wins || 0;
+      const winnerPnl = winnerData?.pnl || 0;
       const { error: winnerError } = await supabaseAdmin
         .from("leaderboard")
         .upsert(
           {
             fid: winner_fid,
             wins: winnerWins + 1,
+            pnl: winnerPnl + (pnl_amount || 0),
           },
           {
             onConflict: "fid",

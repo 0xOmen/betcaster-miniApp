@@ -1817,6 +1817,14 @@ export default function Demo(
                   }
 
                   if (forfeiterFid && winnerFid) {
+                    // Calculate PnL amount (bet amount × token price)
+                    const pnlAmount = tokenPriceData?.[0]
+                      ? calculateUSDValue(
+                          selectedBet.bet_amount,
+                          Number(tokenPriceData[0])
+                        )
+                      : 0;
+
                     const leaderboardUpdateResponse = await fetch(
                       "/api/leaderboard",
                       {
@@ -1827,6 +1835,7 @@ export default function Demo(
                         body: JSON.stringify({
                           forfeiter_fid: forfeiterFid,
                           winner_fid: winnerFid,
+                          pnl_amount: pnlAmount,
                         }),
                       }
                     );
