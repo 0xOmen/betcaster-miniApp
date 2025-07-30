@@ -599,33 +599,6 @@ export const Explore: FC = () => {
         </div>
         {searchError && <p className="mt-2 text-red-500">{searchError}</p>}
 
-        {/* Refresh from Chain button when bet is found in database */}
-        {selectedBet && !blockchainBet && (
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                  Database Sync
-                </h3>
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  Bet found in database. Refresh with latest blockchain data?
-                </p>
-              </div>
-              <button
-                onClick={handleRefreshFromChain}
-                disabled={isRefreshingFromChain}
-                className={`px-4 py-2 bg-blue-500 text-white rounded-lg transition-colors ${
-                  isRefreshingFromChain
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:bg-blue-600"
-                }`}
-              >
-                {isRefreshingFromChain ? "Refreshing..." : "Refresh from Chain"}
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Admin button to add blockchain bet to database */}
         {blockchainBet && context?.user?.fid === 212074 && (
           <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -695,8 +668,10 @@ export const Explore: FC = () => {
           onForfeit={() => handleForfeitBet(selectedBet)}
           onClaimWinnings={() => handleClaimWinnings(selectedBet)}
           onAcceptArbiter={() => handleAcceptArbiterRole(selectedBet)}
+          onRefreshFromChain={handleRefreshFromChain}
           isApproving={isApproving}
           isAccepting={isAccepting}
+          isRefreshingFromChain={isRefreshingFromChain}
           isCancelling={isCancelling}
           isForfeiting={isForfeiting}
           isClaiming={isClaiming}

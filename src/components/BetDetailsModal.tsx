@@ -15,12 +15,14 @@ interface BetDetailsModalProps {
   onForfeit?: () => void;
   onClaimWinnings?: () => void;
   onAcceptArbiter?: () => void;
+  onRefreshFromChain?: () => void;
   isApproving?: boolean;
   isAccepting?: boolean;
   isCancelling?: boolean;
   isForfeiting?: boolean;
   isClaiming?: boolean;
   isAcceptingArbiter?: boolean;
+  isRefreshingFromChain?: boolean;
   showApprovalSuccess?: boolean;
 }
 
@@ -36,12 +38,14 @@ export function BetDetailsModal({
   onForfeit,
   onClaimWinnings,
   onAcceptArbiter,
+  onRefreshFromChain,
   isApproving,
   isAccepting,
   isCancelling,
   isForfeiting,
   isClaiming,
   isAcceptingArbiter,
+  isRefreshingFromChain,
   showApprovalSuccess,
 }: BetDetailsModalProps) {
   if (!isOpen) return null;
@@ -362,6 +366,23 @@ export function BetDetailsModal({
               Close
             </button>
           </div>
+
+          {/* Refresh from Chain Button */}
+          {onRefreshFromChain && (
+            <div className="mt-4">
+              <button
+                onClick={onRefreshFromChain}
+                disabled={isRefreshingFromChain}
+                className={`w-full px-4 py-2 bg-blue-500 text-white rounded-lg transition-colors ${
+                  isRefreshingFromChain
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-blue-600"
+                }`}
+              >
+                {isRefreshingFromChain ? "Refreshing..." : "Refresh from Chain"}
+              </button>
+            </div>
+          )}
 
           {/* Share Button */}
           {onShare && (
