@@ -55,7 +55,7 @@ export async function PATCH(request: NextRequest) {
     } = body;
 
     // Handle bet acceptance (increment total_bets)
-    if (maker_fid || taker_fid) {
+    if ((maker_fid || taker_fid) && !winner_fid && !loser_fid) {
       if (!maker_fid && !taker_fid) {
         return NextResponse.json(
           { error: "No maker_fid or taker_fid provided" },

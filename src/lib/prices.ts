@@ -9,7 +9,7 @@ export const calculateUSDValue = (
     return null;
   }
 
-  // The price is already in USDC format (6 decimals), convert to actual USD
+  // The price is in floating point format, convert to actual USD (6 decimals)
   const priceInUSD = tokenPrice / Math.pow(10, 6);
   return betAmount * priceInUSD;
 };
