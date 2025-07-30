@@ -35,6 +35,7 @@ export const Explore: FC = () => {
     betAgreement: string;
   } | null>(null); // Add state for blockchain bet
   const [isAddingToDb, setIsAddingToDb] = useState(false); // Add loading state
+  const [isRefreshingFromChain, setIsRefreshingFromChain] = useState(false); // Add loading state for refresh
   const { address } = useAccount();
 
   // Get token price for selected bet
@@ -226,6 +227,75 @@ export const Explore: FC = () => {
       enabled: false, // Move enabled into query object
     },
   });
+
+  // Add function to refresh bet from blockchain
+  const handleRefreshFromChain = async () => {
+    if (!selectedBet) return;
+
+    setIsRefreshingFromChain(true);
+    try {
+      // Fetch latest data from blockchain
+      const { data: chainBet } = await refetchBet();
+      console.log("Refreshed blockchain bet data:", chainBet);
+
+      if (
+        chainBet &&
+        chainBet.maker !== "0x0000000000000000000000000000000000000000"
+      ) {
+        // Convert bet amount using token decimals
+        const betAmountFormatted = weiToAmount(
+          BigInt(chainBet.betAmount.toString()),
+          chainBet.betTokenAddress
+        );
+
+        // Prepare updated bet data for database
+        const updatedBetData = {
+          bet_number: selectedBet.bet_number,
+          maker_address: chainBet.maker,
+          taker_address: chainBet.taker,
+          arbiter_address: chainBet.arbiter,
+          bet_token_address: chainBet.betTokenAddress,
+          bet_amount: betAmountFormatted,
+          timestamp: Number(chainBet.timestamp),
+          end_time: Number(chainBet.endTime),
+          status: Number(chainBet.status),
+          protocol_fee: Number(chainBet.protocolFee) / 100, // Convert from basis points
+          arbiter_fee: Number(chainBet.arbiterFee) / 100, // Convert from basis points
+          bet_agreement: chainBet.betAgreement,
+          can_settle_early: chainBet.canSettleEarly,
+        };
+
+        // Update the bet in the database
+        const response = await fetch(
+          `/api/bets?betNumber=${selectedBet.bet_number}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updatedBetData),
+          }
+        );
+
+        if (response.ok) {
+          // Refresh the search to show the updated bet
+          await handleSearch(selectedBet.bet_number.toString());
+          console.log("Bet refreshed from blockchain successfully");
+        } else {
+          const errorData = await response.json();
+          console.error("Failed to refresh bet from blockchain:", errorData);
+          alert("Failed to refresh bet from blockchain");
+        }
+      } else {
+        alert("No valid bet found on blockchain");
+      }
+    } catch (error) {
+      console.error("Error refreshing bet from blockchain:", error);
+      alert("Error refreshing bet from blockchain");
+    } finally {
+      setIsRefreshingFromChain(false);
+    }
+  };
 
   // Add function to add blockchain bet to database
   const handleAddToDatabase = async () => {
@@ -528,6 +598,33 @@ export const Explore: FC = () => {
           </button>
         </div>
         {searchError && <p className="mt-2 text-red-500">{searchError}</p>}
+
+        {/* Refresh from Chain button when bet is found in database */}
+        {selectedBet && !blockchainBet && (
+          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  Database Sync
+                </h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  Bet found in database. Refresh with latest blockchain data?
+                </p>
+              </div>
+              <button
+                onClick={handleRefreshFromChain}
+                disabled={isRefreshingFromChain}
+                className={`px-4 py-2 bg-blue-500 text-white rounded-lg transition-colors ${
+                  isRefreshingFromChain
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-blue-600"
+                }`}
+              >
+                {isRefreshingFromChain ? "Refreshing..." : "Refresh from Chain"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Admin button to add blockchain bet to database */}
         {blockchainBet && context?.user?.fid === 212074 && (
