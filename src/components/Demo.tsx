@@ -576,15 +576,54 @@ export default function Demo(
               let takerProfile = null;
               let arbiterProfile = null;
 
-              if (makerFid) {
+              // Handle zero address case for maker
+              if (
+                bet.maker_address ===
+                "0x0000000000000000000000000000000000000000"
+              ) {
+                makerProfile = {
+                  fid: 0,
+                  username: "anyone",
+                  display_name: "anyone",
+                  pfp_url: "/unknownEntity.png",
+                  primaryEthAddress:
+                    "0x0000000000000000000000000000000000000000",
+                };
+              } else if (makerFid !== null && makerFid !== undefined) {
                 makerProfile = await fetchUserWithCache(makerFid);
               }
 
-              if (takerFid) {
+              // Handle zero address case for taker
+              if (
+                bet.taker_address ===
+                "0x0000000000000000000000000000000000000000"
+              ) {
+                takerProfile = {
+                  fid: 0,
+                  username: "anyone",
+                  display_name: "anyone",
+                  pfp_url: "/unknownEntity.png",
+                  primaryEthAddress:
+                    "0x0000000000000000000000000000000000000000",
+                };
+              } else if (takerFid !== null && takerFid !== undefined) {
                 takerProfile = await fetchUserWithCache(takerFid);
               }
 
-              if (arbiterFid) {
+              // Handle zero address case for arbiter
+              if (
+                bet.arbiter_address ===
+                "0x0000000000000000000000000000000000000000"
+              ) {
+                arbiterProfile = {
+                  fid: 0,
+                  username: "anyone",
+                  display_name: "anyone",
+                  pfp_url: "/unknownEntity.png",
+                  primaryEthAddress:
+                    "0x0000000000000000000000000000000000000000",
+                };
+              } else if (arbiterFid !== null && arbiterFid !== undefined) {
                 arbiterProfile = await fetchUserWithCache(arbiterFid);
               }
 
@@ -1131,15 +1170,49 @@ export default function Demo(
             let takerProfile = null;
             let arbiterProfile = null;
 
-            if (makerFid) {
+            // Handle zero address case for maker
+            if (
+              bet.maker_address === "0x0000000000000000000000000000000000000000"
+            ) {
+              makerProfile = {
+                fid: 0,
+                username: "anyone",
+                display_name: "anyone",
+                pfp_url: "/unknownEntity.png",
+                primaryEthAddress: "0x0000000000000000000000000000000000000000",
+              };
+            } else if (makerFid !== null && makerFid !== undefined) {
               makerProfile = await fetchUserWithCache(makerFid);
             }
 
-            if (takerFid) {
+            // Handle zero address case for taker
+            if (
+              bet.taker_address === "0x0000000000000000000000000000000000000000"
+            ) {
+              takerProfile = {
+                fid: 0,
+                username: "anyone",
+                display_name: "anyone",
+                pfp_url: "/unknownEntity.png",
+                primaryEthAddress: "0x0000000000000000000000000000000000000000",
+              };
+            } else if (takerFid !== null && takerFid !== undefined) {
               takerProfile = await fetchUserWithCache(takerFid);
             }
 
-            if (arbiterFid) {
+            // Handle zero address case for arbiter
+            if (
+              bet.arbiter_address ===
+              "0x0000000000000000000000000000000000000000"
+            ) {
+              arbiterProfile = {
+                fid: 0,
+                username: "anyone",
+                display_name: "anyone",
+                pfp_url: "/unknownEntity.png",
+                primaryEthAddress: "0x0000000000000000000000000000000000000000",
+              };
+            } else if (arbiterFid !== null && arbiterFid !== undefined) {
               arbiterProfile = await fetchUserWithCache(arbiterFid);
             }
 
