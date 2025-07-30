@@ -9,6 +9,7 @@ import { BetDetailsModal } from "./BetDetailsModal";
 import { useBets } from "~/hooks/useBets";
 import { useBetActions } from "~/hooks/useBetActions";
 import { BETCASTER_ABI, BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
+import { calculateUSDValue, useTokenPrice } from "~/lib/prices";
 import { useContractRead } from "wagmi";
 import { getTokenByAddress, weiToAmount } from "~/lib/tokens";
 
@@ -35,6 +36,11 @@ export const Explore: FC = () => {
   } | null>(null); // Add state for blockchain bet
   const [isAddingToDb, setIsAddingToDb] = useState(false); // Add loading state
   const { address } = useAccount();
+
+  // Get token price for selected bet
+  const { data: tokenPriceData } = useTokenPrice(
+    selectedBet?.bet_token_address
+  );
   const { context } = useMiniApp();
   const { userBets, isLoadingBets, refreshBets, updateBetStatus } = useBets();
   const {
@@ -89,6 +95,11 @@ export const Explore: FC = () => {
           } else {
             console.log("Bet status updated to arbiter accepted in database");
 
+            // Calculate USD volume for leaderboard update
+            const usdVolume = tokenPriceData?.[0]
+              ? calculateUSDValue(bet.bet_amount, Number(tokenPriceData[0]))
+              : 0;
+
             // Update leaderboard for maker and taker
             try {
               const leaderboardUpdateResponse = await fetch(
@@ -101,6 +112,7 @@ export const Explore: FC = () => {
                   body: JSON.stringify({
                     maker_fid: bet.maker_fid,
                     taker_fid: bet.taker_fid,
+                    usd_volume: usdVolume,
                   }),
                 }
               );

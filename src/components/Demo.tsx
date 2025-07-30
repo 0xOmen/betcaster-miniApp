@@ -40,6 +40,7 @@ import {
 import { encodeFunctionData } from "viem";
 import { useReadContract, useWriteContract } from "wagmi";
 import { amountToWei, getTokenByAddress } from "~/lib/tokens";
+import { calculateUSDValue, useTokenPrice } from "~/lib/prices";
 import { getTimeRemaining } from "~/lib/utils";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
 import { farcasterMiniApp as miniAppConnector } from "@farcaster/miniapp-wagmi-connector";
@@ -253,6 +254,11 @@ export default function Demo(
   } | null>(null);
   const [initialParamsHandled, setInitialParamsHandled] = useState(false);
   const [isLoadingSpecificBet, setIsLoadingSpecificBet] = useState(false);
+
+  // Get token price for selected bet
+  const { data: tokenPriceData } = useTokenPrice(
+    selectedBet?.bet_token_address
+  );
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -1494,6 +1500,14 @@ export default function Demo(
                     "Bet status updated to arbiter accepted in database"
                   );
 
+                  // Calculate USD volume for leaderboard update
+                  const usdVolume = tokenPriceData?.[0]
+                    ? calculateUSDValue(
+                        selectedBet.bet_amount,
+                        Number(tokenPriceData[0])
+                      )
+                    : 0;
+
                   // Update leaderboard for maker and taker
                   try {
                     const leaderboardUpdateResponse = await fetch(
@@ -1506,6 +1520,7 @@ export default function Demo(
                         body: JSON.stringify({
                           maker_fid: selectedBet.maker_fid,
                           taker_fid: selectedBet.taker_fid,
+                          usd_volume: usdVolume,
                         }),
                       }
                     );

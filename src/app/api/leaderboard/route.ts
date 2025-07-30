@@ -44,7 +44,14 @@ export async function PATCH(request: NextRequest) {
     console.log("🔍 API: Updating leaderboard data");
 
     const body = await request.json();
-    const { maker_fid, taker_fid, forfeiter_fid, winner_fid, loser_fid } = body;
+    const {
+      maker_fid,
+      taker_fid,
+      forfeiter_fid,
+      winner_fid,
+      loser_fid,
+      usd_volume,
+    } = body;
 
     // Handle bet acceptance (increment total_bets)
     if (maker_fid || taker_fid) {
@@ -59,7 +66,7 @@ export async function PATCH(request: NextRequest) {
       if (maker_fid) {
         const { data: makerData, error: makerCheckError } = await supabaseAdmin
           .from("leaderboard")
-          .select("total_bets")
+          .select("total_bets, total_volume")
           .eq("fid", maker_fid)
           .single();
 
@@ -71,14 +78,16 @@ export async function PATCH(request: NextRequest) {
           );
         }
 
-        // Update or insert maker's total_bets
+        // Update or insert maker's total_bets and total_volume
         const makerTotalBets = makerData?.total_bets || 0;
+        const makerTotalVolume = makerData?.total_volume || 0;
         const { error: makerError } = await supabaseAdmin
           .from("leaderboard")
           .upsert(
             {
               fid: maker_fid,
               total_bets: makerTotalBets + 1,
+              total_volume: makerTotalVolume + (usd_volume || 0),
             },
             {
               onConflict: "fid",
@@ -98,7 +107,7 @@ export async function PATCH(request: NextRequest) {
       if (taker_fid) {
         const { data: takerData, error: takerCheckError } = await supabaseAdmin
           .from("leaderboard")
-          .select("total_bets")
+          .select("total_bets, total_volume")
           .eq("fid", taker_fid)
           .single();
 
@@ -110,14 +119,16 @@ export async function PATCH(request: NextRequest) {
           );
         }
 
-        // Update or insert taker's total_bets
+        // Update or insert taker's total_bets and total_volume
         const takerTotalBets = takerData?.total_bets || 0;
+        const takerTotalVolume = takerData?.total_volume || 0;
         const { error: takerError } = await supabaseAdmin
           .from("leaderboard")
           .upsert(
             {
               fid: taker_fid,
               total_bets: takerTotalBets + 1,
+              total_volume: takerTotalVolume + (usd_volume || 0),
             },
             {
               onConflict: "fid",
