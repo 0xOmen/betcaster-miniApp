@@ -118,8 +118,8 @@ export const BETCASTER_ABI = [
       {
         components: [
           { internalType: "address", name: "maker", type: "address" },
-          { internalType: "address", name: "taker", type: "address" },
-          { internalType: "address", name: "arbiter", type: "address" },
+          { internalType: "address[]", name: "taker", type: "address[]" },
+          { internalType: "address[]", name: "arbiter", type: "address[]" },
           { internalType: "address", name: "betTokenAddress", type: "address" },
           { internalType: "uint256", name: "betAmount", type: "uint256" },
           {
@@ -176,8 +176,8 @@ export const BETCASTER_ABI = [
       {
         components: [
           { internalType: "address", name: "maker", type: "address" },
-          { internalType: "address", name: "taker", type: "address" },
-          { internalType: "address", name: "arbiter", type: "address" },
+          { internalType: "address[]", name: "taker", type: "address[]" },
+          { internalType: "address[]", name: "arbiter", type: "address[]" },
           { internalType: "address", name: "betTokenAddress", type: "address" },
           { internalType: "uint256", name: "betAmount", type: "uint256" },
           {
@@ -387,8 +387,8 @@ export const BETCASTER_ABI = [
       {
         components: [
           { internalType: "address", name: "maker", type: "address" },
-          { internalType: "address", name: "taker", type: "address" },
-          { internalType: "address", name: "arbiter", type: "address" },
+          { internalType: "address[]", name: "taker", type: "address[]" },
+          { internalType: "address[]", name: "arbiter", type: "address[]" },
           { internalType: "address", name: "betTokenAddress", type: "address" },
           { internalType: "uint256", name: "betAmount", type: "uint256" },
           {
@@ -423,7 +423,7 @@ export const BETCASTER_ABI = [
   {
     inputs: [
       { internalType: "uint256", name: "_betNumber", type: "uint256" },
-      { internalType: "address", name: "_arbiter", type: "address" },
+      { internalType: "address[]", name: "_arbiter", type: "address[]" },
     ],
     name: "updateBetArbiter",
     outputs: [],
@@ -443,7 +443,7 @@ export const BETCASTER_ABI = [
   {
     inputs: [
       { internalType: "uint256", name: "_betNumber", type: "uint256" },
-      { internalType: "address", name: "_taker", type: "address" },
+      { internalType: "address[]", name: "_taker", type: "address[]" },
     ],
     name: "updateBetTaker",
     outputs: [],
@@ -461,4 +461,4 @@ export const BETCASTER_ABI = [
 
 // Contract address on Base blockchain
 export const BETCASTER_ADDRESS =
-  "0x72E9f64d8849c1FC0819C48b08599f74Ec9b39eF" as const;
+  "0x668f25E26522fcA6ff4f4D6cEe2f2269e7c26B56" as const;

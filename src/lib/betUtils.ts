@@ -3,6 +3,17 @@ import { type Bet } from "~/types/bet";
 import { getTokenByAddress } from "~/lib/tokens";
 import { getTimeRemaining } from "./utils";
 
+// Helper function to check if an address is in an array
+function isAddressInArray(
+  address: string,
+  addressArray: string[] | null
+): boolean {
+  if (!addressArray || addressArray.length === 0) return false;
+  return addressArray.some(
+    (addr) => addr.toLowerCase() === address.toLowerCase()
+  );
+}
+
 export function getStatusInfo(
   bet: Bet,
   currentUserAddress?: string,
@@ -18,7 +29,7 @@ export function getStatusInfo(
     (currentUserFid && currentUserFid === bet.maker_fid);
   const isTaker =
     (currentUserAddress &&
-      currentUserAddress.toLowerCase() === bet.taker_address.toLowerCase()) ||
+      isAddressInArray(currentUserAddress, bet.taker_address)) ||
     (currentUserFid && currentUserFid === bet.taker_fid);
 
   switch (status) {
@@ -60,8 +71,7 @@ export function getStatusInfo(
       // Check if current user is the arbiter
       const isArbiter =
         (currentUserAddress &&
-          currentUserAddress.toLowerCase() ===
-            bet.arbiter_address?.toLowerCase()) ||
+          isAddressInArray(currentUserAddress, bet.arbiter_address)) ||
         (currentUserFid && currentUserFid === bet.arbiter_fid);
 
       if (isArbiter) {
@@ -213,7 +223,8 @@ export function getUserCanAcceptBet(
 ): boolean {
   return (
     bet.status === 0 &&
-    (currentUserAddress?.toLowerCase() === bet.taker_address.toLowerCase() ||
+    ((currentUserAddress &&
+      isAddressInArray(currentUserAddress, bet.taker_address)) ||
       currentUserFid === bet.taker_fid) &&
     Math.floor(Date.now() / 1000) <= bet.end_time
   );
@@ -240,7 +251,8 @@ export function getUserCanForfeitBet(
     bet.status === 2 &&
     (currentUserAddress?.toLowerCase() === bet.maker_address.toLowerCase() ||
       currentUserFid === bet.maker_fid ||
-      currentUserAddress?.toLowerCase() === bet.taker_address.toLowerCase() ||
+      (currentUserAddress &&
+        isAddressInArray(currentUserAddress, bet.taker_address)) ||
       currentUserFid === bet.taker_fid)
   );
 }
@@ -254,7 +266,8 @@ export function getUserCanClaimWinnings(
     currentUserAddress?.toLowerCase() === bet.maker_address.toLowerCase() ||
     currentUserFid === bet.maker_fid;
   const isTaker =
-    currentUserAddress?.toLowerCase() === bet.taker_address.toLowerCase() ||
+    (currentUserAddress &&
+      isAddressInArray(currentUserAddress, bet.taker_address)) ||
     currentUserFid === bet.taker_fid;
 
   return (
@@ -271,7 +284,8 @@ export function getUserCanSelectWinner(
   return (
     bet.status === 2 &&
     Math.floor(Date.now() / 1000) > bet.end_time &&
-    (currentUserAddress?.toLowerCase() === bet.arbiter_address?.toLowerCase() ||
+    ((currentUserAddress &&
+      isAddressInArray(currentUserAddress, bet.arbiter_address)) ||
       currentUserFid === bet.arbiter_fid)
   );
 }

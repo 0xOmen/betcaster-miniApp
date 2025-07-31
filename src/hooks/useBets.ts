@@ -4,6 +4,17 @@ import { type Bet } from "~/types/bet";
 import { useAccount } from "wagmi";
 import { useMiniApp } from "@neynar/react";
 
+// Helper function to check if an address is in an array
+function isAddressInArray(
+  address: string,
+  addressArray: string[] | null
+): boolean {
+  if (!addressArray || addressArray.length === 0) return false;
+  return addressArray.some(
+    (addr) => addr.toLowerCase() === address.toLowerCase()
+  );
+}
+
 export function useBets() {
   const [userBets, setUserBets] = useState<Bet[]>([]);
   const [isLoadingBets, setIsLoadingBets] = useState(false);
@@ -57,10 +68,10 @@ export function useBets() {
               address?.toLowerCase() === bet.maker_address.toLowerCase() ||
               context?.user?.fid === bet.maker_fid;
             const isTaker =
-              address?.toLowerCase() === bet.taker_address.toLowerCase() ||
+              (address && isAddressInArray(address, bet.taker_address)) ||
               context?.user?.fid === bet.taker_fid;
             const isArbiter =
-              address?.toLowerCase() === bet.arbiter_address?.toLowerCase() ||
+              (address && isAddressInArray(address, bet.arbiter_address)) ||
               context?.user?.fid === bet.arbiter_fid;
             console.log(`🎯 Bet #${bet.bet_number} - User role:`, {
               isMaker,
@@ -111,14 +122,19 @@ export function useBets() {
                 }
               }
 
-              // If taker_fid doesn't exist, fetch it using the address
-              if (!takerFid && bet.taker_address) {
+              // If taker_fid doesn't exist, fetch it using the first taker address
+              if (
+                !takerFid &&
+                bet.taker_address &&
+                bet.taker_address.length > 0
+              ) {
                 try {
+                  const firstTakerAddress = bet.taker_address[0];
                   console.log(
-                    `🔍 Fetching taker FID for address: ${bet.taker_address}`
+                    `🔍 Fetching taker FID for address: ${firstTakerAddress}`
                   );
                   const takerFidResponse = await fetch(
-                    `/api/users?address=${bet.taker_address}`
+                    `/api/users?address=${firstTakerAddress}`
                   );
                   if (takerFidResponse.ok) {
                     const takerFidData = await takerFidResponse.json();
@@ -130,14 +146,19 @@ export function useBets() {
                 }
               }
 
-              // If arbiter_fid doesn't exist, fetch it using the address
-              if (!arbiterFid && bet.arbiter_address) {
+              // If arbiter_fid doesn't exist, fetch it using the first arbiter address
+              if (
+                !arbiterFid &&
+                bet.arbiter_address &&
+                bet.arbiter_address.length > 0
+              ) {
                 try {
+                  const firstArbiterAddress = bet.arbiter_address[0];
                   console.log(
-                    `🔍 Fetching arbiter FID for address: ${bet.arbiter_address}`
+                    `🔍 Fetching arbiter FID for address: ${firstArbiterAddress}`
                   );
                   const arbiterFidResponse = await fetch(
-                    `/api/users?address=${bet.arbiter_address}`
+                    `/api/users?address=${firstArbiterAddress}`
                   );
                   if (arbiterFidResponse.ok) {
                     const arbiterFidData = await arbiterFidResponse.json();

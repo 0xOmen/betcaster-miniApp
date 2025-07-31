@@ -119,8 +119,8 @@ export const ARBITER_MANAGEMENT_ENGINE_ABI = [
       {
         components: [
           { internalType: "address", name: "maker", type: "address" },
-          { internalType: "address", name: "taker", type: "address" },
-          { internalType: "address", name: "arbiter", type: "address" },
+          { internalType: "address[]", name: "taker", type: "address[]" },
+          { internalType: "address[]", name: "arbiter", type: "address[]" },
           { internalType: "address", name: "betTokenAddress", type: "address" },
           { internalType: "uint256", name: "betAmount", type: "uint256" },
           {
@@ -224,4 +224,4 @@ export const ARBITER_MANAGEMENT_ENGINE_ABI = [
 
 // Contract address on Base blockchain
 export const ARBITER_MANAGEMENT_ENGINE_ADDRESS =
-  "0x0FEF3e2d93BC9c5633a6d4680FE31ed77D120786" as const;
+  "0x1001EBFB2142ccCeB330ffF1F4778091B7115D17" as const;

@@ -85,8 +85,8 @@ interface UserProfile {
 interface Bet {
   bet_number: number;
   maker_address: string;
-  taker_address: string;
-  arbiter_address: string | null;
+  taker_address: string[];
+  arbiter_address: string[] | null;
   bet_token_address: string;
   bet_amount: number;
   can_settle_early: boolean;
@@ -332,6 +332,17 @@ export default function Demo(
     }
   };
 
+  // Helper function to check if an address is in an array
+  function isAddressInArray(
+    address: string,
+    addressArray: string[] | null
+  ): boolean {
+    if (!addressArray || addressArray.length === 0) return false;
+    return addressArray.some(
+      (addr) => addr.toLowerCase() === address.toLowerCase()
+    );
+  }
+
   // Read allowance for the selected bet's token
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: selectedBet?.bet_token_address as `0x${string}`,
@@ -480,10 +491,10 @@ export default function Demo(
               address?.toLowerCase() === bet.maker_address.toLowerCase() ||
               context?.user?.fid === bet.maker_fid;
             const isTaker =
-              address?.toLowerCase() === bet.taker_address.toLowerCase() ||
+              (address && isAddressInArray(address, bet.taker_address)) ||
               context?.user?.fid === bet.taker_fid;
             const isArbiter =
-              address?.toLowerCase() === bet.arbiter_address?.toLowerCase() ||
+              (address && isAddressInArray(address, bet.arbiter_address)) ||
               context?.user?.fid === bet.arbiter_fid;
             console.log(`🎯 Bet #${bet.bet_number} - User role:`, {
               isMaker,
@@ -595,8 +606,10 @@ export default function Demo(
 
               // Handle zero address case for taker
               if (
-                bet.taker_address ===
-                "0x0000000000000000000000000000000000000000"
+                bet.taker_address.length === 0 ||
+                (bet.taker_address.length === 1 &&
+                  bet.taker_address[0] ===
+                    "0x0000000000000000000000000000000000000000")
               ) {
                 takerProfile = {
                   fid: 0,
@@ -612,8 +625,11 @@ export default function Demo(
 
               // Handle zero address case for arbiter
               if (
-                bet.arbiter_address ===
-                "0x0000000000000000000000000000000000000000"
+                bet.arbiter_address === null ||
+                bet.arbiter_address.length === 0 ||
+                (bet.arbiter_address.length === 1 &&
+                  bet.arbiter_address[0] ===
+                    "0x0000000000000000000000000000000000000000")
               ) {
                 arbiterProfile = {
                   fid: 0,
@@ -847,8 +863,8 @@ export default function Demo(
       (currentUserFid && currentUserFid === bet.maker_fid);
     const isTaker =
       (currentUserAddress &&
-        currentUserAddress.toLowerCase() === bet.taker_address.toLowerCase()) ||
-      (currentUserFid && currentUserFid === bet.taker_fid);
+        isAddressInArray(currentUserAddress, bet.taker_address)) ||
+      context?.user?.fid === bet.taker_fid;
 
     switch (status) {
       case 0:
@@ -891,8 +907,7 @@ export default function Demo(
         // Check if current user is the arbiter (by address OR FID)
         const isArbiter =
           (currentUserAddress &&
-            currentUserAddress.toLowerCase() ===
-              bet.arbiter_address?.toLowerCase()) ||
+            isAddressInArray(currentUserAddress, bet.arbiter_address)) ||
           (currentUserFid && currentUserFid === bet.arbiter_fid);
 
         if (isArbiter) {
@@ -1187,7 +1202,10 @@ export default function Demo(
 
             // Handle zero address case for taker
             if (
-              bet.taker_address === "0x0000000000000000000000000000000000000000"
+              bet.taker_address.length === 0 ||
+              (bet.taker_address.length === 1 &&
+                bet.taker_address[0] ===
+                  "0x0000000000000000000000000000000000000000")
             ) {
               takerProfile = {
                 fid: 0,
@@ -1202,8 +1220,11 @@ export default function Demo(
 
             // Handle zero address case for arbiter
             if (
-              bet.arbiter_address ===
-              "0x0000000000000000000000000000000000000000"
+              bet.arbiter_address === null ||
+              bet.arbiter_address.length === 0 ||
+              (bet.arbiter_address.length === 1 &&
+                bet.arbiter_address[0] ===
+                  "0x0000000000000000000000000000000000000000")
             ) {
               arbiterProfile = {
                 fid: 0,
@@ -1743,7 +1764,7 @@ export default function Demo(
       context?.user?.fid === selectedBet.maker_fid;
 
     const isTaker =
-      address?.toLowerCase() === selectedBet.taker_address.toLowerCase() ||
+      (address && isAddressInArray(address, selectedBet.taker_address)) ||
       context?.user?.fid === selectedBet.taker_fid;
 
     // Set the appropriate status based on who is forfeiting
@@ -2144,8 +2165,8 @@ export default function Demo(
         functionName: "changeBetParameters",
         args: [
           BigInt(selectedBet.bet_number),
-          newTaker as `0x${string}`,
-          newArbiter as `0x${string}`,
+          [newTaker as `0x${string}`],
+          newArbiter ? [newArbiter as `0x${string}`] : [],
           editCanSettleEarly,
           BigInt(newEndTime),
           newBetAgreement,
@@ -2978,8 +2999,11 @@ export default function Demo(
                                 bet
                               )}
                               {/* Arbiter Select Winner Actions for Status 2 */}
-                              {(address?.toLowerCase() ===
-                                bet.arbiter_address?.toLowerCase() ||
+                              {((address &&
+                                isAddressInArray(
+                                  address,
+                                  bet.arbiter_address
+                                )) ||
                                 context?.user?.fid === bet.arbiter_fid) &&
                                 (bet.can_settle_early ||
                                   Math.floor(Date.now() / 1000) >
@@ -3001,8 +3025,11 @@ export default function Demo(
                               {(address?.toLowerCase() ===
                                 bet.maker_address.toLowerCase() ||
                                 context?.user?.fid === bet.maker_fid ||
-                                address?.toLowerCase() ===
-                                  bet.taker_address.toLowerCase() ||
+                                (address &&
+                                  isAddressInArray(
+                                    address,
+                                    bet.taker_address
+                                  )) ||
                                 context?.user?.fid === bet.taker_fid) && (
                                 <div className="flex space-x-2 mt-2">
                                   <button
@@ -3075,8 +3102,8 @@ export default function Demo(
                             )}
 
                           {/* Taker Actions for Status 0 */}
-                          {(address?.toLowerCase() ===
-                            bet.taker_address.toLowerCase() ||
+                          {((address &&
+                            isAddressInArray(address, bet.taker_address)) ||
                             context?.user?.fid === bet.taker_fid) &&
                             bet.status === 0 &&
                             Math.floor(Date.now() / 1000) <= bet.end_time && (
@@ -3104,8 +3131,8 @@ export default function Demo(
                             )}
 
                           {/* Arbiter Actions for Status 1 */}
-                          {(address?.toLowerCase() ===
-                            bet.arbiter_address?.toLowerCase() ||
+                          {((address &&
+                            isAddressInArray(address, bet.arbiter_address)) ||
                             context?.user?.fid === bet.arbiter_fid) &&
                             bet.status === 1 && (
                               <div className="flex space-x-2 mt-2">
@@ -3152,8 +3179,8 @@ export default function Demo(
                             )}
 
                           {bet.status === 5 &&
-                            (address?.toLowerCase() ===
-                              bet.taker_address.toLowerCase() ||
+                            ((address &&
+                              isAddressInArray(address, bet.taker_address)) ||
                               context?.user?.fid === bet.taker_fid) && (
                               <div className="flex space-x-2 mt-2">
                                 <button
@@ -3174,8 +3201,8 @@ export default function Demo(
                             (address?.toLowerCase() ===
                               bet.maker_address.toLowerCase() ||
                               context?.user?.fid === bet.maker_fid ||
-                              address?.toLowerCase() ===
-                                bet.taker_address.toLowerCase() ||
+                              (address &&
+                                isAddressInArray(address, bet.taker_address)) ||
                               context?.user?.fid === bet.taker_fid) &&
                             Math.floor(Date.now() / 1000) - bet.timestamp >
                               24 * 60 * 60 && (
@@ -3397,8 +3424,8 @@ export default function Demo(
                   (address?.toLowerCase() ===
                     selectedBet.maker_address.toLowerCase() ||
                     context?.user?.fid === selectedBet.maker_fid ||
-                    address?.toLowerCase() ===
-                      selectedBet.taker_address.toLowerCase() ||
+                    (address &&
+                      isAddressInArray(address, selectedBet.taker_address)) ||
                     context?.user?.fid === selectedBet.taker_fid) &&
                   Math.floor(Date.now() / 1000) - selectedBet.timestamp >
                     24 * 60 * 60 && (
@@ -3418,8 +3445,8 @@ export default function Demo(
                   (address?.toLowerCase() ===
                     selectedBet.maker_address.toLowerCase() ||
                     context?.user?.fid === selectedBet.maker_fid ||
-                    address?.toLowerCase() ===
-                      selectedBet.taker_address.toLowerCase() ||
+                    (address &&
+                      isAddressInArray(address, selectedBet.taker_address)) ||
                     context?.user?.fid === selectedBet.taker_fid) && (
                     <div className="mb-4">
                       {/* Warning Message */}
@@ -3478,8 +3505,8 @@ export default function Demo(
                   )}
 
                 {/* Taker Actions */}
-                {(address?.toLowerCase() ===
-                  selectedBet.taker_address.toLowerCase() ||
+                {((address &&
+                  isAddressInArray(address, selectedBet.taker_address)) ||
                   context?.user?.fid === selectedBet.taker_fid) &&
                   selectedBet.status === 0 && (
                     <div className="mb-4">
@@ -3576,8 +3603,8 @@ export default function Demo(
                 </div>
 
                 {/* Arbiter Actions */}
-                {(address?.toLowerCase() ===
-                  selectedBet.arbiter_address?.toLowerCase() ||
+                {((address &&
+                  isAddressInArray(address, selectedBet.arbiter_address)) ||
                   context?.user?.fid === selectedBet.arbiter_fid) &&
                   selectedBet.status === 1 && (
                     <div className="mb-4">
@@ -3709,8 +3736,8 @@ export default function Demo(
                   (address?.toLowerCase() ===
                     selectedBet.maker_address.toLowerCase() ||
                     context?.user?.fid === selectedBet.maker_fid ||
-                    address?.toLowerCase() ===
-                      selectedBet.taker_address.toLowerCase() ||
+                    (address &&
+                      isAddressInArray(address, selectedBet.taker_address)) ||
                     context?.user?.fid === selectedBet.taker_fid) && (
                     <div className="mb-4">
                       <div className="flex space-x-3">
@@ -3755,8 +3782,8 @@ export default function Demo(
                   )}
 
                 {selectedBet.status === 5 &&
-                  (address?.toLowerCase() ===
-                    selectedBet.taker_address.toLowerCase() ||
+                  ((address &&
+                    isAddressInArray(address, selectedBet.taker_address)) ||
                     context?.user?.fid === selectedBet.taker_fid) && (
                     <div className="mb-4">
                       <div className="flex space-x-3">

@@ -23,6 +23,9 @@ import UserSearchDropdown from "~/components/UserSearchDropdown";
 import { ShareModal } from "~/components/ShareModal";
 import { notifyBetCreated } from "~/lib/notificationUtils";
 import { calculateUSDValue, useTokenPrice } from "~/lib/prices";
+import { type Bet } from "~/types/bet";
+import { getTokenByAddress } from "~/lib/tokens";
+import { getTimeRemaining } from "~/lib/utils";
 
 interface User {
   fid: number;
@@ -31,6 +34,15 @@ interface User {
   pfpUrl: string;
   primaryEthAddress?: string;
   primarySolanaAddress?: string;
+}
+
+interface UserProfile {
+  fid: number;
+  username: string;
+  display_name: string;
+  pfp_url: string;
+  primaryEthAddress: string;
+  primarySolanaAddress: string;
 }
 
 function TokenSelectDropdown({
@@ -339,8 +351,14 @@ export default function CreateBet({
                 const supabaseBetData = {
                   bet_number: parseInt(betNumber),
                   maker_address: betData.maker as string,
-                  taker_address: betData.taker as string,
-                  arbiter_address: betData.arbiter as string,
+                  taker_address: Array.isArray(betData.taker)
+                    ? betData.taker
+                    : [betData.taker], // Ensure it's an array
+                  arbiter_address: betData.arbiter
+                    ? Array.isArray(betData.arbiter)
+                      ? betData.arbiter
+                      : [betData.arbiter]
+                    : null, // Ensure it's an array or null
                   bet_token_address: betData.betTokenAddress as string,
                   bet_amount: betAmountInTokens, // Keep original amount for display
                   bet_amount_wei: betAmountInWei.toString(), // Store wei amount
@@ -836,9 +854,10 @@ export default function CreateBet({
 
       // Prepare the transaction parameters for createBet function
       const createBetParams = [
-        selectedUser.primaryEthAddress as `0x${string}`, // _taker
-        (selectedArbiter?.primaryEthAddress as `0x${string}`) ||
-          ("0x0000000000000000000000000000000000000000" as `0x${string}`), // _arbiter
+        [selectedUser.primaryEthAddress as `0x${string}`], // _taker (now an array)
+        selectedArbiter?.primaryEthAddress
+          ? [selectedArbiter.primaryEthAddress as `0x${string}`]
+          : [], // _arbiter (now an array)
         selectedToken.address as `0x${string}`, // _betTokenAddress (zero address for native ETH)
         betAmountWei, // _betAmount
         canSettleEarly, // _canSettleEarly
@@ -949,9 +968,10 @@ export default function CreateBet({
 
       // Prepare the transaction parameters for createBet function
       const createBetParams = [
-        selectedUser.primaryEthAddress as `0x${string}`, // _taker
-        (selectedArbiter?.primaryEthAddress as `0x${string}`) ||
-          ("0x0000000000000000000000000000000000000000" as `0x${string}`), // _arbiter
+        [selectedUser.primaryEthAddress as `0x${string}`], // _taker (now an array)
+        selectedArbiter?.primaryEthAddress
+          ? [selectedArbiter.primaryEthAddress as `0x${string}`]
+          : [], // _arbiter (now an array)
         selectedToken.address as `0x${string}`, // _betTokenAddress (zero address for native ETH)
         betAmountWei, // _betAmount
         canSettleEarly, // _canSettleEarly

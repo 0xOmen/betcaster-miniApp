@@ -32,8 +32,8 @@ interface UserProfile {
 interface Bet {
   bet_number: number;
   maker_address: string;
-  taker_address: string;
-  arbiter_address: string | null;
+  taker_address: string[];
+  arbiter_address: string[] | null;
   bet_token_address: string;
   bet_amount: number;
   can_settle_early: boolean;
@@ -163,8 +163,10 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
         const currentTime = Math.floor(Date.now() / 1000);
         const openBets = data.bets.filter(
           (bet: Bet) =>
-            bet.taker_address ===
-              "0x0000000000000000000000000000000000000000" &&
+            (bet.taker_address.length === 0 ||
+              (bet.taker_address.length === 1 &&
+                bet.taker_address[0] ===
+                  "0x0000000000000000000000000000000000000000")) &&
             bet.end_time > currentTime
         );
 

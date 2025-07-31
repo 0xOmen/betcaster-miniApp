@@ -4,6 +4,11 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
     stateMutability: "nonpayable",
     type: "constructor",
   },
+  {
+    inputs: [],
+    name: "BetManagementEngine__ArrayCannotBeEmpty",
+    type: "error",
+  },
   { inputs: [], name: "BetManagementEngine__BetAmountMismatch", type: "error" },
   {
     inputs: [],
@@ -48,6 +53,11 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
     type: "error",
   },
   {
+    inputs: [],
+    name: "BetManagementEngine__ZeroAddressInArrary",
+    type: "error",
+  },
+  {
     inputs: [{ internalType: "address", name: "owner", type: "address" }],
     name: "OwnableInvalidOwner",
     type: "error",
@@ -70,8 +80,8 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
       {
         components: [
           { internalType: "address", name: "maker", type: "address" },
-          { internalType: "address", name: "taker", type: "address" },
-          { internalType: "address", name: "arbiter", type: "address" },
+          { internalType: "address[]", name: "taker", type: "address[]" },
+          { internalType: "address[]", name: "arbiter", type: "address[]" },
           { internalType: "address", name: "betTokenAddress", type: "address" },
           { internalType: "uint256", name: "betAmount", type: "uint256" },
           {
@@ -120,8 +130,8 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
       {
         components: [
           { internalType: "address", name: "maker", type: "address" },
-          { internalType: "address", name: "taker", type: "address" },
-          { internalType: "address", name: "arbiter", type: "address" },
+          { internalType: "address[]", name: "taker", type: "address[]" },
+          { internalType: "address[]", name: "arbiter", type: "address[]" },
           { internalType: "address", name: "betTokenAddress", type: "address" },
           { internalType: "uint256", name: "betAmount", type: "uint256" },
           {
@@ -189,8 +199,8 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
       {
         components: [
           { internalType: "address", name: "maker", type: "address" },
-          { internalType: "address", name: "taker", type: "address" },
-          { internalType: "address", name: "arbiter", type: "address" },
+          { internalType: "address[]", name: "taker", type: "address[]" },
+          { internalType: "address[]", name: "arbiter", type: "address[]" },
           { internalType: "address", name: "betTokenAddress", type: "address" },
           { internalType: "uint256", name: "betAmount", type: "uint256" },
           {
@@ -239,8 +249,8 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
       {
         components: [
           { internalType: "address", name: "maker", type: "address" },
-          { internalType: "address", name: "taker", type: "address" },
-          { internalType: "address", name: "arbiter", type: "address" },
+          { internalType: "address[]", name: "taker", type: "address[]" },
+          { internalType: "address[]", name: "arbiter", type: "address[]" },
           { internalType: "address", name: "betTokenAddress", type: "address" },
           { internalType: "uint256", name: "betAmount", type: "uint256" },
           {
@@ -300,8 +310,8 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
   {
     inputs: [
       { internalType: "uint256", name: "_betNumber", type: "uint256" },
-      { internalType: "address", name: "_taker", type: "address" },
-      { internalType: "address", name: "_arbiter", type: "address" },
+      { internalType: "address[]", name: "_taker", type: "address[]" },
+      { internalType: "address[]", name: "_arbiter", type: "address[]" },
       { internalType: "bool", name: "_canSettleEarly", type: "bool" },
       { internalType: "uint256", name: "_endTime", type: "uint256" },
       { internalType: "string", name: "_betAgreement", type: "string" },
@@ -320,8 +330,8 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
   },
   {
     inputs: [
-      { internalType: "address", name: "_taker", type: "address" },
-      { internalType: "address", name: "_arbiter", type: "address" },
+      { internalType: "address[]", name: "_taker", type: "address[]" },
+      { internalType: "address[]", name: "_arbiter", type: "address[]" },
       { internalType: "address", name: "_betTokenAddress", type: "address" },
       { internalType: "uint256", name: "_betAmount", type: "uint256" },
       { internalType: "bool", name: "_canSettleEarly", type: "bool" },
@@ -402,4 +412,4 @@ export const BET_MANAGEMENT_ENGINE_ABI = [
 
 // Contract address on Base blockchain
 export const BET_MANAGEMENT_ENGINE_ADDRESS =
-  "0x56b44e1434c44ddA3FB7fefBFeA87d5CC2Ff0478" as const;
+  "0xCAAC9afe3c7594608366e47c3482FD2A1D7F2137" as const;

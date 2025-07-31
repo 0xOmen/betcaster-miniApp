@@ -1,8 +1,8 @@
 export interface Bet {
   bet_number: number;
   maker_address: string;
-  taker_address: string;
-  arbiter_address: string | null;
+  taker_address: string[];
+  arbiter_address: string[] | null;
   bet_token_address: string;
   bet_amount: number;
   taker_bet_token_address: string;

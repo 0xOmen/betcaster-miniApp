@@ -23,8 +23,8 @@ export const Explore: FC = () => {
   const [isLoadingRecentBets, setIsLoadingRecentBets] = useState(false);
   const [blockchainBet, setBlockchainBet] = useState<{
     maker: string;
-    taker: string;
-    arbiter: string;
+    taker: string[];
+    arbiter: string[] | null;
     betTokenAddress: string;
     betAmount: bigint;
     timestamp: bigint;
@@ -252,8 +252,14 @@ export const Explore: FC = () => {
         const updatedBetData = {
           bet_number: selectedBet.bet_number,
           maker_address: chainBet.maker,
-          taker_address: chainBet.taker,
-          arbiter_address: chainBet.arbiter,
+          taker_address: Array.isArray(chainBet.taker)
+            ? chainBet.taker
+            : [chainBet.taker], // Ensure it's an array
+          arbiter_address: chainBet.arbiter
+            ? Array.isArray(chainBet.arbiter)
+              ? chainBet.arbiter
+              : [chainBet.arbiter]
+            : null, // Ensure it's an array or null
           bet_token_address: chainBet.betTokenAddress,
           bet_amount: betAmountFormatted,
           timestamp: Number(chainBet.timestamp),
@@ -313,8 +319,14 @@ export const Explore: FC = () => {
       const betData = {
         bet_number: parseInt(searchBetNumber),
         maker_address: blockchainBet.maker,
-        taker_address: blockchainBet.taker,
-        arbiter_address: blockchainBet.arbiter,
+        taker_address: Array.isArray(blockchainBet.taker)
+          ? blockchainBet.taker
+          : [blockchainBet.taker], // Ensure it's an array
+        arbiter_address: blockchainBet.arbiter
+          ? Array.isArray(blockchainBet.arbiter)
+            ? blockchainBet.arbiter
+            : [blockchainBet.arbiter]
+          : null, // Ensure it's an array or null
         bet_token_address: blockchainBet.betTokenAddress,
         bet_amount: betAmountFormatted,
         timestamp: Number(blockchainBet.timestamp),
@@ -419,7 +431,11 @@ export const Explore: FC = () => {
         chainBet.maker !== "0x0000000000000000000000000000000000000000"
       ) {
         // Store blockchain bet data for potential database addition
-        setBlockchainBet(chainBet);
+        setBlockchainBet({
+          ...chainBet,
+          taker: [...chainBet.taker],
+          arbiter: chainBet.arbiter ? [...chainBet.arbiter] : null,
+        });
 
         // Try to fetch FIDs for addresses
         let makerFid = null,
@@ -433,11 +449,15 @@ export const Explore: FC = () => {
           // Fetch FIDs for all addresses in parallel
           const [makerRes, takerRes, arbiterRes] = await Promise.all([
             fetch(`/api/users?address=${chainBet.maker}`),
-            chainBet.taker !== "0x0000000000000000000000000000000000000000"
-              ? fetch(`/api/users?address=${chainBet.taker}`)
+            chainBet.taker &&
+            chainBet.taker.length > 0 &&
+            chainBet.taker[0] !== "0x0000000000000000000000000000000000000000"
+              ? fetch(`/api/users?address=${chainBet.taker[0]}`)
               : Promise.resolve(null),
-            chainBet.arbiter !== "0x0000000000000000000000000000000000000000"
-              ? fetch(`/api/users?address=${chainBet.arbiter}`)
+            chainBet.arbiter &&
+            chainBet.arbiter.length > 0 &&
+            chainBet.arbiter[0] !== "0x0000000000000000000000000000000000000000"
+              ? fetch(`/api/users?address=${chainBet.arbiter[0]}`)
               : Promise.resolve(null),
           ]);
 
@@ -463,8 +483,16 @@ export const Explore: FC = () => {
 
           console.log("Found FIDs:", {
             maker: makerFid || chainBet.maker,
-            taker: takerFid || chainBet.taker,
-            arbiter: arbiterFid || chainBet.arbiter,
+            taker:
+              takerFid ||
+              (chainBet.taker && chainBet.taker.length > 0
+                ? chainBet.taker[0]
+                : null),
+            arbiter:
+              arbiterFid ||
+              (chainBet.arbiter && chainBet.arbiter.length > 0
+                ? chainBet.arbiter[0]
+                : null),
           });
         } catch (error) {
           console.error("Error fetching FIDs:", error);
@@ -480,8 +508,14 @@ export const Explore: FC = () => {
         const transformedBet = {
           bet_number: parseInt(betNumberToSearch),
           maker_address: chainBet.maker,
-          taker_address: chainBet.taker,
-          arbiter_address: chainBet.arbiter,
+          taker_address: Array.isArray(chainBet.taker)
+            ? chainBet.taker
+            : [chainBet.taker],
+          arbiter_address: chainBet.arbiter
+            ? Array.isArray(chainBet.arbiter)
+              ? chainBet.arbiter
+              : [chainBet.arbiter]
+            : null,
           bet_token_address: chainBet.betTokenAddress,
           bet_amount: betAmountFormatted, // This is the only change we keep
           timestamp: Number(chainBet.timestamp),

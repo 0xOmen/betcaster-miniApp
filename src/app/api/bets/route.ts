@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
     if (
       !maker_address ||
       !taker_address ||
+      !Array.isArray(taker_address) ||
+      taker_address.length === 0 ||
       !bet_token_address ||
       !bet_amount ||
       !timestamp ||
@@ -38,7 +40,18 @@ export async function POST(request: NextRequest) {
       !bet_number
     ) {
       return NextResponse.json(
-        { error: "Missing required fields including bet_number" },
+        {
+          error:
+            "Missing required fields including bet_number and valid taker_address array",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate arbiter_address if provided
+    if (arbiter_address && !Array.isArray(arbiter_address)) {
+      return NextResponse.json(
+        { error: "arbiter_address must be an array" },
         { status: 400 }
       );
     }
@@ -50,8 +63,8 @@ export async function POST(request: NextRequest) {
         {
           bet_number: body.bet_number, // Now required as primary key
           maker_address: body.maker_address,
-          taker_address: body.taker_address,
-          arbiter_address: body.arbiter_address || null,
+          taker_address: body.taker_address, // Now an array
+          arbiter_address: body.arbiter_address || null, // Now an array or null
           bet_token_address: body.bet_token_address,
           bet_amount: body.bet_amount,
           timestamp: body.timestamp,
@@ -119,14 +132,16 @@ export async function GET(request: NextRequest) {
       const conditions = [];
 
       if (address) {
+        // Updated to handle array fields - check if address is in any of the arrays
         conditions.push(
-          `maker_address.eq.${address},taker_address.eq.${address},arbiter_address.eq.${address}`
+          `maker_address.eq.${address},taker_address.cs.{${address}},arbiter_address.cs.{${address}}`
         );
       }
 
       if (fid) {
+        // Updated to handle array fields - check if fid is in any of the arrays
         conditions.push(
-          `maker_fid.eq.${fid},taker_fid.eq.${fid},arbiter_fid.eq.${fid}`
+          `maker_fid.eq.${fid},taker_fid.cs.{${fid}},arbiter_fid.cs.{${fid}}`
         );
       }
 
@@ -186,8 +201,8 @@ export async function PATCH(request: NextRequest) {
     const updateData: {
       status?: number;
       transaction_hash?: string | null;
-      taker_address?: string;
-      arbiter_address?: string | null;
+      taker_address?: string[];
+      arbiter_address?: string[] | null;
       end_time?: number;
       bet_agreement?: string;
     } = {};
@@ -204,10 +219,25 @@ export async function PATCH(request: NextRequest) {
 
     // Handle bet parameter updates (new functionality)
     if (body.taker_address !== undefined) {
+      if (!Array.isArray(body.taker_address)) {
+        return NextResponse.json(
+          { error: "taker_address must be an array" },
+          { status: 400 }
+        );
+      }
       updateData.taker_address = body.taker_address;
     }
 
     if (body.arbiter_address !== undefined) {
+      if (
+        body.arbiter_address !== null &&
+        !Array.isArray(body.arbiter_address)
+      ) {
+        return NextResponse.json(
+          { error: "arbiter_address must be an array or null" },
+          { status: 400 }
+        );
+      }
       updateData.arbiter_address = body.arbiter_address;
     }
 

@@ -3,6 +3,17 @@ import { type Bet } from "~/types/bet";
 import { getStatusInfo, formatEndTime, getTokenName } from "~/lib/betUtils";
 import { getTokenByAddress } from "~/lib/tokens";
 
+// Helper function to check if an address is in an array
+function isAddressInArray(
+  address: string,
+  addressArray: string[] | null
+): boolean {
+  if (!addressArray || addressArray.length === 0) return false;
+  return addressArray.some(
+    (addr) => addr.toLowerCase() === address.toLowerCase()
+  );
+}
+
 interface BetDetailsModalProps {
   bet: Bet;
   currentUserAddress?: string;
@@ -56,10 +67,12 @@ export function BetDetailsModal({
     currentUserAddress?.toLowerCase() === bet.maker_address.toLowerCase() ||
     currentUserFid === bet.maker_fid;
   const isTaker =
-    currentUserAddress?.toLowerCase() === bet.taker_address.toLowerCase() ||
+    (currentUserAddress &&
+      isAddressInArray(currentUserAddress, bet.taker_address)) ||
     currentUserFid === bet.taker_fid;
   const isArbiter =
-    currentUserAddress?.toLowerCase() === bet.arbiter_address?.toLowerCase() ||
+    (currentUserAddress &&
+      isAddressInArray(currentUserAddress, bet.arbiter_address)) ||
     currentUserFid === bet.arbiter_fid;
 
   return (
@@ -201,7 +214,7 @@ export function BetDetailsModal({
           )}
 
           {(isArbiter ||
-            (bet.arbiter_address ===
+            (bet.arbiter_address?.[0] ===
               "0x0000000000000000000000000000000000000000" &&
               !isMaker &&
               !isArbiter)) &&
