@@ -139,9 +139,9 @@ export async function GET(request: NextRequest) {
       }
 
       if (fid) {
-        // Updated to handle array fields - check if fid is in any of the arrays
+        // FIDs are single values, not arrays
         conditions.push(
-          `maker_fid.eq.${fid},taker_fid.cs.{${fid}},arbiter_fid.cs.{${fid}}`
+          `maker_fid.eq.${fid},taker_fid.eq.${fid},arbiter_fid.eq.${fid}`
         );
       }
 
