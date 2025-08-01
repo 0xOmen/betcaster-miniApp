@@ -1448,7 +1448,7 @@ export default function Demo(
                     body: JSON.stringify({
                       status: 1,
                       transaction_hash: hash,
-                      taker_address: address,
+                      taker_address: [address],
                     }),
                   }
                 );
