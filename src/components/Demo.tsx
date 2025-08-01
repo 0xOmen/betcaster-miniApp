@@ -2152,11 +2152,12 @@ export default function Demo(
 
       // Use provided values or fall back to original values
       const newTaker =
-        editTakerUser?.primaryEthAddress || selectedBet.taker_address;
+        editTakerUser?.primaryEthAddress || selectedBet.taker_address[0];
       const newArbiter =
         editArbiterUser?.primaryEthAddress ||
-        selectedBet.arbiter_address ||
-        "0x0000000000000000000000000000000000000000";
+        (selectedBet.arbiter_address && selectedBet.arbiter_address.length > 0
+          ? selectedBet.arbiter_address[0]
+          : "0x0000000000000000000000000000000000000000");
       const newBetAgreement = editBetAgreement || selectedBet.bet_agreement;
 
       // Encode the function call
@@ -2200,12 +2201,12 @@ export default function Demo(
                       "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                      taker_address: newTaker,
+                      taker_address: [newTaker],
                       arbiter_address:
                         newArbiter ===
                         "0x0000000000000000000000000000000000000000"
                           ? null
-                          : newArbiter,
+                          : [newArbiter],
                       can_settle_early: editCanSettleEarly,
                       end_time: newEndTime,
                       bet_agreement: newBetAgreement,
