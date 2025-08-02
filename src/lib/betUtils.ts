@@ -283,7 +283,7 @@ export function getUserCanSelectWinner(
 ): boolean {
   return (
     bet.status === 2 &&
-    Math.floor(Date.now() / 1000) > bet.end_time &&
+    (bet.can_settle_early || Math.floor(Date.now() / 1000) > bet.end_time) &&
     ((currentUserAddress &&
       isAddressInArray(currentUserAddress, bet.arbiter_address)) ||
       currentUserFid === bet.arbiter_fid)
