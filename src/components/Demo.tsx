@@ -1070,6 +1070,24 @@ export default function Demo(
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedBet(null);
+    // Reset all transaction states to prevent interference
+    setIsApproving(false);
+    setIsAccepting(false);
+    setIsCancelling(false);
+    setIsForfeiting(false);
+    setIsClaiming(false);
+    setIsAcceptingArbiter(false);
+    setIsEditing(false);
+    setIsSelectingWinner(false);
+    setApprovalTxHash(undefined);
+    setAcceptTxHash(undefined);
+    setCancelTxHash(undefined);
+    setForfeitTxHash(undefined);
+    setClaimTxHash(undefined);
+    setAcceptArbiterTxHash(undefined);
+    setEditTxHash(undefined);
+    setSelectWinnerTxHash(undefined);
+    setShowApprovalSuccess(false);
   };
 
   // Helper function to apply the same filtering logic as fetchUserBets
