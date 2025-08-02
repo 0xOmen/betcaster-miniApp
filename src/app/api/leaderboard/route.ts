@@ -44,6 +44,8 @@ export async function PATCH(request: NextRequest) {
     console.log("🔍 API: Updating leaderboard data");
 
     const body = await request.json();
+    console.log("🔍 API: Received body:", body);
+
     const {
       maker_fid,
       taker_fid,
@@ -55,6 +57,16 @@ export async function PATCH(request: NextRequest) {
     } = body;
 
     // Handle bet acceptance (increment total_bets)
+    console.log(
+      "🔍 API: Bet acceptance check - maker_fid:",
+      maker_fid,
+      "taker_fid:",
+      taker_fid,
+      "winner_fid:",
+      winner_fid,
+      "loser_fid:",
+      loser_fid
+    );
     if ((maker_fid || taker_fid) && !winner_fid && !loser_fid) {
       if (!maker_fid && !taker_fid) {
         return NextResponse.json(
@@ -255,6 +267,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Handle winner selection (increment wins for winner, losses for loser)
+    console.log(
+      "🔍 API: Winner selection logic - winner_fid:",
+      winner_fid,
+      "loser_fid:",
+      loser_fid
+    );
     if (winner_fid || loser_fid) {
       let updateCount = 0;
 
@@ -349,6 +367,7 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
+    console.log("🔍 API: No valid parameters provided - returning 400 error");
     return NextResponse.json(
       { error: "No valid parameters provided" },
       { status: 400 }
