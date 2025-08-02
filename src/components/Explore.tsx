@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type { FC } from "react";
 import { useState, useEffect } from "react";
-import { useAccount } from "wagmi";
+import {
+  useAccount,
+  useSendTransaction,
+  useSwitchChain,
+  useChainId,
+} from "wagmi";
 import { useMiniApp } from "@neynar/react";
 import { type Bet } from "~/types/bet";
 import { BetCard } from "./BetCard";
@@ -12,6 +17,13 @@ import { BETCASTER_ABI, BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
 import { calculateUSDValue, useTokenPrice } from "~/lib/prices";
 import { useContractRead } from "wagmi";
 import { getTokenByAddress, weiToAmount } from "~/lib/tokens";
+import { base } from "wagmi/chains";
+import { encodeFunctionData } from "viem";
+import {
+  ARBITER_MANAGEMENT_ENGINE_ABI,
+  ARBITER_MANAGEMENT_ENGINE_ADDRESS,
+} from "~/lib/arbiterAbi";
+import { notifyWinnerSelected } from "~/lib/notificationUtils";
 
 export const Explore: FC = () => {
   const [searchBetNumber, setSearchBetNumber] = useState("");
@@ -36,7 +48,13 @@ export const Explore: FC = () => {
   } | null>(null); // Add state for blockchain bet
   const [isAddingToDb, setIsAddingToDb] = useState(false); // Add loading state
   const [isRefreshingFromChain, setIsRefreshingFromChain] = useState(false); // Add loading state for refresh
+  const [isSelectingWinner, setIsSelectingWinner] = useState(false); // Add loading state for winner selection
+  const [selectedWinner, setSelectedWinner] = useState<string | null>(null); // Add state for winner selection
+  const [isSelectWinnerModalOpen, setIsSelectWinnerModalOpen] = useState(false); // Add state for winner selection modal
   const { address } = useAccount();
+  const { sendTransaction } = useSendTransaction();
+  const { switchChain } = useSwitchChain();
+  const chainId = useChainId();
 
   // Get token price for selected bet
   const { data: tokenPriceData } = useTokenPrice(
@@ -567,6 +585,283 @@ export const Explore: FC = () => {
     setShowApprovalSuccess(false);
   };
 
+  // Helper function to get token name
+  const getTokenName = (tokenAddress: string): string => {
+    const token = getTokenByAddress(tokenAddress);
+    return token ? token.symbol : "Unknown Token";
+  };
+
+  // Function to open select winner modal
+  const openSelectWinnerModal = (bet: Bet) => {
+    setSelectedBet(bet);
+    setSelectedWinner(null);
+    setIsSelectWinnerModalOpen(true);
+  };
+
+  // Function to close select winner modal
+  const closeSelectWinnerModal = () => {
+    setIsSelectWinnerModalOpen(false);
+    setSelectedWinner(null);
+  };
+
+  // Function to handle winner selection
+  const handleSelectWinnerAction = async () => {
+    if (!selectedBet || !selectedWinner) {
+      console.error(
+        "Cannot select winner: no bet selected or no winner selected"
+      );
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
+    try {
+      setIsSelectingWinner(true);
+      console.log(
+        "Selecting winner for bet #",
+        selectedBet.bet_number,
+        "Bet Parameters True:",
+        selectedWinner
+      );
+
+      // Convert string to boolean
+      const betParamsTrue = selectedWinner === "true";
+
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: ARBITER_MANAGEMENT_ENGINE_ABI,
+        functionName: "selectWinner",
+        args: [BigInt(selectedBet.bet_number), betParamsTrue],
+      });
+
+      console.log("Encoded select winner transaction data:", encodedData);
+
+      // Send the transaction
+      sendTransaction(
+        {
+          to: ARBITER_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+          data: encodedData as `0x${string}`,
+        },
+        {
+          onSuccess: async (hash: `0x${string}`) => {
+            console.log("Select winner transaction sent successfully:", hash);
+
+            // Close modal after successful transaction
+            setTimeout(async () => {
+              closeSelectWinnerModal();
+              // Update database with the winner status
+              try {
+                const winnerStatus = betParamsTrue ? 4 : 5; // 4 = maker wins (true), 5 = taker wins (false)
+                const updateResponse = await fetch(
+                  `/api/bets?betNumber=${selectedBet.bet_number}`,
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      status: winnerStatus,
+                      transaction_hash: hash,
+                    }),
+                  }
+                );
+
+                if (!updateResponse.ok) {
+                  console.error("Failed to update bet status in database");
+                } else {
+                  console.log(
+                    `Bet status updated to ${winnerStatus} in database`
+                  );
+
+                  // Send notification to maker about winner selection
+                  if (selectedBet.maker_fid) {
+                    try {
+                      const makerNotificationResult =
+                        await notifyWinnerSelected(selectedBet.maker_fid, {
+                          betNumber: selectedBet.bet_number,
+                          betAmount: selectedBet.bet_amount.toString(),
+                          tokenName: getTokenName(
+                            selectedBet.bet_token_address
+                          ),
+                          makerName:
+                            selectedBet.makerProfile?.display_name ||
+                            selectedBet.makerProfile?.username,
+                          takerName:
+                            selectedBet.takerProfile?.display_name ||
+                            selectedBet.takerProfile?.username,
+                          arbiterName:
+                            selectedBet.arbiterProfile?.display_name ||
+                            selectedBet.arbiterProfile?.username,
+                          betAgreement: selectedBet.bet_agreement,
+                          endTime: new Date(
+                            selectedBet.end_time * 1000
+                          ).toLocaleString(),
+                        });
+
+                      if (makerNotificationResult.success) {
+                        console.log(
+                          "Notification sent to maker about winner selection"
+                        );
+                      } else {
+                        console.error(
+                          "Failed to send notification to maker:",
+                          makerNotificationResult.error
+                        );
+                      }
+                    } catch (notificationError) {
+                      console.error(
+                        "Error sending notification to maker:",
+                        notificationError
+                      );
+                    }
+                  }
+
+                  // Send notification to taker about winner selection
+                  if (selectedBet.taker_fid) {
+                    try {
+                      const takerNotificationResult =
+                        await notifyWinnerSelected(selectedBet.taker_fid, {
+                          betNumber: selectedBet.bet_number,
+                          betAmount: selectedBet.bet_amount.toString(),
+                          tokenName: getTokenName(
+                            selectedBet.bet_token_address
+                          ),
+                          makerName:
+                            selectedBet.makerProfile?.display_name ||
+                            selectedBet.makerProfile?.username,
+                          takerName:
+                            selectedBet.takerProfile?.display_name ||
+                            selectedBet.takerProfile?.username,
+                          arbiterName:
+                            selectedBet.arbiterProfile?.display_name ||
+                            selectedBet.arbiterProfile?.username,
+                          betAgreement: selectedBet.bet_agreement,
+                          endTime: new Date(
+                            selectedBet.end_time * 1000
+                          ).toLocaleString(),
+                        });
+
+                      if (takerNotificationResult.success) {
+                        console.log(
+                          "Notification sent to taker about winner selection"
+                        );
+                      } else {
+                        console.error(
+                          "Failed to send notification to taker:",
+                          takerNotificationResult.error
+                        );
+                      }
+                    } catch (notificationError) {
+                      console.error(
+                        "Error sending notification to taker:",
+                        notificationError
+                      );
+                    }
+                  }
+
+                  // Update leaderboard for winner selection
+                  try {
+                    let winnerFid: number | null = null;
+                    let loserFid: number | null = null;
+
+                    if (betParamsTrue) {
+                      // Maker wins (true)
+                      winnerFid = selectedBet.maker_fid || null;
+                      loserFid = selectedBet.taker_fid || null;
+                    } else {
+                      // Taker wins (false)
+                      winnerFid = selectedBet.taker_fid || null;
+                      loserFid = selectedBet.maker_fid || null;
+                    }
+
+                    if (
+                      winnerFid &&
+                      loserFid &&
+                      winnerFid !== null &&
+                      loserFid !== null
+                    ) {
+                      // Calculate PnL amount (bet amount × token price)
+                      const pnlAmount = tokenPriceData?.[0]
+                        ? calculateUSDValue(
+                            selectedBet.bet_amount,
+                            Number(tokenPriceData[0])
+                          )
+                        : 0;
+
+                      const leaderboardUpdateResponse = await fetch(
+                        "/api/leaderboard",
+                        {
+                          method: "PATCH",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            winner_fid: winnerFid,
+                            loser_fid: loserFid,
+                            pnl_amount: pnlAmount,
+                          }),
+                        }
+                      );
+
+                      if (leaderboardUpdateResponse.ok) {
+                        console.log(
+                          "Leaderboard updated successfully for winner selection"
+                        );
+                      } else {
+                        console.error(
+                          "Failed to update leaderboard for winner selection"
+                        );
+                      }
+                    } else {
+                      console.warn("Cannot update leaderboard: missing FIDs", {
+                        winnerFid,
+                        loserFid,
+                        maker_fid: selectedBet.maker_fid,
+                        taker_fid: selectedBet.taker_fid,
+                      });
+                    }
+                  } catch (leaderboardError) {
+                    console.error(
+                      "Error updating leaderboard for winner selection:",
+                      leaderboardError
+                    );
+                  }
+
+                  // Refresh the bets list to show updated data
+                  await refreshBets();
+                }
+              } catch (error) {
+                console.error("Error updating bet status:", error);
+              }
+            }, 2000);
+          },
+          onError: (error: Error) => {
+            console.error("Select winner transaction failed:", error);
+            setIsSelectingWinner(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error selecting winner:", error);
+      setIsSelectingWinner(false);
+    }
+  };
+
+  // Wrapper function to handle select winner action
+  const handleSelectWinnerWrapper = (bet: Bet) => {
+    openSelectWinnerModal(bet);
+  };
+
   const handleShare = async (bet: Bet) => {
     const baseUrl = window.location.origin;
     // Change the URL format to use 'B' prefix for bet numbers
@@ -714,6 +1009,7 @@ export const Explore: FC = () => {
           onForfeit={() => handleForfeitBet(selectedBet)}
           onClaimWinnings={() => handleClaimWinnings(selectedBet)}
           onAcceptArbiter={() => handleAcceptArbiterRole(selectedBet)}
+          onSelectWinner={() => handleSelectWinnerWrapper(selectedBet)}
           onRefreshFromChain={handleRefreshFromChain}
           isApproving={isApproving}
           isAccepting={isAccepting}
@@ -722,8 +1018,110 @@ export const Explore: FC = () => {
           isForfeiting={isForfeiting}
           isClaiming={isClaiming}
           isAcceptingArbiter={isAcceptingArbiter}
+          isSelectingWinner={isSelectingWinner}
           showApprovalSuccess={showApprovalSuccess}
         />
+      )}
+
+      {/* Winner Selection Modal */}
+      {isSelectWinnerModalOpen && selectedBet && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Select Winner
+                </h2>
+                <button
+                  onClick={closeSelectWinnerModal}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Bet #{selectedBet.bet_number}: {selectedBet.bet_agreement}
+                </p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  Select the winner based on whether the bet agreement is true
+                  or false:
+                </p>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                <button
+                  onClick={() => setSelectedWinner("true")}
+                  className={`w-full p-3 text-left rounded-lg border transition-colors ${
+                    selectedWinner === "true"
+                      ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                      : "border-gray-300 dark:border-gray-600 hover:border-purple-300"
+                  }`}
+                >
+                  <div className="font-medium text-gray-900 dark:text-gray-100">
+                    {selectedBet.makerProfile?.display_name ||
+                      selectedBet.makerProfile?.username ||
+                      "Maker"}{" "}
+                    Wins
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Bet agreement is TRUE
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setSelectedWinner("false")}
+                  className={`w-full p-3 text-left rounded-lg border transition-colors ${
+                    selectedWinner === "false"
+                      ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                      : "border-gray-300 dark:border-gray-600 hover:border-purple-300"
+                  }`}
+                >
+                  <div className="font-medium text-gray-900 dark:text-gray-100">
+                    {selectedBet.takerProfile?.display_name ||
+                      selectedBet.takerProfile?.username ||
+                      "Taker"}{" "}
+                    Wins
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Bet agreement is FALSE
+                  </div>
+                </button>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={closeSelectWinnerModal}
+                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSelectWinnerAction}
+                  disabled={!selectedWinner || isSelectingWinner}
+                  className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSelectingWinner
+                    ? "Selecting Winner..."
+                    : "Confirm Selection"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -3020,7 +3020,7 @@ export default function Demo(
                             {bet.takerProfile?.display_name || "Unknown"}
                           </div>
 
-                          {/* Forfeit Actions for Status 2 */}
+                          {/* Arbiter Actions for Status 2 */}
                           {bet.status === 2 && (
                             <>
                               {console.log(

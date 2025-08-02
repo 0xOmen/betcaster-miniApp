@@ -26,6 +26,7 @@ interface BetDetailsModalProps {
   onForfeit?: () => void;
   onClaimWinnings?: () => void;
   onAcceptArbiter?: () => void;
+  onSelectWinner?: () => void;
   onRefreshFromChain?: () => void;
   isApproving?: boolean;
   isAccepting?: boolean;
@@ -33,6 +34,7 @@ interface BetDetailsModalProps {
   isForfeiting?: boolean;
   isClaiming?: boolean;
   isAcceptingArbiter?: boolean;
+  isSelectingWinner?: boolean;
   isRefreshingFromChain?: boolean;
   showApprovalSuccess?: boolean;
 }
@@ -49,6 +51,7 @@ export function BetDetailsModal({
   onForfeit,
   onClaimWinnings,
   onAcceptArbiter,
+  onSelectWinner,
   onRefreshFromChain,
   isApproving,
   isAccepting,
@@ -56,6 +59,7 @@ export function BetDetailsModal({
   isForfeiting,
   isClaiming,
   isAcceptingArbiter,
+  isSelectingWinner,
   isRefreshingFromChain,
   showApprovalSuccess,
 }: BetDetailsModalProps) {
@@ -242,6 +246,23 @@ export function BetDetailsModal({
               </button>
             </div>
           )}
+
+          {/* Arbiter Select Winner Actions for Status 2 */}
+          {bet.status === 2 &&
+            isArbiter &&
+            onSelectWinner &&
+            (bet.can_settle_early ||
+              Math.floor(Date.now() / 1000) > bet.end_time) && (
+              <div className="mb-4">
+                <button
+                  onClick={onSelectWinner}
+                  disabled={isSelectingWinner}
+                  className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSelectingWinner ? "Selecting Winner..." : "Select Winner"}
+                </button>
+              </div>
+            )}
 
           {((bet.status === 4 && isMaker) || (bet.status === 5 && isTaker)) &&
             onClaimWinnings && (
