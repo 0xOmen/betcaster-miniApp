@@ -2567,6 +2567,22 @@ export default function Demo(
                       loserFid = selectedBet.maker_fid || null;
                     }
 
+                    console.log("Demo.tsx - Leaderboard update data:", {
+                      winnerFid,
+                      loserFid,
+                      pnlAmount: tokenPriceData?.[0]
+                        ? calculateUSDValue(
+                            selectedBet.bet_amount,
+                            Number(tokenPriceData[0])
+                          )
+                        : 0,
+                      selectedBet: {
+                        maker_fid: selectedBet.maker_fid,
+                        taker_fid: selectedBet.taker_fid,
+                        bet_amount: selectedBet.bet_amount,
+                      },
+                    });
+
                     if (
                       winnerFid &&
                       loserFid &&
@@ -2604,6 +2620,9 @@ export default function Demo(
                         console.error(
                           "Failed to update leaderboard for winner selection"
                         );
+                        const errorData =
+                          await leaderboardUpdateResponse.json();
+                        console.error("Leaderboard error details:", errorData);
                       }
                     } else {
                       console.warn("Cannot update leaderboard: missing FIDs", {

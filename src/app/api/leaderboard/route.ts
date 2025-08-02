@@ -168,16 +168,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Handle bet forfeit (increment losses for forfeiter, wins for winner)
-    if (forfeiter_fid || winner_fid) {
-      if (!forfeiter_fid || !winner_fid) {
-        return NextResponse.json(
-          {
-            error: "Both forfeiter_fid and winner_fid are required for forfeit",
-          },
-          { status: 400 }
-        );
-      }
-
+    if (forfeiter_fid && winner_fid) {
       // Update forfeiter's losses and pnl
       const { data: forfeiterData, error: forfeiterCheckError } =
         await supabaseAdmin
