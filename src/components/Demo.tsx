@@ -3542,15 +3542,15 @@ export default function Demo(
                           <div>
                             <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
                               Important: You will win if the bet agreement below
-                              resolves to false.
+                              is found to be FALSE.
                             </h3>
                             <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
                               <p>
-                                By accepting this bet, you agree that you will
-                                lose your tokens if the bet agreement is
-                                determined to be true by the arbiter. Make sure
-                                you understand the bet conditions before
-                                proceeding.
+                                Alternatively, by accepting this bet, you agree
+                                that you will lose your tokens if the bet
+                                agreement is determined to be true by the
+                                arbiter. Make sure you understand the bet
+                                conditions before proceeding.
                               </p>
                             </div>
                           </div>
@@ -3606,7 +3606,10 @@ export default function Demo(
                 {/* Bet Agreement */}
                 <div className="mb-4">
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Maker wins if:
+                    {selectedBet.makerProfile?.display_name ||
+                      selectedBet.makerProfile?.username ||
+                      "Maker"}{" "}
+                    wins if:
                   </h3>
                   <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
@@ -4050,7 +4053,10 @@ export default function Demo(
                   {/* Bet Agreement */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Maker wins if:
+                      {selectedBet.makerProfile?.display_name ||
+                        selectedBet.makerProfile?.username ||
+                        "Maker"}{" "}
+                      wins if:
                     </label>
                     <textarea
                       value={editBetAgreement}
