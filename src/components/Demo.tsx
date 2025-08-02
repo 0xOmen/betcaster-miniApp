@@ -2549,8 +2549,13 @@ export default function Demo(
                       loserFid = selectedBet.maker_fid || null;
                     }
 
-                    if (winnerFid && loserFid) {
-                      // Calculate PnL amount (bet amount × 2 × token price)
+                    if (
+                      winnerFid &&
+                      loserFid &&
+                      winnerFid !== null &&
+                      loserFid !== null
+                    ) {
+                      // Calculate PnL amount (bet amount × token price)
                       const pnlAmount = tokenPriceData?.[0]
                         ? calculateUSDValue(
                             selectedBet.bet_amount,
@@ -2582,6 +2587,13 @@ export default function Demo(
                           "Failed to update leaderboard for winner selection"
                         );
                       }
+                    } else {
+                      console.warn("Cannot update leaderboard: missing FIDs", {
+                        winnerFid,
+                        loserFid,
+                        maker_fid: selectedBet.maker_fid,
+                        taker_fid: selectedBet.taker_fid,
+                      });
                     }
                   } catch (leaderboardError) {
                     console.error(

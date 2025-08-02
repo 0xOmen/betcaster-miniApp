@@ -256,99 +256,96 @@ export async function PATCH(request: NextRequest) {
 
     // Handle winner selection (increment wins for winner, losses for loser)
     if (winner_fid || loser_fid) {
-      if (!winner_fid || !loser_fid) {
-        return NextResponse.json(
-          {
-            error:
-              "Both winner_fid and loser_fid are required for winner selection",
-          },
-          { status: 400 }
-        );
-      }
+      let updateCount = 0;
 
-      // Update winner's wins and pnl
-      const { data: winnerData, error: winnerCheckError } = await supabaseAdmin
-        .from("leaderboard")
-        .select("wins, pnl")
-        .eq("fid", winner_fid)
-        .single();
+      // Update winner's wins and pnl if present
+      if (winner_fid) {
+        try {
+          const { data: winnerData, error: winnerCheckError } =
+            await supabaseAdmin
+              .from("leaderboard")
+              .select("wins, pnl")
+              .eq("fid", winner_fid)
+              .single();
 
-      if (winnerCheckError && winnerCheckError.code !== "PGRST116") {
-        console.error("Error checking winner leaderboard:", winnerCheckError);
-        return NextResponse.json(
-          { error: "Failed to check winner leaderboard" },
-          { status: 500 }
-        );
-      }
+          if (winnerCheckError && winnerCheckError.code !== "PGRST116") {
+            console.error(
+              "Error checking winner leaderboard:",
+              winnerCheckError
+            );
+          } else {
+            const winnerWins = winnerData?.wins || 0;
+            const winnerPnl = winnerData?.pnl || 0;
+            const { error: winnerError } = await supabaseAdmin
+              .from("leaderboard")
+              .upsert(
+                {
+                  fid: winner_fid,
+                  wins: winnerWins + 1,
+                  pnl: winnerPnl + (pnl_amount || 0),
+                },
+                {
+                  onConflict: "fid",
+                }
+              );
 
-      const winnerWins = winnerData?.wins || 0;
-      const winnerPnl = winnerData?.pnl || 0;
-      const { error: winnerError } = await supabaseAdmin
-        .from("leaderboard")
-        .upsert(
-          {
-            fid: winner_fid,
-            wins: winnerWins + 1,
-            pnl: winnerPnl + (pnl_amount || 0),
-          },
-          {
-            onConflict: "fid",
+            if (winnerError) {
+              console.error("Error updating winner leaderboard:", winnerError);
+            } else {
+              updateCount++;
+            }
           }
-        );
-
-      if (winnerError) {
-        console.error("Error updating winner leaderboard:", winnerError);
-        return NextResponse.json(
-          { error: "Failed to update winner leaderboard" },
-          { status: 500 }
-        );
+        } catch (error) {
+          console.error("Error updating winner:", error);
+        }
       }
 
-      // Update loser's losses and pnl
-      const { data: loserData, error: loserCheckError } = await supabaseAdmin
-        .from("leaderboard")
-        .select("losses, pnl")
-        .eq("fid", loser_fid)
-        .single();
+      // Update loser's losses and pnl if present
+      if (loser_fid) {
+        try {
+          const { data: loserData, error: loserCheckError } =
+            await supabaseAdmin
+              .from("leaderboard")
+              .select("losses, pnl")
+              .eq("fid", loser_fid)
+              .single();
 
-      if (loserCheckError && loserCheckError.code !== "PGRST116") {
-        console.error("Error checking loser leaderboard:", loserCheckError);
-        return NextResponse.json(
-          { error: "Failed to check loser leaderboard" },
-          { status: 500 }
-        );
-      }
+          if (loserCheckError && loserCheckError.code !== "PGRST116") {
+            console.error("Error checking loser leaderboard:", loserCheckError);
+          } else {
+            const loserLosses = loserData?.losses || 0;
+            const loserPnl = loserData?.pnl || 0;
+            const { error: loserError } = await supabaseAdmin
+              .from("leaderboard")
+              .upsert(
+                {
+                  fid: loser_fid,
+                  losses: loserLosses + 1,
+                  pnl: loserPnl - (pnl_amount || 0),
+                },
+                {
+                  onConflict: "fid",
+                }
+              );
 
-      const loserLosses = loserData?.losses || 0;
-      const loserPnl = loserData?.pnl || 0;
-      const { error: loserError } = await supabaseAdmin
-        .from("leaderboard")
-        .upsert(
-          {
-            fid: loser_fid,
-            losses: loserLosses + 1,
-            pnl: loserPnl - (pnl_amount || 0),
-          },
-          {
-            onConflict: "fid",
+            if (loserError) {
+              console.error("Error updating loser leaderboard:", loserError);
+            } else {
+              updateCount++;
+            }
           }
-        );
-
-      if (loserError) {
-        console.error("Error updating loser leaderboard:", loserError);
-        return NextResponse.json(
-          { error: "Failed to update loser leaderboard" },
-          { status: 500 }
-        );
+        } catch (error) {
+          console.error("Error updating loser:", error);
+        }
       }
 
       console.log(
-        "✅ API: Leaderboard updated successfully for winner selection"
+        `✅ API: Leaderboard updated successfully for winner selection (${updateCount} updates)`
       );
 
       return NextResponse.json({
         success: true,
-        message: "Leaderboard updated successfully for winner selection",
+        message: `Leaderboard updated successfully for winner selection (${updateCount} updates)`,
       });
     }
 
