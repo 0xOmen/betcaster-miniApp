@@ -234,71 +234,83 @@ export const Explore: FC = () => {
 
     setIsRefreshingFromChain(true);
     try {
-      // Fetch latest data from blockchain
-      const { data: chainBet } = await refetchBet();
-      console.log("Refreshed blockchain bet data:", chainBet);
+      // Temporarily set searchBetNumber to the selected bet's number for the contract read
+      const originalSearchBetNumber = searchBetNumber;
+      setSearchBetNumber(selectedBet.bet_number.toString());
 
-      if (
-        chainBet &&
-        chainBet.maker !== "0x0000000000000000000000000000000000000000"
-      ) {
-        // Convert bet amount using token decimals
-        const betAmountFormatted = weiToAmount(
-          BigInt(chainBet.betAmount.toString()),
-          chainBet.betTokenAddress
-        );
+      // Wait a moment for state to update, then fetch
+      setTimeout(async () => {
+        const { data: chainBet } = await refetchBet();
+        console.log("Refreshed blockchain bet data:", chainBet);
 
-        // Prepare updated bet data for database
-        const updatedBetData = {
-          bet_number: selectedBet.bet_number,
-          maker_address: chainBet.maker,
-          taker_address: Array.isArray(chainBet.taker)
-            ? chainBet.taker
-            : [chainBet.taker], // Ensure it's an array
-          arbiter_address: chainBet.arbiter
-            ? Array.isArray(chainBet.arbiter)
-              ? chainBet.arbiter
-              : [chainBet.arbiter]
-            : null, // Ensure it's an array or null
-          bet_token_address: chainBet.betTokenAddress,
-          bet_amount: betAmountFormatted,
-          timestamp: Number(chainBet.timestamp),
-          end_time: Number(chainBet.endTime),
-          status: Number(chainBet.status),
-          protocol_fee: Number(chainBet.protocolFee) / 100, // Convert from basis points
-          arbiter_fee: Number(chainBet.arbiterFee) / 100, // Convert from basis points
-          bet_agreement: chainBet.betAgreement,
-          can_settle_early: chainBet.canSettleEarly,
-        };
+        // Restore original search bet number
+        setSearchBetNumber(originalSearchBetNumber);
 
-        // Update the bet in the database
-        const response = await fetch(
-          `/api/bets?betNumber=${selectedBet.bet_number}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updatedBetData),
+        if (
+          chainBet &&
+          chainBet.maker !== "0x0000000000000000000000000000000000000000"
+        ) {
+          // Convert bet amount using token decimals
+          const betAmountFormatted = weiToAmount(
+            BigInt(chainBet.betAmount.toString()),
+            chainBet.betTokenAddress
+          );
+
+          // Prepare updated bet data for database
+          const updatedBetData = {
+            bet_number: selectedBet.bet_number,
+            maker_address: chainBet.maker,
+            taker_address: Array.isArray(chainBet.taker)
+              ? chainBet.taker
+              : [chainBet.taker], // Ensure it's an array
+            arbiter_address: chainBet.arbiter
+              ? Array.isArray(chainBet.arbiter)
+                ? chainBet.arbiter
+                : [chainBet.arbiter]
+              : null, // Ensure it's an array or null
+            bet_token_address: chainBet.betTokenAddress,
+            bet_amount: betAmountFormatted,
+            timestamp: Number(chainBet.timestamp),
+            end_time: Number(chainBet.endTime),
+            status: Number(chainBet.status),
+            protocol_fee: Number(chainBet.protocolFee) / 100, // Convert from basis points
+            arbiter_fee: Number(chainBet.arbiterFee) / 100, // Convert from basis points
+            bet_agreement: chainBet.betAgreement,
+            can_settle_early: chainBet.canSettleEarly,
+          };
+
+          // Update the bet in the database
+          const response = await fetch(
+            `/api/bets?betNumber=${selectedBet.bet_number}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(updatedBetData),
+            }
+          );
+
+          if (response.ok) {
+            // Refresh the search to show the updated bet
+            await handleSearch(selectedBet.bet_number.toString());
+            console.log("Bet refreshed from blockchain successfully");
+          } else {
+            const errorData = await response.json();
+            console.error("Failed to refresh bet from blockchain:", errorData);
+            alert("Failed to refresh bet from blockchain");
           }
-        );
-
-        if (response.ok) {
-          // Refresh the search to show the updated bet
-          await handleSearch(selectedBet.bet_number.toString());
-          console.log("Bet refreshed from blockchain successfully");
         } else {
-          const errorData = await response.json();
-          console.error("Failed to refresh bet from blockchain:", errorData);
-          alert("Failed to refresh bet from blockchain");
+          alert("No valid bet found on blockchain");
         }
-      } else {
-        alert("No valid bet found on blockchain");
-      }
+
+        setIsRefreshingFromChain(false);
+      }, 100);
+
+      return; // Exit early since we're handling the rest in setTimeout
     } catch (error) {
       console.error("Error refreshing bet from blockchain:", error);
       alert("Error refreshing bet from blockchain");
-    } finally {
       setIsRefreshingFromChain(false);
     }
   };
