@@ -3603,6 +3603,68 @@ export default function Demo(
                   </div>
                 </div>
 
+                {/* Bet Details - Show first for arbiter acceptance */}
+                {((address &&
+                  isAddressInArray(address, selectedBet.arbiter_address)) ||
+                  context?.user?.fid === selectedBet.arbiter_fid) &&
+                  selectedBet.status === 1 && (
+                    <div className="mb-4">
+                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Bet Details
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Wager:
+                          </span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {selectedBet.bet_amount}
+                          </span>
+                          <div className="flex items-center space-x-2">
+                            {(() => {
+                              const token = getTokenByAddress(
+                                selectedBet.bet_token_address
+                              );
+                              return (
+                                <>
+                                  {token && (
+                                    <img
+                                      src={token.image}
+                                      alt={token.name}
+                                      className="w-5 h-5 rounded-full"
+                                    />
+                                  )}
+                                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {getTokenName(
+                                      selectedBet.bet_token_address
+                                    )}
+                                  </span>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                        {/* Arbiter Fee */}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Arbiter Fee:
+                          </span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {selectedBet.arbiter_fee}%
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            End Time:
+                          </span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {formatEndTime(selectedBet.end_time)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                 {/* Arbiter Actions */}
                 {((address &&
                   isAddressInArray(address, selectedBet.arbiter_address)) ||
@@ -3677,60 +3739,67 @@ export default function Demo(
                   </div>
                 </div>
 
-                {/* Bet Details */}
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Bet Details
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Wager:
-                      </span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {selectedBet.bet_amount}
-                      </span>
+                {/* Bet Details - Show for all other cases */}
+                {!(
+                  ((address &&
+                    isAddressInArray(address, selectedBet.arbiter_address)) ||
+                    context?.user?.fid === selectedBet.arbiter_fid) &&
+                  selectedBet.status === 1
+                ) && (
+                  <div className="mb-4">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Bet Details
+                    </h3>
+                    <div className="space-y-2">
                       <div className="flex items-center space-x-2">
-                        {(() => {
-                          const token = getTokenByAddress(
-                            selectedBet.bet_token_address
-                          );
-                          return (
-                            <>
-                              {token && (
-                                <img
-                                  src={token.image}
-                                  alt={token.name}
-                                  className="w-5 h-5 rounded-full"
-                                />
-                              )}
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {getTokenName(selectedBet.bet_token_address)}
-                              </span>
-                            </>
-                          );
-                        })()}
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Wager:
+                        </span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {selectedBet.bet_amount}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          {(() => {
+                            const token = getTokenByAddress(
+                              selectedBet.bet_token_address
+                            );
+                            return (
+                              <>
+                                {token && (
+                                  <img
+                                    src={token.image}
+                                    alt={token.name}
+                                    className="w-5 h-5 rounded-full"
+                                  />
+                                )}
+                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {getTokenName(selectedBet.bet_token_address)}
+                                </span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                      {/* Arbiter Fee */}
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          Arbiter Fee:
+                        </span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {selectedBet.arbiter_fee}%
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          End Time:
+                        </span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {formatEndTime(selectedBet.end_time)}
+                        </span>
                       </div>
                     </div>
-                    {/* Arbiter Fee */}
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Arbiter Fee:
-                      </span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {selectedBet.arbiter_fee}%
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        End Time:
-                      </span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {formatEndTime(selectedBet.end_time)}
-                      </span>
-                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Forfeit Actions for Status 2 */}
                 {selectedBet.status === 2 &&
