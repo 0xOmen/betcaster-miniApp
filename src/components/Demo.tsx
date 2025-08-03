@@ -75,7 +75,7 @@ interface NeynarUser {
   primarySolanaAddress?: string;
 }
 
-interface UserProfile {
+export interface UserProfile {
   fid: number;
   username: string;
   display_name: string;

@@ -24,10 +24,13 @@ import {
   ARBITER_MANAGEMENT_ENGINE_ADDRESS,
 } from "~/lib/arbiterAbi";
 import { notifyWinnerSelected } from "~/lib/notificationUtils";
-import { fetchUserWithCache, globalUserCache } from "./Demo";
+import { fetchUserWithCache, globalUserCache, type UserProfile } from "./Demo";
 
 interface ExploreProps {
-  userCache?: Map<number, any>;
+  userCache?: Map<
+    number,
+    { promise: Promise<UserProfile | null>; timestamp: number }
+  >;
 }
 
 export const Explore: FC<ExploreProps> = ({ userCache }) => {
