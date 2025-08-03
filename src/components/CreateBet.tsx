@@ -1540,7 +1540,7 @@ export default function CreateBet({
           onClick={handleCreateBet}
           disabled={
             !isConnected ||
-            !selectedUser ||
+            (!selectedUser && !isAnyoneSelected) ||
             !selectedToken ||
             !betAmount ||
             !selectedTimeOption ||
