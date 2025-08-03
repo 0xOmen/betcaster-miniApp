@@ -3019,7 +3019,7 @@ export default function Demo(
           </div>
         )}
 
-        {currentTab === "explore" && <Explore />}
+        {currentTab === "explore" && <Explore userCache={globalUserCache} />}
 
         {currentTab === "leaderboard" && <Leaderboard />}
 

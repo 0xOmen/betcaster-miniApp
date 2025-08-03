@@ -26,7 +26,11 @@ import {
 import { notifyWinnerSelected } from "~/lib/notificationUtils";
 import { fetchUserWithCache, globalUserCache } from "./Demo";
 
-export const Explore: FC = () => {
+interface ExploreProps {
+  userCache?: Map<number, any>;
+}
+
+export const Explore: FC<ExploreProps> = ({ userCache }) => {
   const [searchBetNumber, setSearchBetNumber] = useState("");
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -271,21 +275,54 @@ export const Explore: FC = () => {
 
   // Fetch recent bets on component mount
   useEffect(() => {
-    fetchRecentBets();
+    // Wait a bit for Demo to potentially populate the cache first
+    const timer = setTimeout(() => {
+      fetchRecentBets();
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Function to fetch recent bets
   const fetchRecentBets = async () => {
     setIsLoadingRecentBets(true);
     try {
+      const effectiveCache = userCache || globalUserCache;
       console.log(
         "Explore: Fetching recent bets, cache size:",
-        globalUserCache.size
+        effectiveCache.size
       );
+
+      // Log cache contents for debugging
+      console.log(
+        "Explore: Cache contents:",
+        Array.from(effectiveCache.keys())
+      );
+
       const response = await fetch("/api/bets?limit=5&exclude=1000000");
       if (response.ok) {
         const data = await response.json();
         if (data.bets) {
+          // Check which FIDs we need to fetch vs which are already cached
+          const fidsToFetch = new Set<number>();
+          data.bets.forEach((bet: Bet) => {
+            if (bet.maker_fid && !effectiveCache.has(bet.maker_fid)) {
+              fidsToFetch.add(bet.maker_fid);
+            }
+            if (bet.taker_fid && !effectiveCache.has(bet.taker_fid)) {
+              fidsToFetch.add(bet.taker_fid);
+            }
+            if (bet.arbiter_fid && !effectiveCache.has(bet.arbiter_fid)) {
+              fidsToFetch.add(bet.arbiter_fid);
+            }
+          });
+
+          console.log("Explore: FIDs to fetch:", Array.from(fidsToFetch));
+          console.log(
+            "Explore: FIDs already cached:",
+            Array.from(effectiveCache.keys())
+          );
+
           // Fetch profiles for all bets in parallel using cache
           const betsWithProfiles = await Promise.all(
             data.bets.map(async (bet: Bet) => {
@@ -313,7 +350,7 @@ export const Explore: FC = () => {
           setRecentBets(betsWithProfiles);
           console.log(
             "Explore: Finished fetching recent bets, cache size:",
-            globalUserCache.size
+            effectiveCache.size
           );
         }
       } else {
