@@ -24,7 +24,7 @@ import {
   ARBITER_MANAGEMENT_ENGINE_ADDRESS,
 } from "~/lib/arbiterAbi";
 import { notifyWinnerSelected } from "~/lib/notificationUtils";
-import { fetchUserWithCache } from "./Demo";
+import { fetchUserWithCache, globalUserCache } from "./Demo";
 
 export const Explore: FC = () => {
   const [searchBetNumber, setSearchBetNumber] = useState("");
@@ -278,6 +278,10 @@ export const Explore: FC = () => {
   const fetchRecentBets = async () => {
     setIsLoadingRecentBets(true);
     try {
+      console.log(
+        "Explore: Fetching recent bets, cache size:",
+        globalUserCache.size
+      );
       const response = await fetch("/api/bets?limit=5&exclude=1000000");
       if (response.ok) {
         const data = await response.json();
@@ -307,6 +311,10 @@ export const Explore: FC = () => {
             })
           );
           setRecentBets(betsWithProfiles);
+          console.log(
+            "Explore: Finished fetching recent bets, cache size:",
+            globalUserCache.size
+          );
         }
       } else {
         console.error("Failed to fetch recent bets");
