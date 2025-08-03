@@ -199,7 +199,6 @@ export async function PATCH(request: NextRequest) {
               .upsert(
                 {
                   fid: winner_fid,
-                  total_bets: 0,
                   wins: winnerWins + 1,
                   pnl: winnerPnl + (pnl_amount || 0),
                 },
@@ -239,7 +238,6 @@ export async function PATCH(request: NextRequest) {
               .upsert(
                 {
                   fid: loser_fid,
-                  total_bets: 0,
                   losses: loserLosses + 1,
                   pnl: loserPnl - (pnl_amount || 0),
                 },
