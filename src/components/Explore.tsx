@@ -9,7 +9,7 @@ import {
 } from "wagmi";
 import { useMiniApp } from "@neynar/react";
 import { type Bet } from "~/types/bet";
-import { BetCard } from "./BetCard";
+import { BetTile } from "./BetTile";
 import { BetDetailsModal } from "./BetDetailsModal";
 import { useBets } from "~/hooks/useBets";
 import { useBetActions } from "~/hooks/useBetActions";
@@ -958,6 +958,17 @@ export const Explore: FC = () => {
     openSelectWinnerModal(bet);
   };
 
+  // Handler functions for BetTile actions
+  const handleRejectBet = async (bet: Bet) => {
+    // For Explore, we might want to show a modal or handle rejection differently
+    console.log("Reject bet:", bet.bet_number);
+  };
+
+  const openEditModal = (bet: Bet) => {
+    // For Explore, we might want to show a read-only view or handle editing differently
+    console.log("Edit bet:", bet.bet_number);
+  };
+
   const handleShare = async (bet: Bet) => {
     const baseUrl = window.location.origin;
     // Change the URL format to use 'B' prefix for bet numbers
@@ -1074,14 +1085,22 @@ export const Explore: FC = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
           </div>
         ) : recentBets.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-3">
             {recentBets.map((bet) => (
-              <BetCard
+              <BetTile
                 key={bet.bet_number}
                 bet={bet}
                 currentUserAddress={address}
                 currentUserFid={context?.user?.fid}
                 onBetSelect={handleBetSelect}
+                onRejectBet={handleRejectBet}
+                onEditBet={openEditModal}
+                onSelectWinner={handleSelectWinnerWrapper}
+                onForfeit={handleForfeitBet}
+                onCancel={handleCancelBet}
+                onAccept={handleAcceptBet}
+                onAcceptArbiter={handleAcceptArbiterRole}
+                onClaimWinnings={handleClaimWinnings}
               />
             ))}
           </div>
