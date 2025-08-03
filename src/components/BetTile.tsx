@@ -162,6 +162,28 @@ export function BetTile({
             {bet.takerProfile?.display_name || "Unknown"}
           </div>
 
+          {/* Token Amount */}
+          <div className="flex items-center space-x-1 mt-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {bet.bet_amount}
+            </span>
+            {(() => {
+              const token = getTokenByAddress(bet.bet_token_address);
+              return (
+                token && (
+                  <img
+                    src={token.image}
+                    alt={token.name}
+                    className="w-4 h-4 rounded-full"
+                  />
+                )
+              );
+            })()}
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {getTokenName(bet.bet_token_address)}
+            </span>
+          </div>
+
           {/* Arbiter Actions for Status 2 */}
           {bet.status === 2 && (
             <>
