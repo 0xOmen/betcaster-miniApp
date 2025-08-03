@@ -26,6 +26,47 @@ import {
 import { notifyWinnerSelected } from "~/lib/notificationUtils";
 import { fetchUserWithCache, globalUserCache, type UserProfile } from "./Demo";
 
+// Cache for address to FID lookups
+const addressToFidCache = new Map<
+  string,
+  { fid: number | null; timestamp: number }
+>();
+const ADDRESS_CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+
+const fetchFidFromAddress = async (address: string): Promise<number | null> => {
+  const now = Date.now();
+  const cached = addressToFidCache.get(address);
+
+  // Return cached data if it exists and hasn't expired
+  if (cached && now - cached.timestamp < ADDRESS_CACHE_EXPIRY) {
+    console.log(`📋 Using cached FID for address: ${address}`);
+    return cached.fid;
+  }
+
+  // Remove expired cache entry if it exists
+  if (cached) {
+    addressToFidCache.delete(address);
+  }
+
+  try {
+    console.log(`🔍 Fetching FID for address: ${address}`);
+    const response = await fetch(`/api/users?address=${address}`);
+    if (response.ok) {
+      const data = await response.json();
+      const fid = data.users?.[0]?.fid || null;
+
+      // Cache the result
+      addressToFidCache.set(address, { fid, timestamp: now });
+      console.log(`✅ Cached FID for address: ${address} -> ${fid}`);
+      return fid;
+    }
+    return null;
+  } catch (error) {
+    console.error(`❌ Failed to fetch FID for address: ${address}:`, error);
+    return null;
+  }
+};
+
 interface ExploreProps {
   userCache?: Map<
     number,
@@ -593,40 +634,26 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
           arbiterProfile = null;
 
         try {
-          // Fetch FIDs for all addresses in parallel
-          const [makerRes, takerRes, arbiterRes] = await Promise.all([
-            fetch(`/api/users?address=${chainBet.maker}`),
-            chainBet.taker &&
-            chainBet.taker.length > 0 &&
-            chainBet.taker[0] !== "0x0000000000000000000000000000000000000000"
-              ? fetch(`/api/users?address=${chainBet.taker[0]}`)
-              : Promise.resolve(null),
-            chainBet.arbiter &&
-            chainBet.arbiter.length > 0 &&
-            chainBet.arbiter[0] !== "0x0000000000000000000000000000000000000000"
-              ? fetch(`/api/users?address=${chainBet.arbiter[0]}`)
-              : Promise.resolve(null),
-          ]);
+          // Fetch FIDs for all addresses in parallel using cache
+          const [makerFidResult, takerFidResult, arbiterFidResult] =
+            await Promise.all([
+              fetchFidFromAddress(chainBet.maker),
+              chainBet.taker &&
+              chainBet.taker.length > 0 &&
+              chainBet.taker[0] !== "0x0000000000000000000000000000000000000000"
+                ? fetchFidFromAddress(chainBet.taker[0])
+                : Promise.resolve(null),
+              chainBet.arbiter &&
+              chainBet.arbiter.length > 0 &&
+              chainBet.arbiter[0] !==
+                "0x0000000000000000000000000000000000000000"
+                ? fetchFidFromAddress(chainBet.arbiter[0])
+                : Promise.resolve(null),
+            ]);
 
-          if (makerRes?.ok) {
-            const makerData = await makerRes.json();
-            makerFid = makerData.users?.[0]?.fid || null;
-            // Add the profile information
-            makerProfile = makerData.users?.[0] || null;
-            console.log("Maker profile:", makerProfile);
-          }
-          if (takerRes?.ok) {
-            const takerData = await takerRes.json();
-            takerFid = takerData.users?.[0]?.fid || null;
-            // Add the profile information
-            takerProfile = takerData.users?.[0] || null;
-          }
-          if (arbiterRes?.ok) {
-            const arbiterData = await arbiterRes.json();
-            arbiterFid = arbiterData.users?.[0]?.fid || null;
-            // Add the profile information
-            arbiterProfile = arbiterData.users?.[0] || null;
-          }
+          makerFid = makerFidResult;
+          takerFid = takerFidResult;
+          arbiterFid = arbiterFidResult;
 
           // If we have FIDs, use the cache to get profiles
           if (makerFid) {

@@ -3007,7 +3007,7 @@ export default function Demo(
               buttonText="Share Mini App"
               cast={{
                 text: "Check out this awesome frame @1 @2 @3! 🚀🪐",
-                bestFriends: true,
+                bestFriends: false,
                 embeds: [
                   `${process.env.NEXT_PUBLIC_URL}/share/${
                     context?.user?.fid || ""
