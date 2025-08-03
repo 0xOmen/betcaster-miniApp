@@ -199,6 +199,7 @@ export async function PATCH(request: NextRequest) {
               .upsert(
                 {
                   fid: winner_fid,
+                  total_bets: winnerData ? undefined : 0, // Only set for new users
                   wins: winnerWins + 1,
                   pnl: winnerPnl + (pnl_amount || 0),
                 },
@@ -238,6 +239,7 @@ export async function PATCH(request: NextRequest) {
               .upsert(
                 {
                   fid: loser_fid,
+                  total_bets: loserData ? undefined : 0, // Only set for new users
                   losses: loserLosses + 1,
                   pnl: loserPnl - (pnl_amount || 0),
                 },
