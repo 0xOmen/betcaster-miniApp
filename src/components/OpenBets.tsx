@@ -18,7 +18,8 @@ import {
 } from "~/lib/contracts";
 import { BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
 import { ERC20_ABI } from "~/lib/erc20Abi";
-import { amountToWei } from "~/lib/tokens";
+import { amountToWei, getTokenByAddress } from "~/lib/tokens";
+import { fetchUserWithCache } from "./Demo";
 
 interface UserProfile {
   fid: number;
@@ -140,8 +141,8 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
     if (tokenAddress === "0x0000000000000000000000000000000000000000") {
       return "ETH";
     }
-    // Add more token mappings as needed
-    return "Token";
+    const token = getTokenByAddress(tokenAddress);
+    return token?.symbol || "Token";
   };
 
   const formatEndTime = (timestamp: number): string => {
@@ -175,7 +176,22 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
           (a: Bet, b: Bet) => b.timestamp - a.timestamp
         );
 
-        setBets(sortedBets);
+        // Fetch user profiles for all bets
+        const betsWithProfiles = await Promise.all(
+          sortedBets.map(async (bet: Bet) => {
+            const [makerProfile, arbiterProfile] = await Promise.all([
+              bet.maker_fid
+                ? fetchUserWithCache(bet.maker_fid)
+                : Promise.resolve(null),
+              bet.arbiter_fid
+                ? fetchUserWithCache(bet.arbiter_fid)
+                : Promise.resolve(null),
+            ]);
+            return { ...bet, makerProfile, arbiterProfile };
+          })
+        );
+
+        setBets(betsWithProfiles);
       } else {
         setError("Failed to fetch open bets");
       }
