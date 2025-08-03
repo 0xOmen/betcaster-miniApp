@@ -60,6 +60,8 @@ import {
 } from "~/lib/notificationUtils";
 import OpenBets from "~/components/OpenBets";
 import Leaderboard from "~/components/Leaderboard";
+import { BetTile } from "./BetTile";
+import { type Bet } from "~/types/bet";
 
 export type Tab = "create" | "bets" | "explore" | "wallet" | "leaderboard";
 
@@ -80,29 +82,6 @@ interface UserProfile {
   pfp_url: string;
   primaryEthAddress?: string;
   primarySolanaAddress?: string;
-}
-
-interface Bet {
-  bet_number: number;
-  maker_address: string;
-  taker_address: string[];
-  arbiter_address: string[] | null;
-  bet_token_address: string;
-  bet_amount: number;
-  can_settle_early: boolean;
-  timestamp: number;
-  end_time: number;
-  status: number;
-  protocol_fee: number;
-  arbiter_fee: number;
-  bet_agreement: string;
-  transaction_hash: string | null;
-  maker_fid?: number | null;
-  taker_fid?: number | null;
-  arbiter_fid?: number | null;
-  makerProfile?: UserProfile | null;
-  takerProfile?: UserProfile | null;
-  arbiterProfile?: UserProfile | null;
 }
 
 // Add this interface near the top with other interfaces
@@ -2975,305 +2954,36 @@ export default function Demo(
                   </div>
                 ) : userBets.length > 0 ? (
                   userBets.map((bet) => (
-                    <div
+                    <BetTile
                       key={bet.bet_number}
-                      className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                      onClick={() => handleBetSelect(bet)}
-                    >
-                      <div className="flex items-start space-x-3">
-                        {/* Left column: Bet Number and Profile Pictures */}
-                        <div className="flex flex-col items-center space-y-2 flex-shrink-0">
-                          {/* Bet Number - top left */}
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            Bet #{bet.bet_number}
-                          </div>
-
-                          {/* Profile Pictures - below bet number */}
-                          <div className="flex -space-x-2">
-                            {bet.makerProfile && (
-                              <img
-                                src={bet.makerProfile.pfp_url || ""}
-                                alt={bet.makerProfile.display_name || "Maker"}
-                                className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = "none";
-                                }}
-                              />
-                            )}
-                            {bet.takerProfile && (
-                              <img
-                                src={bet.takerProfile.pfp_url || ""}
-                                alt={bet.takerProfile.display_name || "Taker"}
-                                className="w-8 h-8 rounded-full border-2 border-white dark:border-gray-800"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = "none";
-                                }}
-                              />
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Bet Details */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-end mb-1">
-                            <div
-                              className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                getStatusInfo(bet, address, context?.user?.fid)
-                                  .bgColor
-                              }`}
-                            >
-                              {
-                                getStatusInfo(bet, address, context?.user?.fid)
-                                  .text
-                              }
-                            </div>
-                          </div>
-
-                          {/* Bet Description - allow up to 2 lines */}
-                          <div className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-1">
-                            {bet.bet_agreement || "No description"}
-                          </div>
-
-                          <div className="text-xs text-gray-500 dark:text-gray-500">
-                            {bet.makerProfile?.display_name || "Unknown"} vs{" "}
-                            {bet.takerProfile?.display_name || "Unknown"}
-                          </div>
-
-                          {/* Arbiter Actions for Status 2 */}
-                          {bet.status === 2 && (
-                            <>
-                              {console.log(
-                                "Status 2 bet - can_settle_early:",
-                                bet.can_settle_early,
-                                "bet:",
-                                bet
-                              )}
-                              {/* Arbiter Select Winner Actions for Status 2 */}
-                              {((address &&
-                                isAddressInArray(
-                                  address,
-                                  bet.arbiter_address
-                                )) ||
-                                context?.user?.fid === bet.arbiter_fid) &&
-                                (bet.can_settle_early ||
-                                  Math.floor(Date.now() / 1000) >
-                                    bet.end_time) && (
-                                  <div className="flex space-x-2 mt-2">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openSelectWinnerModal(bet);
-                                      }}
-                                      className="px-2 py-1 text-xs bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors"
-                                    >
-                                      Select Winner
-                                    </button>
-                                  </div>
-                                )}
-
-                              {/* Maker/Taker Forfeit Actions for Status 2 */}
-                              {(address?.toLowerCase() ===
-                                bet.maker_address.toLowerCase() ||
-                                context?.user?.fid === bet.maker_fid ||
-                                (address &&
-                                  isAddressInArray(
-                                    address,
-                                    bet.taker_address
-                                  )) ||
-                                context?.user?.fid === bet.taker_fid) && (
-                                <div className="flex space-x-2 mt-2">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedBet(bet);
-                                      setIsModalOpen(true);
-                                    }}
-                                    className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                  >
-                                    Forfeit
-                                  </button>
-                                </div>
-                              )}
-                            </>
-                          )}
-
-                          {/* Maker Actions for Status 0 */}
-                          {address === bet.maker_address &&
-                            bet.status === 0 && (
-                              <div className="flex space-x-2 mt-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedBet(bet);
-                                    setIsModalOpen(true);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openEditModal(bet);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
-                                >
-                                  Edit
-                                </button>
-                              </div>
-                            )}
-
-                          {/* Maker Actions for Status 9 (Rejected) */}
-                          {address === bet.maker_address &&
-                            bet.status === 9 && (
-                              <div className="mb-4">
-                                <div className="flex space-x-3">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedBet(bet);
-                                      setIsModalOpen(true);
-                                    }}
-                                    className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openEditModal(bet);
-                                    }}
-                                    className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
-                                  >
-                                    Edit
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-
-                          {/* Taker Actions for Status 0 */}
-                          {((address &&
-                            isAddressInArray(address, bet.taker_address)) ||
-                            context?.user?.fid === bet.taker_fid) &&
-                            bet.status === 0 &&
-                            Math.floor(Date.now() / 1000) <= bet.end_time && (
-                              <div className="flex space-x-2 mt-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedBet(bet);
-                                    setIsModalOpen(true);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
-                                >
-                                  Accept Bet
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRejectBet(bet);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                >
-                                  Reject
-                                </button>
-                              </div>
-                            )}
-
-                          {/* Arbiter Actions for Status 1 */}
-                          {((address &&
-                            isAddressInArray(address, bet.arbiter_address)) ||
-                            context?.user?.fid === bet.arbiter_fid) &&
-                            bet.status === 1 && (
-                              <div className="flex space-x-2 mt-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedBet(bet);
-                                    setIsModalOpen(true);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors"
-                                >
-                                  Accept Arbiter Role
-                                </button>
-                                {/* Reject Arbiter Role Button */}
-                                <button
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    await handleRejectArbiterRole(bet);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                >
-                                  Reject Arbiter Role
-                                </button>
-                              </div>
-                            )}
-
-                          {/* Claim Winnings Actions for Status 4 and 5 */}
-                          {bet.status === 4 &&
-                            (address?.toLowerCase() ===
-                              bet.maker_address.toLowerCase() ||
-                              context?.user?.fid === bet.maker_fid) && (
-                              <div className="flex space-x-2 mt-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedBet(bet);
-                                    setIsModalOpen(true);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
-                                >
-                                  Claim Winnings!
-                                </button>
-                              </div>
-                            )}
-
-                          {bet.status === 5 &&
-                            ((address &&
-                              isAddressInArray(address, bet.taker_address)) ||
-                              context?.user?.fid === bet.taker_fid) && (
-                              <div className="flex space-x-2 mt-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedBet(bet);
-                                    setIsModalOpen(true);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
-                                >
-                                  Claim Winnings!
-                                </button>
-                              </div>
-                            )}
-
-                          {/* Arbiter Declined - Cancel option for maker/taker after 24h */}
-                          {(bet.status === 10 || bet.status === 1) &&
-                            (address?.toLowerCase() ===
-                              bet.maker_address.toLowerCase() ||
-                              context?.user?.fid === bet.maker_fid ||
-                              (address &&
-                                isAddressInArray(address, bet.taker_address)) ||
-                              context?.user?.fid === bet.taker_fid) &&
-                            Math.floor(Date.now() / 1000) - bet.timestamp >
-                              24 * 60 * 60 && (
-                              <div className="flex space-x-2 mt-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedBet(bet);
-                                    setIsModalOpen(true);
-                                  }}
-                                  className="px-2 py-1 text-xs bg-gray-500 text-white rounded-full hover:bg-gray-600 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            )}
-                        </div>
-                      </div>
-                    </div>
+                      bet={bet}
+                      currentUserAddress={address}
+                      currentUserFid={context?.user?.fid}
+                      onBetSelect={handleBetSelect}
+                      onRejectBet={handleRejectBet}
+                      onEditBet={openEditModal}
+                      onSelectWinner={openSelectWinnerModal}
+                      onForfeit={(bet) => {
+                        setSelectedBet(bet);
+                        setIsModalOpen(true);
+                      }}
+                      onCancel={(bet) => {
+                        setSelectedBet(bet);
+                        setIsModalOpen(true);
+                      }}
+                      onAccept={(bet) => {
+                        setSelectedBet(bet);
+                        setIsModalOpen(true);
+                      }}
+                      onAcceptArbiter={(bet) => {
+                        setSelectedBet(bet);
+                        setIsModalOpen(true);
+                      }}
+                      onClaimWinnings={(bet) => {
+                        setSelectedBet(bet);
+                        setIsModalOpen(true);
+                      }}
+                    />
                   ))
                 ) : (
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
