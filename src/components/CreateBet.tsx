@@ -402,7 +402,7 @@ export default function CreateBet({
                         takerFid,
                         {
                           betNumber: parseInt(betNumber),
-                          makerName: selectedUser.displayName,
+                          makerName: selectedUser?.displayName || "Unknown",
                         }
                       );
 
@@ -428,7 +428,9 @@ export default function CreateBet({
                   const shareDetails = {
                     amount: betAmount,
                     token: selectedToken.symbol,
-                    taker: selectedUser.displayName,
+                    taker: isAnyoneSelected
+                      ? "Anyone"
+                      : selectedUser?.displayName || "Unknown",
                     arbiter: selectedArbiter?.displayName,
                   };
                   console.log("Setting share details:", shareDetails);
@@ -465,6 +467,7 @@ export default function CreateBet({
     receipt,
     isReceiptSuccess,
     selectedUser,
+    isAnyoneSelected,
     selectedToken,
     betAmount,
     selectedArbiter,
@@ -496,7 +499,7 @@ export default function CreateBet({
 
           // Automatically trigger bet creation after approval
           if (
-            selectedUser &&
+            (selectedUser || isAnyoneSelected) &&
             selectedToken &&
             betAmount &&
             selectedTimeOption
@@ -515,6 +518,7 @@ export default function CreateBet({
     isApprovalReceiptSuccess,
     refetchAllowance,
     selectedUser,
+    isAnyoneSelected,
     selectedToken,
     betAmount,
     selectedTimeOption,
