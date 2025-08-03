@@ -117,12 +117,14 @@ interface User {
 
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 
-const globalUserCache = new Map<
+export const globalUserCache = new Map<
   number,
   { promise: Promise<UserProfile | null>; timestamp: number }
 >();
 
-const fetchUserWithCache = async (fid: number): Promise<UserProfile | null> => {
+export const fetchUserWithCache = async (
+  fid: number
+): Promise<UserProfile | null> => {
   const now = Date.now();
   const cached = globalUserCache.get(fid);
 

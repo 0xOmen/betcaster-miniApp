@@ -24,6 +24,7 @@ import {
   ARBITER_MANAGEMENT_ENGINE_ADDRESS,
 } from "~/lib/arbiterAbi";
 import { notifyWinnerSelected } from "~/lib/notificationUtils";
+import { fetchUserWithCache } from "./Demo";
 
 export const Explore: FC = () => {
   const [searchBetNumber, setSearchBetNumber] = useState("");
@@ -281,35 +282,21 @@ export const Explore: FC = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.bets) {
-          // Fetch profiles for all bets in parallel
+          // Fetch profiles for all bets in parallel using cache
           const betsWithProfiles = await Promise.all(
             data.bets.map(async (bet: Bet) => {
-              const [makerRes, takerRes, arbiterRes] = await Promise.all([
-                fetch(`/api/users?address=${bet.maker_address}`),
-                bet.taker_address
-                  ? fetch(`/api/users?address=${bet.taker_address}`)
-                  : Promise.resolve(null),
-                bet.arbiter_address
-                  ? fetch(`/api/users?address=${bet.arbiter_address}`)
-                  : Promise.resolve(null),
-              ]);
-
-              let makerProfile = null,
-                takerProfile = null,
-                arbiterProfile = null;
-
-              if (makerRes?.ok) {
-                const makerData = await makerRes.json();
-                makerProfile = makerData.users?.[0] || null;
-              }
-              if (takerRes?.ok) {
-                const takerData = await takerRes.json();
-                takerProfile = takerData.users?.[0] || null;
-              }
-              if (arbiterRes?.ok) {
-                const arbiterData = await arbiterRes.json();
-                arbiterProfile = arbiterData.users?.[0] || null;
-              }
+              const [makerProfile, takerProfile, arbiterProfile] =
+                await Promise.all([
+                  bet.maker_fid
+                    ? fetchUserWithCache(bet.maker_fid)
+                    : Promise.resolve(null),
+                  bet.taker_fid
+                    ? fetchUserWithCache(bet.taker_fid)
+                    : Promise.resolve(null),
+                  bet.arbiter_fid
+                    ? fetchUserWithCache(bet.arbiter_fid)
+                    : Promise.resolve(null),
+                ]);
 
               return {
                 ...bet,
@@ -509,33 +496,19 @@ export const Explore: FC = () => {
         if (data.bets && data.bets.length > 0) {
           const dbBet = data.bets[0];
 
-          // Fetch profiles for maker, taker, and arbiter
-          const [makerRes, takerRes, arbiterRes] = await Promise.all([
-            fetch(`/api/users?address=${dbBet.maker_address}`),
-            dbBet.taker_address
-              ? fetch(`/api/users?address=${dbBet.taker_address}`)
-              : Promise.resolve(null),
-            dbBet.arbiter_address
-              ? fetch(`/api/users?address=${dbBet.arbiter_address}`)
-              : Promise.resolve(null),
-          ]);
-
-          let makerProfile = null,
-            takerProfile = null,
-            arbiterProfile = null;
-
-          if (makerRes?.ok) {
-            const makerData = await makerRes.json();
-            makerProfile = makerData.users?.[0] || null;
-          }
-          if (takerRes?.ok) {
-            const takerData = await takerRes.json();
-            takerProfile = takerData.users?.[0] || null;
-          }
-          if (arbiterRes?.ok) {
-            const arbiterData = await arbiterRes.json();
-            arbiterProfile = arbiterData.users?.[0] || null;
-          }
+          // Fetch profiles for maker, taker, and arbiter using cache
+          const [makerProfile, takerProfile, arbiterProfile] =
+            await Promise.all([
+              dbBet.maker_fid
+                ? fetchUserWithCache(dbBet.maker_fid)
+                : Promise.resolve(null),
+              dbBet.taker_fid
+                ? fetchUserWithCache(dbBet.taker_fid)
+                : Promise.resolve(null),
+              dbBet.arbiter_fid
+                ? fetchUserWithCache(dbBet.arbiter_fid)
+                : Promise.resolve(null),
+            ]);
 
           setSelectedBet({
             ...dbBet,
@@ -605,6 +578,17 @@ export const Explore: FC = () => {
             arbiterFid = arbiterData.users?.[0]?.fid || null;
             // Add the profile information
             arbiterProfile = arbiterData.users?.[0] || null;
+          }
+
+          // If we have FIDs, use the cache to get profiles
+          if (makerFid) {
+            makerProfile = await fetchUserWithCache(makerFid);
+          }
+          if (takerFid) {
+            takerProfile = await fetchUserWithCache(takerFid);
+          }
+          if (arbiterFid) {
+            arbiterProfile = await fetchUserWithCache(arbiterFid);
           }
 
           console.log("Found FIDs:", {
