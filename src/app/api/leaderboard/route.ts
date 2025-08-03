@@ -49,7 +49,6 @@ export async function PATCH(request: NextRequest) {
     const {
       maker_fid,
       taker_fid,
-      forfeiter_fid,
       winner_fid,
       loser_fid,
       usd_volume,
@@ -167,96 +166,6 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
-    // Handle bet forfeit (increment losses for forfeiter, wins for winner)
-    if (forfeiter_fid && winner_fid) {
-      // Update forfeiter's losses and pnl
-      const { data: forfeiterData, error: forfeiterCheckError } =
-        await supabaseAdmin
-          .from("leaderboard")
-          .select("losses, pnl")
-          .eq("fid", forfeiter_fid)
-          .single();
-
-      if (forfeiterCheckError && forfeiterCheckError.code !== "PGRST116") {
-        console.error(
-          "Error checking forfeiter leaderboard:",
-          forfeiterCheckError
-        );
-        return NextResponse.json(
-          { error: "Failed to check forfeiter leaderboard" },
-          { status: 500 }
-        );
-      }
-
-      const forfeiterLosses = forfeiterData?.losses || 0;
-      const forfeiterPnl = forfeiterData?.pnl || 0;
-      const { error: forfeiterError } = await supabaseAdmin
-        .from("leaderboard")
-        .upsert(
-          {
-            fid: forfeiter_fid,
-            losses: forfeiterLosses + 1,
-            pnl: forfeiterPnl - (pnl_amount || 0),
-          },
-          {
-            onConflict: "fid",
-          }
-        );
-
-      if (forfeiterError) {
-        console.error("Error updating forfeiter leaderboard:", forfeiterError);
-        return NextResponse.json(
-          { error: "Failed to update forfeiter leaderboard" },
-          { status: 500 }
-        );
-      }
-
-      // Update winner's wins and pnl
-      const { data: winnerData, error: winnerCheckError } = await supabaseAdmin
-        .from("leaderboard")
-        .select("wins, pnl")
-        .eq("fid", winner_fid)
-        .single();
-
-      if (winnerCheckError && winnerCheckError.code !== "PGRST116") {
-        console.error("Error checking winner leaderboard:", winnerCheckError);
-        return NextResponse.json(
-          { error: "Failed to check winner leaderboard" },
-          { status: 500 }
-        );
-      }
-
-      const winnerWins = winnerData?.wins || 0;
-      const winnerPnl = winnerData?.pnl || 0;
-      const { error: winnerError } = await supabaseAdmin
-        .from("leaderboard")
-        .upsert(
-          {
-            fid: winner_fid,
-            wins: winnerWins + 1,
-            pnl: winnerPnl + (pnl_amount || 0),
-          },
-          {
-            onConflict: "fid",
-          }
-        );
-
-      if (winnerError) {
-        console.error("Error updating winner leaderboard:", winnerError);
-        return NextResponse.json(
-          { error: "Failed to update winner leaderboard" },
-          { status: 500 }
-        );
-      }
-
-      console.log("✅ API: Leaderboard updated successfully for forfeit");
-
-      return NextResponse.json({
-        success: true,
-        message: "Leaderboard updated successfully for forfeit",
-      });
-    }
-
     // Handle winner selection (increment wins for winner, losses for loser)
     console.log(
       "🔍 API: Winner selection logic - winner_fid:",
@@ -290,6 +199,7 @@ export async function PATCH(request: NextRequest) {
               .upsert(
                 {
                   fid: winner_fid,
+                  total_bets: 0,
                   wins: winnerWins + 1,
                   pnl: winnerPnl + (pnl_amount || 0),
                 },
@@ -329,6 +239,7 @@ export async function PATCH(request: NextRequest) {
               .upsert(
                 {
                   fid: loser_fid,
+                  total_bets: 0,
                   losses: loserLosses + 1,
                   pnl: loserPnl - (pnl_amount || 0),
                 },

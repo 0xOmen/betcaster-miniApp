@@ -1945,8 +1945,8 @@ export default function Demo(
                           "Content-Type": "application/json",
                         },
                         body: JSON.stringify({
-                          forfeiter_fid: forfeiterFid,
                           winner_fid: winnerFid,
+                          loser_fid: forfeiterFid,
                           pnl_amount: pnlAmount,
                         }),
                       }

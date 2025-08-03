@@ -77,13 +77,109 @@ export const Explore: FC = () => {
     acceptArbiterTxHash,
     handleAcceptBet,
     handleCancelBet,
-    handleForfeitBet,
+    handleForfeitBet: originalHandleForfeitBet,
     handleClaimWinnings,
     handleAcceptArbiterRole: originalHandleAcceptArbiterRole,
     handleSelectWinner,
   } = useBetActions({
     onSuccess: refreshBets,
   });
+
+  // Custom handler for forfeiting bet that includes leaderboard update
+  const handleForfeitBet = async (bet: Bet) => {
+    try {
+      // Call the original handler from the hook
+      await originalHandleForfeitBet(bet);
+
+      // After successful transaction, update database and leaderboard
+      setTimeout(async () => {
+        try {
+          // Determine who forfeited and who wins
+          let forfeiterFid: number | null = null;
+          let winnerFid: number | null = null;
+          let forfeitStatus: number;
+
+          if (address === bet.maker_address) {
+            // Maker forfeited, taker wins
+            forfeiterFid = bet.maker_fid || null;
+            winnerFid = bet.taker_fid || null;
+            forfeitStatus = 5; // Taker wins
+          } else if (bet.taker_address.includes(address || "")) {
+            // Taker forfeited, maker wins
+            forfeiterFid = bet.taker_fid || null;
+            winnerFid = bet.maker_fid || null;
+            forfeitStatus = 4; // Maker wins
+          } else {
+            console.error("Current user is not a participant in this bet");
+            return;
+          }
+
+          // Update database to mark bet as forfeited
+          const updateResponse = await fetch(
+            `/api/bets?betNumber=${bet.bet_number}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                status: forfeitStatus,
+                transaction_hash: forfeitTxHash,
+              }),
+            }
+          );
+
+          if (!updateResponse.ok) {
+            console.error("Failed to update bet status in database");
+          } else {
+            console.log("Bet status updated to forfeited in database");
+
+            // Calculate PnL amount for leaderboard update
+            const pnlAmount = tokenPriceData?.[0]
+              ? calculateUSDValue(bet.bet_amount, Number(tokenPriceData[0]))
+              : 0;
+
+            // Update leaderboard for winner and loser
+            try {
+              const leaderboardUpdateResponse = await fetch(
+                "/api/leaderboard",
+                {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    winner_fid: winnerFid,
+                    loser_fid: forfeiterFid,
+                    pnl_amount: pnlAmount,
+                  }),
+                }
+              );
+
+              if (leaderboardUpdateResponse.ok) {
+                console.log(
+                  "Leaderboard updated successfully for forfeit in Explore"
+                );
+              } else {
+                console.error(
+                  "Failed to update leaderboard for forfeit in Explore"
+                );
+              }
+            } catch (leaderboardError) {
+              console.error(
+                "Error updating leaderboard for forfeit in Explore:",
+                leaderboardError
+              );
+            }
+          }
+        } catch (error) {
+          console.error("Error updating database and leaderboard:", error);
+        }
+      }, 2000); // Wait 2 seconds for transaction to be processed
+    } catch (error) {
+      console.error("Error in custom handleForfeitBet:", error);
+    }
+  };
 
   // Custom handler for accepting arbiter role that includes leaderboard update
   const handleAcceptArbiterRole = async (bet: Bet) => {
