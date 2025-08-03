@@ -2,24 +2,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  useAccount,
-  useChainId,
-  useSwitchChain,
-  useReadContract,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-} from "wagmi";
-import { base } from "wagmi/chains";
-import { encodeFunctionData } from "viem";
-import {
-  BET_MANAGEMENT_ENGINE_ABI,
-  BET_MANAGEMENT_ENGINE_ADDRESS,
-} from "~/lib/contracts";
-import { BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
-import { ERC20_ABI } from "~/lib/erc20Abi";
+import { useAccount } from "wagmi";
 import { amountToWei, getTokenByAddress } from "~/lib/tokens";
 import { fetchUserWithCache } from "./Demo";
+import { useBetActions } from "~/hooks/useBetActions";
+import { type Bet } from "~/types/bet";
+import { notifyInviteArbiter } from "~/lib/notificationUtils";
 
 interface UserProfile {
   fid: number;
@@ -30,112 +18,109 @@ interface UserProfile {
   primarySolanaAddress?: string;
 }
 
-interface Bet {
-  bet_number: number;
-  maker_address: string;
-  taker_address: string[];
-  arbiter_address: string[] | null;
-  bet_token_address: string;
-  bet_amount: number;
-  can_settle_early: boolean;
-  timestamp: number;
-  end_time: number;
-  status: number;
-  protocol_fee: number;
-  arbiter_fee: number;
-  bet_agreement: string;
-  transaction_hash: string | null;
-  maker_fid?: number | null;
-  taker_fid?: number | null;
-  arbiter_fid?: number | null;
+interface BetWithProfiles extends Bet {
   makerProfile?: UserProfile | null;
   takerProfile?: UserProfile | null;
   arbiterProfile?: UserProfile | null;
 }
 
 interface OpenBetsProps {
-  onBetSelect: (bet: Bet) => void;
+  onBetSelect: (bet: BetWithProfiles) => void;
 }
 
 export default function OpenBets({ onBetSelect }: OpenBetsProps) {
-  const [bets, setBets] = useState<Bet[]>([]);
+  const [bets, setBets] = useState<BetWithProfiles[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedBet, setSelectedBet] = useState<Bet | null>(null);
-  const [isApproving, setIsApproving] = useState(false);
-  const [isAccepting, setIsAccepting] = useState(false);
-  const [approvalTxHash, setApprovalTxHash] = useState<
-    `0x${string}` | undefined
-  >(undefined);
-  const [acceptTxHash, setAcceptTxHash] = useState<`0x${string}` | undefined>(
-    undefined
-  );
+  const [selectedBet, setSelectedBet] = useState<BetWithProfiles | null>(null);
   const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
 
   const { address, isConnected } = useAccount();
-  const chainId = useChainId();
-  const { switchChain } = useSwitchChain();
-  const { writeContractAsync: writeApproveAsync } = useWriteContract();
 
-  // Read allowance for the selected bet's token
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: selectedBet?.bet_token_address as `0x${string}`,
-    abi: ERC20_ABI,
-    functionName: "allowance",
-    args: [address as `0x${string}`, BETCASTER_ADDRESS],
-    query: {
-      enabled:
-        !!selectedBet?.bet_token_address &&
-        !!address &&
-        selectedBet.bet_token_address !==
-          "0x0000000000000000000000000000000000000000",
-    },
-  });
-
-  // Wait for approval transaction receipt
-  const { data: approvalReceipt, isSuccess: isApprovalReceiptSuccess } =
-    useWaitForTransactionReceipt({
-      hash: approvalTxHash,
-    });
-
-  // Handle approval transaction receipt
-  useEffect(() => {
-    if (approvalReceipt && isApprovalReceiptSuccess) {
-      console.log("=== APPROVAL TRANSACTION RECEIPT ===");
-      console.log("Transaction Hash:", approvalReceipt.transactionHash);
-      console.log(
-        "Status:",
-        approvalReceipt.status === "success" ? "Success" : "Failed"
-      );
-
-      if (approvalReceipt.status === "success") {
-        console.log("Token approval successful!");
-        setIsApproving(false);
+  const { isApproving, isAccepting, handleAcceptBet, acceptTxHash } =
+    useBetActions({
+      onSuccess: async () => {
+        console.log("Bet accepted successfully!");
         setShowApprovalSuccess(true);
 
-        // Hide success message after 3 seconds
+        // Update database to mark bet as accepted
+        if (selectedBet && acceptTxHash) {
+          try {
+            const updateResponse = await fetch(
+              `/api/bets?betNumber=${selectedBet.bet_number}`,
+              {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  status: 1,
+                  transaction_hash: acceptTxHash,
+                  taker_address: [address],
+                }),
+              }
+            );
+
+            if (!updateResponse.ok) {
+              console.error("Failed to update bet status in database");
+            } else {
+              console.log("Bet status updated to accepted in database");
+
+              // Send notification to arbiter about being invited
+              if (selectedBet.arbiter_fid) {
+                try {
+                  const notificationResult = await notifyInviteArbiter(
+                    selectedBet.arbiter_fid,
+                    {
+                      betNumber: selectedBet.bet_number,
+                      betAmount: selectedBet.bet_amount.toString(),
+                      tokenName: getTokenName(selectedBet.bet_token_address),
+                      makerName:
+                        selectedBet.makerProfile?.display_name ||
+                        selectedBet.makerProfile?.username,
+                      takerName: "You", // Since the current user is the taker
+                      arbiterName:
+                        selectedBet.arbiterProfile?.display_name ||
+                        selectedBet.arbiterProfile?.username,
+                      betAgreement: selectedBet.bet_agreement,
+                      endTime: new Date(
+                        selectedBet.end_time * 1000
+                      ).toLocaleString(),
+                    }
+                  );
+
+                  if (notificationResult.success) {
+                    console.log(
+                      "Notification sent to arbiter about invitation"
+                    );
+                  } else {
+                    console.error(
+                      "Failed to send notification to arbiter:",
+                      notificationResult.error
+                    );
+                  }
+                } catch (notificationError) {
+                  console.error(
+                    "Error sending notification:",
+                    notificationError
+                  );
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error updating bet status:", error);
+          }
+        }
+
         setTimeout(() => {
           setShowApprovalSuccess(false);
+          fetchOpenBets(); // Refresh the bets list
         }, 3000);
-
-        // Refetch allowance after successful approval
-        setTimeout(() => {
-          refetchAllowance();
-
-          // Automatically trigger bet acceptance after approval
-          if (selectedBet) {
-            console.log("Auto-triggering bet acceptance after approval");
-            handleAcceptBetAfterApproval();
-          }
-        }, 1000);
-      }
-    }
-  }, [
-    approvalReceipt,
-    isApprovalReceiptSuccess,
-    refetchAllowance,
-    selectedBet,
-  ]);
+      },
+      onError: (error) => {
+        console.error("Error accepting bet:", error);
+      },
+    });
 
   const getTokenName = (tokenAddress: string): string => {
     if (tokenAddress === "0x0000000000000000000000000000000000000000") {
@@ -163,7 +148,7 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
         // Filter for bets with null taker address and end time not passed
         const currentTime = Math.floor(Date.now() / 1000);
         const openBets = data.bets.filter(
-          (bet: Bet) =>
+          (bet: BetWithProfiles) =>
             (bet.taker_address.length === 0 ||
               (bet.taker_address.length === 1 &&
                 bet.taker_address[0] ===
@@ -173,12 +158,12 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
 
         // Sort by newest first (highest timestamp)
         const sortedBets = openBets.sort(
-          (a: Bet, b: Bet) => b.timestamp - a.timestamp
+          (a: BetWithProfiles, b: BetWithProfiles) => b.timestamp - a.timestamp
         );
 
         // Fetch user profiles for all bets
         const betsWithProfiles = await Promise.all(
-          sortedBets.map(async (bet: Bet) => {
+          sortedBets.map(async (bet: BetWithProfiles) => {
             const [makerProfile, arbiterProfile] = await Promise.all([
               bet.maker_fid
                 ? fetchUserWithCache(bet.maker_fid)
@@ -207,104 +192,9 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
     fetchOpenBets();
   }, []);
 
-  const handleAcceptBet = async (bet: Bet) => {
-    if (!isConnected) {
-      console.error("Wallet not connected");
-      return;
-    }
-
-    // Check if we're on the correct chain (Base)
-    if (chainId !== base.id) {
-      console.log("Switching to Base network...");
-      try {
-        await switchChain({ chainId: base.id });
-        return;
-      } catch (error) {
-        console.error("Failed to switch to Base network:", error);
-        return;
-      }
-    }
-
+  const handleAcceptBetClick = async (bet: BetWithProfiles) => {
     setSelectedBet(bet);
-
-    // Check token allowance for ERC20 tokens (skip for native ETH)
-    if (
-      bet.bet_token_address !== "0x0000000000000000000000000000000000000000"
-    ) {
-      const betAmountWei = amountToWei(bet.bet_amount, bet.bet_token_address);
-
-      if (!allowance || allowance < betAmountWei) {
-        console.log("Insufficient token allowance. Requesting approval...");
-
-        try {
-          setIsApproving(true);
-          const hash = await writeApproveAsync({
-            address: bet.bet_token_address as `0x${string}`,
-            abi: ERC20_ABI,
-            functionName: "approve",
-            args: [BETCASTER_ADDRESS, betAmountWei],
-          });
-
-          if (hash) {
-            console.log("Approval transaction sent:", hash);
-            setApprovalTxHash(hash);
-          }
-
-          return;
-        } catch (error) {
-          console.error("Failed to approve token allowance:", error);
-          setIsApproving(false);
-          return;
-        }
-      }
-    }
-
-    // If no approval needed, proceed directly to bet acceptance
-    await handleAcceptBetAfterApproval();
-  };
-
-  const handleAcceptBetAfterApproval = async () => {
-    if (!selectedBet || !isConnected) {
-      console.error("Cannot accept bet: not connected or no bet selected");
-      return;
-    }
-
-    // Check if we're on the correct chain (Base)
-    if (chainId !== base.id) {
-      console.log("Switching to Base network...");
-      try {
-        await switchChain({ chainId: base.id });
-        return;
-      } catch (error) {
-        console.error("Failed to switch to Base network:", error);
-        return;
-      }
-    }
-
-    try {
-      setIsAccepting(true);
-      console.log("Accepting bet #", selectedBet.bet_number);
-
-      // Encode the function call
-      const encodedData = encodeFunctionData({
-        abi: BET_MANAGEMENT_ENGINE_ABI,
-        functionName: "acceptBet",
-        args: [BigInt(selectedBet.bet_number)],
-      });
-
-      console.log("Encoded accept transaction data:", encodedData);
-
-      // For now, we'll just show a success message since we don't have sendTransaction here
-      // In a real implementation, you'd use sendTransaction from the parent component
-      console.log("Bet acceptance transaction prepared");
-      setIsAccepting(false);
-
-      // You might want to trigger a callback to the parent component here
-      // to handle the actual transaction sending
-    } catch (error) {
-      console.error("Error accepting bet:", error);
-      setIsAccepting(false);
-    }
+    await handleAcceptBet(bet);
   };
 
   if (isLoading) {
@@ -410,7 +300,7 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
                 View Details
               </button>
               <button
-                onClick={() => handleAcceptBet(bet)}
+                onClick={() => handleAcceptBetClick(bet)}
                 disabled={!isConnected || isApproving || isAccepting}
                 className="flex-1 px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
