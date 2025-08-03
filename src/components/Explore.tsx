@@ -11,7 +11,6 @@ import { useMiniApp } from "@neynar/react";
 import { type Bet } from "~/types/bet";
 import { BetTile } from "./BetTile";
 import { BetDetailsModal } from "./BetDetailsModal";
-import { useBets } from "~/hooks/useBets";
 import { useBetActions } from "~/hooks/useBetActions";
 import { BETCASTER_ABI, BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
 import { calculateUSDValue, useTokenPrice } from "~/lib/prices";
@@ -110,29 +109,6 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
     selectedBet?.bet_token_address
   );
   const { context } = useMiniApp();
-  const { userBets, isLoadingBets, refreshBets, updateBetStatus } = useBets();
-  const {
-    isApproving,
-    isAccepting,
-    isCancelling,
-    isForfeiting,
-    isClaiming,
-    isAcceptingArbiter,
-    approvalTxHash,
-    acceptTxHash,
-    cancelTxHash,
-    forfeitTxHash,
-    claimTxHash,
-    acceptArbiterTxHash,
-    handleAcceptBet,
-    handleCancelBet,
-    handleForfeitBet: originalHandleForfeitBet,
-    handleClaimWinnings,
-    handleAcceptArbiterRole: originalHandleAcceptArbiterRole,
-    handleSelectWinner,
-  } = useBetActions({
-    onSuccess: refreshBets,
-  });
 
   // Custom handler for forfeiting bet that includes leaderboard update
   const handleForfeitBet = async (bet: Bet) => {
@@ -406,6 +382,30 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
       setIsLoadingRecentBets(false);
     }
   };
+
+  // Initialize bet actions hook after fetchRecentBets is defined
+  const {
+    isApproving,
+    isAccepting,
+    isCancelling,
+    isForfeiting,
+    isClaiming,
+    isAcceptingArbiter,
+    approvalTxHash,
+    acceptTxHash,
+    cancelTxHash,
+    forfeitTxHash,
+    claimTxHash,
+    acceptArbiterTxHash,
+    handleAcceptBet,
+    handleCancelBet,
+    handleForfeitBet: originalHandleForfeitBet,
+    handleClaimWinnings,
+    handleAcceptArbiterRole: originalHandleAcceptArbiterRole,
+    handleSelectWinner,
+  } = useBetActions({
+    onSuccess: fetchRecentBets,
+  });
 
   // Setup contract read for getBet
   const { data: betFromChain, refetch: refetchBet } = useContractRead({
@@ -1009,7 +1009,7 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
                   }
 
                   // Refresh the bets list to show updated data
-                  await refreshBets();
+                  await fetchRecentBets();
                 }
               } catch (error) {
                 console.error("Error updating bet status:", error);
