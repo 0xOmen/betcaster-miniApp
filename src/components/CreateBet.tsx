@@ -223,6 +223,9 @@ export default function CreateBet({
   const [takerFid, setTakerFid] = useState<number | null>(null);
   const [arbiterFid, setArbiterFid] = useState<number | null>(null);
 
+  // Add state for "Anyone" checkbox
+  const [isAnyoneSelected, setIsAnyoneSelected] = useState<boolean>(false);
+
   const { address } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
@@ -626,6 +629,9 @@ export default function CreateBet({
     setTakerFid(user.fid);
     console.log("Taker FID set:", user.fid);
 
+    // Uncheck "Anyone" checkbox when a user is selected
+    setIsAnyoneSelected(false);
+
     // Fetch detailed user information including wallet addresses
     const detailedUser = await fetchUserDetails(user.fid);
     if (detailedUser) {
@@ -776,7 +782,12 @@ export default function CreateBet({
       }
     }
 
-    if (!selectedUser || !selectedToken || !betAmount || !selectedTimeOption) {
+    if (
+      (!selectedUser && !isAnyoneSelected) ||
+      !selectedToken ||
+      !betAmount ||
+      !selectedTimeOption
+    ) {
       console.error("Missing required fields for bet creation");
       return;
     }
@@ -816,7 +827,9 @@ export default function CreateBet({
     console.log("=== CREATE BET SUBMISSION ===");
     console.log(
       "Selected User Primary ETH Address:",
-      selectedUser.primaryEthAddress || "Not available"
+      isAnyoneSelected
+        ? "Anyone (zero address)"
+        : selectedUser?.primaryEthAddress || "Not available"
     );
     console.log(
       "Selected Arbiter Primary ETH Address:",
@@ -834,8 +847,11 @@ export default function CreateBet({
     console.log("================================");
 
     try {
-      // Check if user has an ETH address
-      if (!selectedUser.primaryEthAddress) {
+      // Check if user has an ETH address (only if not "Anyone")
+      if (
+        !isAnyoneSelected &&
+        (!selectedUser || !selectedUser.primaryEthAddress)
+      ) {
         console.error("Selected user does not have a primary ETH address");
         return;
       }
@@ -854,7 +870,9 @@ export default function CreateBet({
 
       // Prepare the transaction parameters for createBet function
       const createBetParams = [
-        [selectedUser.primaryEthAddress as `0x${string}`], // _taker (now an array)
+        isAnyoneSelected
+          ? ["0x0000000000000000000000000000000000000000" as `0x${string}`] // _taker (zero address for "Anyone")
+          : [selectedUser!.primaryEthAddress as `0x${string}`], // _taker (specific user)
         selectedArbiter?.primaryEthAddress
           ? [selectedArbiter.primaryEthAddress as `0x${string}`]
           : [], // _arbiter (now an array)
@@ -920,7 +938,12 @@ export default function CreateBet({
       }
     }
 
-    if (!selectedUser || !selectedToken || !betAmount || !selectedTimeOption) {
+    if (
+      (!selectedUser && !isAnyoneSelected) ||
+      !selectedToken ||
+      !betAmount ||
+      !selectedTimeOption
+    ) {
       console.error("Missing required fields for bet creation");
       return;
     }
@@ -930,7 +953,9 @@ export default function CreateBet({
     console.log("=== CREATE BET SUBMISSION (After Approval) ===");
     console.log(
       "Selected User Primary ETH Address:",
-      selectedUser.primaryEthAddress || "Not available"
+      isAnyoneSelected
+        ? "Anyone (zero address)"
+        : selectedUser?.primaryEthAddress || "Not available"
     );
     console.log(
       "Selected Arbiter Primary ETH Address:",
@@ -948,8 +973,11 @@ export default function CreateBet({
     console.log("================================");
 
     try {
-      // Check if user has an ETH address
-      if (!selectedUser.primaryEthAddress) {
+      // Check if user has an ETH address (only if not "Anyone")
+      if (
+        !isAnyoneSelected &&
+        (!selectedUser || !selectedUser.primaryEthAddress)
+      ) {
         console.error("Selected user does not have a primary ETH address");
         return;
       }
@@ -968,7 +996,9 @@ export default function CreateBet({
 
       // Prepare the transaction parameters for createBet function
       const createBetParams = [
-        [selectedUser.primaryEthAddress as `0x${string}`], // _taker (now an array)
+        isAnyoneSelected
+          ? ["0x0000000000000000000000000000000000000000" as `0x${string}`] // _taker (zero address for "Anyone")
+          : [selectedUser!.primaryEthAddress as `0x${string}`], // _taker (specific user)
         selectedArbiter?.primaryEthAddress
           ? [selectedArbiter.primaryEthAddress as `0x${string}`]
           : [], // _arbiter (now an array)
@@ -1071,7 +1101,36 @@ export default function CreateBet({
           onUserSelect={setSelectedUser}
           onFidChange={setTakerFid}
           currentUserFid={userFid}
+          disabled={isAnyoneSelected}
         />
+
+        {/* Anyone checkbox */}
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="anyone-checkbox"
+            checked={isAnyoneSelected}
+            disabled={!!selectedUser}
+            onChange={(e) => {
+              setIsAnyoneSelected(e.target.checked);
+              if (e.target.checked) {
+                setSelectedUser(null);
+                setTakerFid(null);
+              }
+            }}
+            className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <label
+            htmlFor="anyone-checkbox"
+            className={`text-sm font-medium ${
+              !!selectedUser
+                ? "text-gray-400 dark:text-gray-500"
+                : "text-gray-700 dark:text-gray-300"
+            }`}
+          >
+            Anyone
+          </label>
+        </div>
 
         {/* Token Selection */}
         <div>
