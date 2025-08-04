@@ -205,6 +205,7 @@ export async function PATCH(request: NextRequest) {
       arbiter_address?: string[] | null;
       end_time?: number;
       bet_agreement?: string;
+      can_settle_early?: boolean;
       maker_fid?: number | null;
       taker_fid?: number | null;
       arbiter_fid?: number | null;
@@ -250,6 +251,11 @@ export async function PATCH(request: NextRequest) {
 
     if (body.bet_agreement !== undefined) {
       updateData.bet_agreement = body.bet_agreement;
+    }
+
+    // Handle can_settle_early updates
+    if (body.can_settle_early !== undefined) {
+      updateData.can_settle_early = body.can_settle_early;
     }
 
     // Handle FID updates
