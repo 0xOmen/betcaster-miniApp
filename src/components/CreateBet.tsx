@@ -601,6 +601,11 @@ export default function CreateBet({
         };
 
         console.log("Transformed user:", transformedUser);
+        console.log("Verified ETH addresses array:", verifiedEthAddresses);
+        console.log(
+          "Transformed user verifiedEthAddresses field:",
+          transformedUser.verifiedEthAddresses
+        );
         return transformedUser;
       } else {
         console.error("Users API returned error status:", response.status);
@@ -629,6 +634,7 @@ export default function CreateBet({
     if (user.primaryEthAddress) {
       return [user.primaryEthAddress as `0x${string}`];
     }
+    console.log("buildAddressArray User:", user);
 
     return [];
   };
