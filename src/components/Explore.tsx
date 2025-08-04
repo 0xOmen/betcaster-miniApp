@@ -451,27 +451,57 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
             takerFid = null,
             arbiterFid = null;
 
-          try {
-            const [makerFidResult, takerFidResult, arbiterFidResult] =
-              await Promise.all([
-                fetchFidFromAddress(chainBet.maker),
-                chainBet.taker &&
-                chainBet.taker.length > 0 &&
-                chainBet.taker[0] !==
-                  "0x0000000000000000000000000000000000000000"
-                  ? fetchFidFromAddress(chainBet.taker[0])
-                  : Promise.resolve(null),
-                chainBet.arbiter &&
-                chainBet.arbiter.length > 0 &&
-                chainBet.arbiter[0] !==
-                  "0x0000000000000000000000000000000000000000"
-                  ? fetchFidFromAddress(chainBet.arbiter[0])
-                  : Promise.resolve(null),
-              ]);
+          console.log("🔍 Starting FID fetch for addresses:", {
+            maker: chainBet.maker,
+            taker: chainBet.taker,
+            arbiter: chainBet.arbiter,
+          });
 
-            makerFid = makerFidResult;
-            takerFid = takerFidResult;
-            arbiterFid = arbiterFidResult;
+          try {
+            // Fetch maker FID
+            makerFid = await fetchFidFromAddress(chainBet.maker);
+            console.log(
+              `🔍 Maker FID result: ${makerFid} for address: ${chainBet.maker}`
+            );
+
+            // Fetch taker FID
+            if (
+              chainBet.taker &&
+              chainBet.taker.length > 0 &&
+              chainBet.taker[0] !== "0x0000000000000000000000000000000000000000"
+            ) {
+              takerFid = await fetchFidFromAddress(chainBet.taker[0]);
+              console.log(
+                `🔍 Taker FID result: ${takerFid} for address: ${chainBet.taker[0]}`
+              );
+            } else {
+              console.log(
+                `🔍 Skipping taker FID fetch - invalid address: ${chainBet.taker}`
+              );
+            }
+
+            // Fetch arbiter FID
+            if (
+              chainBet.arbiter &&
+              chainBet.arbiter.length > 0 &&
+              chainBet.arbiter[0] !==
+                "0x0000000000000000000000000000000000000000"
+            ) {
+              arbiterFid = await fetchFidFromAddress(chainBet.arbiter[0]);
+              console.log(
+                `🔍 Arbiter FID result: ${arbiterFid} for address: ${chainBet.arbiter[0]}`
+              );
+            } else {
+              console.log(
+                `🔍 Skipping arbiter FID fetch - invalid address: ${chainBet.arbiter}`
+              );
+            }
+
+            console.log("✅ FID fetch results:", {
+              makerFid,
+              takerFid,
+              arbiterFid,
+            });
 
             console.log("Found FIDs for refresh:", {
               maker: makerFid || chainBet.maker,
@@ -515,6 +545,11 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
             taker_fid: takerFid,
             arbiter_fid: arbiterFid,
           };
+
+          console.log(
+            "📤 Sending updated bet data to database:",
+            updatedBetData
+          );
 
           // Update the bet in the database
           const response = await fetch(
