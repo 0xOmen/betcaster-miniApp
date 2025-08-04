@@ -73,6 +73,7 @@ interface NeynarUser {
   pfp_url?: string;
   primaryEthAddress?: string;
   primarySolanaAddress?: string;
+  verifiedEthAddresses?: string[]; // Add this new field
 }
 
 export interface UserProfile {
@@ -82,6 +83,7 @@ export interface UserProfile {
   pfp_url: string;
   primaryEthAddress?: string;
   primarySolanaAddress?: string;
+  verifiedEthAddresses?: string[]; // Add this new field
 }
 
 // Add this interface near the top with other interfaces
@@ -92,6 +94,7 @@ interface User {
   pfpUrl: string;
   primaryEthAddress?: string;
   primarySolanaAddress?: string;
+  verifiedEthAddresses?: string[]; // Add this new field
 }
 
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes

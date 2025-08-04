@@ -31,6 +31,7 @@ export interface UserProfile {
   pfp_url: string;
   primaryEthAddress?: string;
   primarySolanaAddress?: string;
+  verifiedEthAddresses?: string[]; // Add this new field
 }
 
 export interface NeynarUser {
@@ -41,4 +42,5 @@ export interface NeynarUser {
   pfp_url?: string;
   primaryEthAddress?: string;
   primarySolanaAddress?: string;
+  verifiedEthAddresses?: string[]; // Add this new field
 }

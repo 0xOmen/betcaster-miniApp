@@ -9,6 +9,7 @@ interface User {
   pfpUrl: string;
   primaryEthAddress?: string;
   primarySolanaAddress?: string;
+  verifiedEthAddresses?: string[]; // Add this new field
 }
 
 interface UserSearchDropdownProps {
@@ -98,6 +99,25 @@ export default function UserSearchDropdown({
           return null;
         }
 
+        // Extract all verified eth addresses
+        const verifiedEthAddresses: string[] = [];
+
+        // Add primary eth address first if it exists
+        if (user.verified_addresses?.primary?.eth_address) {
+          verifiedEthAddresses.push(
+            user.verified_addresses.primary.eth_address
+          );
+        }
+
+        // Add all other verified eth addresses (excluding the primary if it's already included)
+        if (user.verified_addresses?.eth_addresses) {
+          user.verified_addresses.eth_addresses.forEach((address: string) => {
+            if (!verifiedEthAddresses.includes(address)) {
+              verifiedEthAddresses.push(address);
+            }
+          });
+        }
+
         // Transform the user data to match our User interface
         const transformedUser: User = {
           fid: user.fid,
@@ -108,6 +128,7 @@ export default function UserSearchDropdown({
             user.verified_addresses?.primary?.eth_address || null,
           primarySolanaAddress:
             user.verified_addresses?.primary?.sol_address || null,
+          verifiedEthAddresses: verifiedEthAddresses,
         };
 
         console.log("Transformed user:", transformedUser);
