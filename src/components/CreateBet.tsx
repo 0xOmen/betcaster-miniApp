@@ -34,6 +34,7 @@ interface User {
   pfpUrl: string;
   primaryEthAddress?: string;
   primarySolanaAddress?: string;
+  verifiedEthAddresses?: string[]; // Add this new field
 }
 
 interface UserProfile {
@@ -567,6 +568,25 @@ export default function CreateBet({
           return null;
         }
 
+        // Extract all verified eth addresses
+        const verifiedEthAddresses: string[] = [];
+
+        // Add primary eth address first if it exists
+        if (user.verified_addresses?.primary?.eth_address) {
+          verifiedEthAddresses.push(
+            user.verified_addresses.primary.eth_address
+          );
+        }
+
+        // Add all other verified eth addresses (excluding the primary if it's already included)
+        if (user.verified_addresses?.eth_addresses) {
+          user.verified_addresses.eth_addresses.forEach((address: string) => {
+            if (!verifiedEthAddresses.includes(address)) {
+              verifiedEthAddresses.push(address);
+            }
+          });
+        }
+
         // Transform the user data to match our User interface
         const transformedUser: User = {
           fid: user.fid,
@@ -577,6 +597,7 @@ export default function CreateBet({
             user.verified_addresses?.primary?.eth_address || null,
           primarySolanaAddress:
             user.verified_addresses?.primary?.sol_address || null,
+          verifiedEthAddresses: verifiedEthAddresses,
         };
 
         console.log("Transformed user:", transformedUser);
@@ -593,6 +614,23 @@ export default function CreateBet({
     } finally {
       setIsLoadingUserDetails(false);
     }
+  };
+
+  // Helper function to build address array for transaction
+  const buildAddressArray = (user: User | null): `0x${string}`[] => {
+    if (!user) return [];
+
+    // If we have verified addresses array, use it
+    if (user.verifiedEthAddresses && user.verifiedEthAddresses.length > 0) {
+      return user.verifiedEthAddresses.map((addr) => addr as `0x${string}`);
+    }
+
+    // Fallback to primary address only
+    if (user.primaryEthAddress) {
+      return [user.primaryEthAddress as `0x${string}`];
+    }
+
+    return [];
   };
 
   const searchArbiterUsers = async (query: string) => {
@@ -876,10 +914,8 @@ export default function CreateBet({
       const createBetParams = [
         isAnyoneSelected
           ? ["0x0000000000000000000000000000000000000000" as `0x${string}`] // _taker (zero address for "Anyone")
-          : [selectedUser!.primaryEthAddress as `0x${string}`], // _taker (specific user)
-        selectedArbiter?.primaryEthAddress
-          ? [selectedArbiter.primaryEthAddress as `0x${string}`]
-          : [], // _arbiter (now an array)
+          : buildAddressArray(selectedUser), // _taker (array with primary first, then all verified addresses)
+        buildAddressArray(selectedArbiter), // _arbiter (array with primary first, then all verified addresses)
         selectedToken.address as `0x${string}`, // _betTokenAddress (zero address for native ETH)
         betAmountWei, // _betAmount
         canSettleEarly, // _canSettleEarly
@@ -1002,10 +1038,8 @@ export default function CreateBet({
       const createBetParams = [
         isAnyoneSelected
           ? ["0x0000000000000000000000000000000000000000" as `0x${string}`] // _taker (zero address for "Anyone")
-          : [selectedUser!.primaryEthAddress as `0x${string}`], // _taker (specific user)
-        selectedArbiter?.primaryEthAddress
-          ? [selectedArbiter.primaryEthAddress as `0x${string}`]
-          : [], // _arbiter (now an array)
+          : buildAddressArray(selectedUser), // _taker (array with primary first, then all verified addresses)
+        buildAddressArray(selectedArbiter), // _arbiter (array with primary first, then all verified addresses)
         selectedToken.address as `0x${string}`, // _betTokenAddress (zero address for native ETH)
         betAmountWei, // _betAmount
         canSettleEarly, // _canSettleEarly
