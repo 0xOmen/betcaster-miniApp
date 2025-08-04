@@ -12,7 +12,7 @@ interface LeaderboardEntry {
   wins: number;
   losses: number;
   total_volume: number;
-  win_rate?: number;
+  pnl?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -24,7 +24,7 @@ export default function Leaderboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<
-    "total_bets" | "wins" | "total_volume" | "win_rate"
+    "total_bets" | "wins" | "total_volume" | "pnl"
   >("total_bets");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
@@ -53,7 +53,7 @@ export default function Leaderboard() {
   }, []);
 
   const handleSort = (
-    column: "total_bets" | "wins" | "total_volume" | "win_rate"
+    column: "total_bets" | "wins" | "total_volume" | "pnl"
   ) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -80,9 +80,9 @@ export default function Leaderboard() {
         aValue = a.total_volume;
         bValue = b.total_volume;
         break;
-      case "win_rate":
-        aValue = a.win_rate || 0;
-        bValue = b.win_rate || 0;
+      case "pnl":
+        aValue = a.pnl || 0;
+        bValue = b.pnl || 0;
         break;
       default:
         aValue = a.total_bets;
@@ -166,9 +166,9 @@ export default function Leaderboard() {
                 </th>
                 <th
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                  onClick={() => handleSort("win_rate")}
+                  onClick={() => handleSort("pnl")}
                 >
-                  Win Rate {getSortIcon("win_rate")}
+                  PNL {getSortIcon("pnl")}
                 </th>
                 <th
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
@@ -221,13 +221,34 @@ export default function Leaderboard() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 dark:text-red-400">
                     {entry.losses}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                    {entry.win_rate
-                      ? `${(entry.win_rate * 100).toFixed(1)}%`
-                      : "N/A"}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {entry.pnl !== undefined && entry.pnl !== null ? (
+                      <span
+                        className={
+                          entry.pnl >= 0
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400"
+                        }
+                      >
+                        ${entry.pnl.toFixed(2)}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500 dark:text-gray-400">
+                        N/A
+                      </span>
+                    )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                    {entry.total_volume.toLocaleString()}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {entry.total_volume !== undefined &&
+                    entry.total_volume !== null ? (
+                      <span className="text-gray-900 dark:text-gray-100">
+                        ${entry.total_volume.toFixed(2)}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500 dark:text-gray-400">
+                        N/A
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
