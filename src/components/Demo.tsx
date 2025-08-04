@@ -2122,12 +2122,16 @@ export default function Demo(
 
       // Use provided values or fall back to original values
       const newTaker =
-        editTakerUser?.primaryEthAddress || selectedBet.taker_address[0];
+        buildAddressArray(editTakerUser).length > 0
+          ? buildAddressArray(editTakerUser)
+          : selectedBet.taker_address;
       const newArbiter =
-        editArbiterUser?.primaryEthAddress ||
-        (selectedBet.arbiter_address && selectedBet.arbiter_address.length > 0
-          ? selectedBet.arbiter_address[0]
-          : "0x0000000000000000000000000000000000000000");
+        buildAddressArray(editArbiterUser).length > 0
+          ? buildAddressArray(editArbiterUser)
+          : selectedBet.arbiter_address &&
+              selectedBet.arbiter_address.length > 0
+            ? selectedBet.arbiter_address
+            : [];
       const newBetAgreement = editBetAgreement || selectedBet.bet_agreement;
 
       // Encode the function call
@@ -2136,8 +2140,8 @@ export default function Demo(
         functionName: "changeBetParameters",
         args: [
           BigInt(selectedBet.bet_number),
-          [newTaker as `0x${string}`],
-          newArbiter ? [newArbiter as `0x${string}`] : [],
+          newTaker as `0x${string}`[],
+          newArbiter as `0x${string}`[],
           editCanSettleEarly,
           BigInt(newEndTime),
           newBetAgreement,
@@ -2173,10 +2177,12 @@ export default function Demo(
                     body: JSON.stringify({
                       taker_address: [newTaker],
                       arbiter_address:
-                        newArbiter ===
-                        "0x0000000000000000000000000000000000000000"
+                        newArbiter.length === 0 ||
+                        (newArbiter.length === 1 &&
+                          newArbiter[0] ===
+                            "0x0000000000000000000000000000000000000000")
                           ? null
-                          : [newArbiter],
+                          : newArbiter,
                       can_settle_early: editCanSettleEarly,
                       end_time: newEndTime,
                       bet_agreement: newBetAgreement,
@@ -2274,6 +2280,23 @@ export default function Demo(
     }
   };
 
+  // Helper function to build address array for transaction
+  const buildAddressArray = (user: User | null): `0x${string}`[] => {
+    if (!user) return [];
+
+    // If we have verified addresses array, use it
+    if (user.verifiedEthAddresses && user.verifiedEthAddresses.length > 0) {
+      return user.verifiedEthAddresses.map((addr) => addr as `0x${string}`);
+    }
+
+    // Fallback to primary address only
+    if (user.primaryEthAddress) {
+      return [user.primaryEthAddress as `0x${string}`];
+    }
+
+    return [];
+  };
+
   // Function to open edit modal and populate fields
   const openEditModal = (bet: Bet) => {
     setSelectedBet(bet);
@@ -2287,6 +2310,7 @@ export default function Demo(
         pfpUrl: bet.takerProfile.pfp_url,
         primaryEthAddress: bet.takerProfile.primaryEthAddress,
         primarySolanaAddress: bet.takerProfile.primarySolanaAddress,
+        verifiedEthAddresses: bet.takerProfile.verifiedEthAddresses,
       });
       setEditTakerFid(bet.takerProfile.fid);
     }
@@ -2299,6 +2323,7 @@ export default function Demo(
         pfpUrl: bet.arbiterProfile.pfp_url,
         primaryEthAddress: bet.arbiterProfile.primaryEthAddress,
         primarySolanaAddress: bet.arbiterProfile.primarySolanaAddress,
+        verifiedEthAddresses: bet.arbiterProfile.verifiedEthAddresses,
       });
       setEditArbiterFid(bet.arbiterProfile.fid);
     }
