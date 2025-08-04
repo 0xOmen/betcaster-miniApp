@@ -446,6 +446,50 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
             chainBet.betTokenAddress
           );
 
+          // Fetch FIDs for all addresses in parallel
+          let makerFid = null,
+            takerFid = null,
+            arbiterFid = null;
+
+          try {
+            const [makerFidResult, takerFidResult, arbiterFidResult] =
+              await Promise.all([
+                fetchFidFromAddress(chainBet.maker),
+                chainBet.taker &&
+                chainBet.taker.length > 0 &&
+                chainBet.taker[0] !==
+                  "0x0000000000000000000000000000000000000000"
+                  ? fetchFidFromAddress(chainBet.taker[0])
+                  : Promise.resolve(null),
+                chainBet.arbiter &&
+                chainBet.arbiter.length > 0 &&
+                chainBet.arbiter[0] !==
+                  "0x0000000000000000000000000000000000000000"
+                  ? fetchFidFromAddress(chainBet.arbiter[0])
+                  : Promise.resolve(null),
+              ]);
+
+            makerFid = makerFidResult;
+            takerFid = takerFidResult;
+            arbiterFid = arbiterFidResult;
+
+            console.log("Found FIDs for refresh:", {
+              maker: makerFid || chainBet.maker,
+              taker:
+                takerFid ||
+                (chainBet.taker && chainBet.taker.length > 0
+                  ? chainBet.taker[0]
+                  : null),
+              arbiter:
+                arbiterFid ||
+                (chainBet.arbiter && chainBet.arbiter.length > 0
+                  ? chainBet.arbiter[0]
+                  : null),
+            });
+          } catch (error) {
+            console.error("Error fetching FIDs for refresh:", error);
+          }
+
           // Prepare updated bet data for database
           const updatedBetData = {
             bet_number: selectedBet.bet_number,
@@ -467,6 +511,9 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
             arbiter_fee: Number(chainBet.arbiterFee) / 100, // Convert from basis points
             bet_agreement: chainBet.betAgreement,
             can_settle_early: chainBet.canSettleEarly,
+            maker_fid: makerFid,
+            taker_fid: takerFid,
+            arbiter_fid: arbiterFid,
           };
 
           // Update the bet in the database
