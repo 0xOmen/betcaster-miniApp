@@ -205,6 +205,9 @@ export async function PATCH(request: NextRequest) {
       arbiter_address?: string[] | null;
       end_time?: number;
       bet_agreement?: string;
+      maker_fid?: number | null;
+      taker_fid?: number | null;
+      arbiter_fid?: number | null;
     } = {};
 
     // Handle status updates (existing functionality)
@@ -247,6 +250,19 @@ export async function PATCH(request: NextRequest) {
 
     if (body.bet_agreement !== undefined) {
       updateData.bet_agreement = body.bet_agreement;
+    }
+
+    // Handle FID updates
+    if (body.maker_fid !== undefined) {
+      updateData.maker_fid = body.maker_fid;
+    }
+
+    if (body.taker_fid !== undefined) {
+      updateData.taker_fid = body.taker_fid;
+    }
+
+    if (body.arbiter_fid !== undefined) {
+      updateData.arbiter_fid = body.arbiter_fid;
     }
 
     // Check if we have any fields to update
