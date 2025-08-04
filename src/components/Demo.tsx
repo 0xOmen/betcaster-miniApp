@@ -2917,27 +2917,56 @@ export default function Demo(
 
         {currentTab === "bets" && (
           <div className="space-y-3 px-6 w-full max-w-md mx-auto">
-            {/* Toggle Tabs */}
-            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            {/* Header with Toggle Tabs and Refresh Button */}
+            <div className="flex items-center justify-between">
+              {/* Toggle Tabs */}
+              <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 flex-1">
+                <button
+                  onClick={() => setBetsTab("you")}
+                  className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                    betsTab === "you"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                  }`}
+                >
+                  You
+                </button>
+                <button
+                  onClick={() => setBetsTab("open")}
+                  className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                    betsTab === "open"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                  }`}
+                >
+                  Open
+                </button>
+              </div>
+
+              {/* Refresh Button */}
               <button
-                onClick={() => setBetsTab("you")}
-                className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
-                  betsTab === "you"
-                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                onClick={refreshBetsWithFiltering}
+                disabled={isLoadingBets}
+                className={`ml-3 p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors ${
+                  isLoadingBets
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
+                title="Refresh bets"
               >
-                You
-              </button>
-              <button
-                onClick={() => setBetsTab("open")}
-                className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
-                  betsTab === "open"
-                    ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                }`}
-              >
-                Open
+                <svg
+                  className={`w-5 h-5 ${isLoadingBets ? "animate-spin" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
               </button>
             </div>
 
