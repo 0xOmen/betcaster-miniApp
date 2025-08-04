@@ -2175,7 +2175,7 @@ export default function Demo(
                       "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                      taker_address: [newTaker],
+                      taker_address: newTaker,
                       arbiter_address:
                         newArbiter.length === 0 ||
                         (newArbiter.length === 1 &&
