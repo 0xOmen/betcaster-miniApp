@@ -34,6 +34,7 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
   const [isClaiming, setIsClaiming] = useState(false);
   const [isAcceptingArbiter, setIsAcceptingArbiter] = useState(false);
   const [isSelectingWinner, setIsSelectingWinner] = useState(false);
+  const [isEmergencyCancelling, setIsEmergencyCancelling] = useState(false);
 
   const [approvalTxHash, setApprovalTxHash] = useState<
     `0x${string}` | undefined
@@ -48,6 +49,9 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
     `0x${string}` | undefined
   >();
   const [selectWinnerTxHash, setSelectWinnerTxHash] = useState<
+    `0x${string}` | undefined
+  >();
+  const [emergencyCancelTxHash, setEmergencyCancelTxHash] = useState<
     `0x${string}` | undefined
   >();
 
@@ -355,6 +359,51 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
     }
   };
 
+  const handleEmergencyCancel = async (bet: Bet) => {
+    try {
+      await ensureBaseChain();
+
+      setIsEmergencyCancelling(true);
+      console.log("Emergency cancelling bet #", bet.bet_number);
+
+      // Encode the function call
+      const encodedData = encodeFunctionData({
+        abi: BET_MANAGEMENT_ENGINE_ABI,
+        functionName: "emergencyCancel",
+        args: [BigInt(bet.bet_number)],
+      });
+
+      console.log("Encoded emergency cancel transaction data:", encodedData);
+
+      // Send the transaction
+      sendTransaction(
+        {
+          to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+          data: encodedData as `0x${string}`,
+        },
+        {
+          onSuccess: (hash: `0x${string}`) => {
+            console.log(
+              "Emergency cancel transaction sent successfully:",
+              hash
+            );
+            setEmergencyCancelTxHash(hash);
+            if (onSuccess) onSuccess();
+          },
+          onError: (error: Error) => {
+            console.error("Emergency cancel transaction failed:", error);
+            setIsEmergencyCancelling(false);
+            if (onError) onError(error);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error emergency cancelling bet:", error);
+      setIsEmergencyCancelling(false);
+      if (onError) onError(error as Error);
+    }
+  };
+
   return {
     isApproving,
     isAccepting,
@@ -363,6 +412,7 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
     isClaiming,
     isAcceptingArbiter,
     isSelectingWinner,
+    isEmergencyCancelling,
     approvalTxHash,
     acceptTxHash,
     cancelTxHash,
@@ -370,11 +420,13 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
     claimTxHash,
     acceptArbiterTxHash,
     selectWinnerTxHash,
+    emergencyCancelTxHash,
     handleAcceptBet,
     handleCancelBet,
     handleForfeitBet,
     handleClaimWinnings,
     handleAcceptArbiterRole,
     handleSelectWinner,
+    handleEmergencyCancel,
   };
 }

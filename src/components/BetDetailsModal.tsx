@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { type Bet } from "~/types/bet";
-import { getStatusInfo, formatEndTime, getTokenName } from "~/lib/betUtils";
+import {
+  getStatusInfo,
+  formatEndTime,
+  getTokenName,
+  getUserCanEmergencyCancel,
+} from "~/lib/betUtils";
 import { getTokenByAddress } from "~/lib/tokens";
 
 // Helper function to check if an address is in an array
@@ -28,6 +33,7 @@ interface BetDetailsModalProps {
   onAcceptArbiter?: () => void;
   onSelectWinner?: () => void;
   onRefreshFromChain?: () => void;
+  onEmergencyCancel?: () => void;
   isApproving?: boolean;
   isAccepting?: boolean;
   isCancelling?: boolean;
@@ -36,6 +42,7 @@ interface BetDetailsModalProps {
   isAcceptingArbiter?: boolean;
   isSelectingWinner?: boolean;
   isRefreshingFromChain?: boolean;
+  isEmergencyCancelling?: boolean;
   showApprovalSuccess?: boolean;
 }
 
@@ -53,6 +60,7 @@ export function BetDetailsModal({
   onAcceptArbiter,
   onSelectWinner,
   onRefreshFromChain,
+  onEmergencyCancel,
   isApproving,
   isAccepting,
   isCancelling,
@@ -61,6 +69,7 @@ export function BetDetailsModal({
   isAcceptingArbiter,
   isSelectingWinner,
   isRefreshingFromChain,
+  isEmergencyCancelling,
   showApprovalSuccess,
 }: BetDetailsModalProps) {
   if (!isOpen) return null;
@@ -246,6 +255,56 @@ export function BetDetailsModal({
               </button>
             </div>
           )}
+
+          {/* Emergency Cancel Actions for Status 2 */}
+          {getUserCanEmergencyCancel(
+            bet,
+            currentUserAddress,
+            currentUserFid ?? undefined
+          ) &&
+            onEmergencyCancel && (
+              <div className="mb-4">
+                {/* Warning Message */}
+                <div className="mb-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <svg
+                        className="w-5 h-5 text-orange-400"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                        Emergency Cancel Available
+                      </h3>
+                      <div className="mt-2 text-sm text-orange-700 dark:text-orange-300">
+                        <p>
+                          The arbiter has failed to make a decision within 14
+                          days of the bet end time. You can now emergency cancel
+                          this bet and recover your funds.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={onEmergencyCancel}
+                  disabled={isEmergencyCancelling}
+                  className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isEmergencyCancelling
+                    ? "Emergency Cancelling..."
+                    : "Emergency Cancel"}
+                </button>
+              </div>
+            )}
 
           {/* Arbiter Select Winner Actions for Status 2 */}
           {bet.status === 2 &&

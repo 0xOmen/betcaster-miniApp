@@ -42,6 +42,8 @@ import { useReadContract, useWriteContract } from "wagmi";
 import { amountToWei, getTokenByAddress } from "~/lib/tokens";
 import { calculateUSDValue, useTokenPrice } from "~/lib/prices";
 import { getTimeRemaining } from "~/lib/utils";
+import { getUserCanEmergencyCancel } from "~/lib/betUtils";
+import { useBetActions } from "~/hooks/useBetActions";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
 import { farcasterMiniApp as miniAppConnector } from "@farcaster/miniapp-wagmi-connector";
 import { ShareModal } from "~/components/ShareModal";
@@ -177,12 +179,9 @@ export default function Demo(
   const [cancelTxHash, setCancelTxHash] = useState<`0x${string}` | undefined>(
     undefined
   );
-  const [isCancelling, setIsCancelling] = useState(false);
   const [acceptTxHash, setAcceptTxHash] = useState<`0x${string}` | undefined>(
     undefined
   );
-  const [isAccepting, setIsAccepting] = useState(false);
-  const [isApproving, setIsApproving] = useState(false);
   const [approvalTxHash, setApprovalTxHash] = useState<
     `0x${string}` | undefined
   >(undefined);
@@ -190,15 +189,12 @@ export default function Demo(
   const [acceptArbiterTxHash, setAcceptArbiterTxHash] = useState<
     `0x${string}` | undefined
   >(undefined);
-  const [isAcceptingArbiter, setIsAcceptingArbiter] = useState(false);
   const [forfeitTxHash, setForfeitTxHash] = useState<`0x${string}` | undefined>(
     undefined
   );
-  const [isForfeiting, setIsForfeiting] = useState(false);
   const [claimTxHash, setClaimTxHash] = useState<`0x${string}` | undefined>(
     undefined
   );
-  const [isClaiming, setIsClaiming] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTxHash, setEditTxHash] = useState<`0x${string}` | undefined>(
@@ -220,7 +216,6 @@ export default function Demo(
 
   // Select Winner state
   const [isSelectWinnerModalOpen, setIsSelectWinnerModalOpen] = useState(false);
-  const [isSelectingWinner, setIsSelectingWinner] = useState(false);
   const [selectWinnerTxHash, setSelectWinnerTxHash] = useState<
     `0x${string}` | undefined
   >(undefined);
@@ -238,7 +233,6 @@ export default function Demo(
   } | null>(null);
   const [initialParamsHandled, setInitialParamsHandled] = useState(false);
   const [isLoadingSpecificBet, setIsLoadingSpecificBet] = useState(false);
-
   // Get token price for selected bet
   const { data: tokenPriceData } = useTokenPrice(
     selectedBet?.bet_token_address
@@ -247,6 +241,27 @@ export default function Demo(
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { writeContractAsync: writeApproveAsync } = useWriteContract();
+
+  // Initialize bet actions hook
+  const {
+    isApproving,
+    isAccepting,
+    isCancelling,
+    isForfeiting,
+    isClaiming,
+    isAcceptingArbiter,
+    isSelectingWinner,
+    isEmergencyCancelling,
+    handleAcceptBet: hookHandleAcceptBet,
+    handleCancelBet: hookHandleCancelBet,
+    handleForfeitBet: hookHandleForfeitBet,
+    handleClaimWinnings: hookHandleClaimWinnings,
+    handleAcceptArbiterRole: hookHandleAcceptArbiterRole,
+    handleSelectWinner: hookHandleSelectWinner,
+    handleEmergencyCancel,
+  } = useBetActions({
+    onSuccess: () => refreshBetsWithFiltering(),
+  });
 
   // Add state for edit can settle early
   const [editCanSettleEarly, setEditCanSettleEarly] = useState<boolean>(true);
@@ -698,7 +713,7 @@ export default function Demo(
 
       if (approvalReceipt.status === "success") {
         console.log("Token approval successful!");
-        setIsApproving(false);
+        // setIsApproving(false); // Removed - using hook state
         setShowApprovalSuccess(true);
 
         // Hide success message after 5 seconds
@@ -1023,14 +1038,14 @@ export default function Demo(
     setIsModalOpen(false);
     setSelectedBet(null);
     // Reset all transaction states to prevent interference
-    setIsApproving(false);
-    setIsAccepting(false);
-    setIsCancelling(false);
-    setIsForfeiting(false);
-    setIsClaiming(false);
-    setIsAcceptingArbiter(false);
+    // setIsApproving(false); // Removed - using hook state
+    // setIsAccepting(false); // Removed - using hook state
+    // setIsCancelling(false); // Removed - using hook state
+    // setIsForfeiting(false); // Removed - using hook state
+    // setIsClaiming(false); // Removed - using hook state
+    // setIsAcceptingArbiter(false); // Removed - using hook state
     setIsEditing(false);
-    setIsSelectingWinner(false);
+    // setIsSelectingWinner(false); // Removed - using hook state
     setApprovalTxHash(undefined);
     setAcceptTxHash(undefined);
     setCancelTxHash(undefined);
@@ -1223,89 +1238,11 @@ export default function Demo(
 
   // Function to cancel bet
   const handleCancelBet = async () => {
-    if (!selectedBet || !isConnected) {
-      console.error("Cannot cancel bet: not connected or no bet selected");
+    if (!selectedBet) {
+      console.error("No bet selected for cancellation");
       return;
     }
-
-    // Check if we're on the correct chain (Base)
-    if (chainId !== base.id) {
-      console.log("Switching to Base network...");
-      try {
-        await switchChain({ chainId: base.id });
-        return;
-      } catch (error) {
-        console.error("Failed to switch to Base network:", error);
-        return;
-      }
-    }
-
-    try {
-      setIsCancelling(true);
-      console.log("Cancelling bet #", selectedBet.bet_number);
-
-      // Encode the function call
-      const encodedData = encodeFunctionData({
-        abi: BET_MANAGEMENT_ENGINE_ABI,
-        functionName: "makerCancelBet",
-        args: [BigInt(selectedBet.bet_number)],
-      });
-
-      console.log("Encoded cancel transaction data:", encodedData);
-
-      // Use a more direct approach to avoid connector issues
-      sendTransaction(
-        {
-          to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
-          data: encodedData as `0x${string}`,
-        },
-        {
-          onSuccess: async (hash: `0x${string}`) => {
-            console.log("Cancel transaction sent successfully:", hash);
-            setCancelTxHash(hash);
-
-            // Close modal after successful transaction
-            setTimeout(async () => {
-              closeModal();
-              // Update database to mark bet as cancelled
-              try {
-                const updateResponse = await fetch(
-                  `/api/bets?betNumber=${selectedBet.bet_number}`,
-                  {
-                    method: "PATCH",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      status: 8,
-                      transaction_hash: hash,
-                    }),
-                  }
-                );
-
-                if (!updateResponse.ok) {
-                  console.error("Failed to update bet status in database");
-                } else {
-                  console.log("Bet status updated to cancelled in database");
-                }
-              } catch (error) {
-                console.error("Error updating bet status:", error);
-              }
-
-              // Refresh bets list with filtering
-              await refreshBetsWithFiltering();
-            }, 2000);
-          },
-          onError: (error: Error) => {
-            console.error("Cancel transaction failed:", error);
-            setIsCancelling(false);
-          },
-        }
-      );
-    } catch (error) {
-      console.error("Error cancelling bet:", error);
-      setIsCancelling(false);
-    }
+    await hookHandleCancelBet(selectedBet);
   };
 
   // Function to accept bet
@@ -1336,7 +1273,7 @@ export default function Demo(
       console.log("Insufficient token allowance. Requesting approval...");
 
       try {
-        setIsApproving(true);
+        // setIsApproving(true); // Removed - using hook state
         const hash = await writeApproveAsync({
           address: selectedBet.bet_token_address as `0x${string}`,
           abi: ERC20_ABI,
@@ -1352,7 +1289,7 @@ export default function Demo(
         return;
       } catch (error) {
         console.error("Failed to approve token allowance:", error);
-        setIsApproving(false);
+        // setIsApproving(false); // Removed - using hook state
         return;
       }
     } else {
@@ -1380,7 +1317,7 @@ export default function Demo(
     }
 
     try {
-      setIsAccepting(true);
+      // setIsAccepting(true); // Removed - using hook state
       console.log("Accepting bet #", selectedBet.bet_number);
 
       // Encode the function call
@@ -1483,13 +1420,13 @@ export default function Demo(
           },
           onError: (error: Error) => {
             console.error("Accept transaction failed:", error);
-            setIsAccepting(false);
+            // setIsAccepting(false); // Removed - using hook state
           },
         }
       );
     } catch (error) {
       console.error("Error accepting bet:", error);
-      setIsAccepting(false);
+      // setIsAccepting(false); // Removed - using hook state
     }
   };
 
@@ -1515,7 +1452,7 @@ export default function Demo(
     }
 
     try {
-      setIsAcceptingArbiter(true);
+      // setIsAcceptingArbiter(true); // Removed - using hook state
       console.log("Accepting arbiter role for bet #", selectedBet.bet_number);
 
       // Encode the function call
@@ -1699,13 +1636,13 @@ export default function Demo(
           },
           onError: (error: Error) => {
             console.error("Accept arbiter transaction failed:", error);
-            setIsAcceptingArbiter(false);
+            // setIsAcceptingArbiter(false); // Removed - using hook state
           },
         }
       );
     } catch (error) {
       console.error("Error accepting arbiter role:", error);
-      setIsAcceptingArbiter(false);
+      // setIsAcceptingArbiter(false); // Removed - using hook state
     }
   };
 
@@ -1751,7 +1688,7 @@ export default function Demo(
     }
 
     try {
-      setIsForfeiting(true);
+      // setIsForfeiting(true); // Removed - using hook state
       console.log("Forfeiting bet #", selectedBet.bet_number);
 
       // Encode the function call
@@ -1928,13 +1865,13 @@ export default function Demo(
           },
           onError: (error: Error) => {
             console.error("Forfeit transaction failed:", error);
-            setIsForfeiting(false);
+            // setIsForfeiting(false); // Removed - using hook state
           },
         }
       );
     } catch (error) {
       console.error("Error forfeiting bet:", error);
-      setIsForfeiting(false);
+      // setIsForfeiting(false); // Removed - using hook state
     }
   };
 
@@ -1971,7 +1908,7 @@ export default function Demo(
     }
 
     try {
-      setIsClaiming(true);
+      // setIsClaiming(true); // Removed - using hook state
       console.log("Claiming winnings for bet #", selectedBet.bet_number);
 
       // Encode the function call
@@ -2051,13 +1988,13 @@ export default function Demo(
           },
           onError: (error: Error) => {
             console.error("Claim transaction failed:", error);
-            setIsClaiming(false);
+            // setIsClaiming(false); // Removed - using hook state
           },
         }
       );
     } catch (error) {
       console.error("Error claiming winnings:", error);
-      setIsClaiming(false);
+      // setIsClaiming(false); // Removed - using hook state
     }
   };
 
@@ -2385,7 +2322,7 @@ export default function Demo(
     }
 
     try {
-      setIsSelectingWinner(true);
+      // setIsSelectingWinner(true); // Removed - using hook state
       console.log(
         "Selecting winner for bet #",
         selectedBet.bet_number,
@@ -2626,13 +2563,13 @@ export default function Demo(
           },
           onError: (error: Error) => {
             console.error("Select winner transaction failed:", error);
-            setIsSelectingWinner(false);
+            // setIsSelectingWinner(false); // Removed - using hook state
           },
         }
       );
     } catch (error) {
       console.error("Error selecting winner:", error);
-      setIsSelectingWinner(false);
+      // setIsSelectingWinner(false); // Removed - using hook state
     }
   };
 
@@ -2729,7 +2666,7 @@ export default function Demo(
       }
     }
     try {
-      setIsCancelling(true);
+      // setIsCancelling(true); // Removed - using hook state
       const encodedData = encodeFunctionData({
         abi: BET_MANAGEMENT_ENGINE_ABI,
         functionName: "noArbiterCancelBet",
@@ -2828,13 +2765,13 @@ export default function Demo(
           },
           onError: (error: Error) => {
             console.error("Cancel transaction failed:", error);
-            setIsCancelling(false);
+            // setIsCancelling(false); // Removed - using hook state
           },
         }
       );
     } catch (error) {
       console.error("Error cancelling bet:", error);
-      setIsCancelling(false);
+      // setIsCancelling(false); // Removed - using hook state
     }
   };
 
@@ -3576,6 +3513,55 @@ export default function Demo(
                       </div>
                     </div>
                   )}
+
+                {/* Emergency Cancel Actions for Status 2 */}
+                {getUserCanEmergencyCancel(
+                  selectedBet,
+                  address,
+                  context?.user?.fid
+                ) && (
+                  <div className="mb-4">
+                    {/* Warning Message */}
+                    <div className="mb-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">
+                          <svg
+                            className="w-5 h-5 text-orange-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                            Emergency Cancel Available
+                          </h3>
+                          <div className="mt-2 text-sm text-orange-700 dark:text-orange-300">
+                            <p>
+                              The arbiter has failed to make a decision within
+                              14 days of the bet end time. You can now emergency
+                              cancel this bet and recover your funds.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleEmergencyCancel(selectedBet)}
+                      disabled={isEmergencyCancelling}
+                      className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isEmergencyCancelling
+                        ? "Emergency Cancelling..."
+                        : "Emergency Cancel"}
+                    </button>
+                  </div>
+                )}
 
                 {/* Claim Winnings Actions for Status 4 and 5 */}
                 {selectedBet.status === 4 &&

@@ -289,3 +289,28 @@ export function getUserCanSelectWinner(
       currentUserFid === bet.arbiter_fid)
   );
 }
+
+export function getUserCanEmergencyCancel(
+  bet: Bet,
+  currentUserAddress?: string,
+  currentUserFid?: number
+): boolean {
+  const isMaker =
+    currentUserAddress?.toLowerCase() === bet.maker_address.toLowerCase() ||
+    currentUserFid === bet.maker_fid;
+  const isTaker =
+    (currentUserAddress &&
+      isAddressInArray(currentUserAddress, bet.taker_address)) ||
+    currentUserFid === bet.taker_fid;
+
+  // Check if it's 14 days past the end time (14 * 24 * 60 * 60 = 1,209,600 seconds)
+  const fourteenDaysInSeconds = 14 * 24 * 60 * 60;
+  const isFourteenDaysPastEndTime =
+    Math.floor(Date.now() / 1000) > bet.end_time + fourteenDaysInSeconds;
+
+  return (
+    bet.status === 2 && // Bet is waiting for arbiter decision
+    (isMaker || isTaker) && // User is maker or taker
+    isFourteenDaysPastEndTime // It's been 14 days past the end time
+  );
+}
