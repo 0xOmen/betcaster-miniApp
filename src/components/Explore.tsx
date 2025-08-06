@@ -19,11 +19,6 @@ import { useContractRead } from "wagmi";
 import { getTokenByAddress, weiToAmount } from "~/lib/tokens";
 import { base } from "wagmi/chains";
 
-import {
-  ARBITER_MANAGEMENT_ENGINE_ABI,
-  ARBITER_MANAGEMENT_ENGINE_ADDRESS,
-} from "~/lib/arbiterAbi";
-
 import { notifyWinnerSelected } from "~/lib/notificationUtils";
 import { fetchUserWithCache, globalUserCache, type UserProfile } from "./Demo";
 
