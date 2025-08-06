@@ -1452,197 +1452,166 @@ export default function Demo(
     }
 
     try {
-      // setIsAcceptingArbiter(true); // Removed - using hook state
       console.log("Accepting arbiter role for bet #", selectedBet.bet_number);
 
-      // Encode the function call
-      const encodedData = encodeFunctionData({
-        abi: ARBITER_MANAGEMENT_ENGINE_ABI,
-        functionName: "ArbiterAcceptRole",
-        args: [BigInt(selectedBet.bet_number)],
-      });
+      // Use the hook function instead of manual transaction
+      await hookHandleAcceptArbiterRole(selectedBet);
 
-      console.log("Encoded accept arbiter transaction data:", encodedData);
+      // Close modal after successful transaction
+      setTimeout(async () => {
+        closeModal();
+        // Update database to mark bet as arbiter accepted
+        try {
+          const updateResponse = await fetch(
+            `/api/bets?betNumber=${selectedBet.bet_number}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                status: 2,
+                transaction_hash: acceptArbiterTxHash,
+              }),
+            }
+          );
 
-      // Send the transaction
-      sendTransaction(
-        {
-          to: ARBITER_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
-          data: encodedData as `0x${string}`,
-        },
-        {
-          onSuccess: async (hash: `0x${string}`) => {
-            console.log("Accept arbiter transaction sent successfully:", hash);
-            setAcceptArbiterTxHash(hash);
+          if (!updateResponse.ok) {
+            console.error("Failed to update bet status in database");
+          } else {
+            console.log("Bet status updated to arbiter accepted in database");
 
-            // Close modal after successful transaction
-            setTimeout(async () => {
-              closeModal();
-              // Update database to mark bet as arbiter accepted
+            // Calculate USD volume for leaderboard update
+            const usdVolume = tokenPriceData?.[0]
+              ? calculateUSDValue(
+                  selectedBet.bet_amount,
+                  Number(tokenPriceData[0])
+                )
+              : 0;
+
+            // Update leaderboard for maker and taker
+            try {
+              const leaderboardUpdateResponse = await fetch(
+                "/api/leaderboard",
+                {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    maker_fid: selectedBet.maker_fid,
+                    taker_fid: selectedBet.taker_fid,
+                    usd_volume: usdVolume,
+                  }),
+                }
+              );
+
+              if (leaderboardUpdateResponse.ok) {
+                console.log(
+                  "Leaderboard updated successfully for maker and taker"
+                );
+              } else {
+                console.error("Failed to update leaderboard");
+              }
+            } catch (leaderboardError) {
+              console.error("Error updating leaderboard:", leaderboardError);
+            }
+
+            // Send notification to maker about arbiter acceptance
+            if (selectedBet.maker_fid) {
               try {
-                const updateResponse = await fetch(
-                  `/api/bets?betNumber=${selectedBet.bet_number}`,
+                const makerNotificationResult = await notifyArbiterAccepted(
+                  selectedBet.maker_fid,
                   {
-                    method: "PATCH",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      status: 2,
-                      transaction_hash: hash,
-                    }),
+                    betNumber: selectedBet.bet_number,
+                    betAmount: selectedBet.bet_amount.toString(),
+                    tokenName: getTokenName(selectedBet.bet_token_address),
+                    makerName:
+                      selectedBet.makerProfile?.display_name ||
+                      selectedBet.makerProfile?.username,
+                    takerName:
+                      selectedBet.takerProfile?.display_name ||
+                      selectedBet.takerProfile?.username,
+                    arbiterName:
+                      selectedBet.arbiterProfile?.display_name ||
+                      selectedBet.arbiterProfile?.username,
+                    betAgreement: selectedBet.bet_agreement,
+                    endTime: new Date(
+                      selectedBet.end_time * 1000
+                    ).toLocaleString(),
                   }
                 );
 
-                if (!updateResponse.ok) {
-                  console.error("Failed to update bet status in database");
-                } else {
+                if (makerNotificationResult.success) {
                   console.log(
-                    "Bet status updated to arbiter accepted in database"
+                    "Notification sent to maker about arbiter acceptance"
                   );
-
-                  // Calculate USD volume for leaderboard update
-                  const usdVolume = tokenPriceData?.[0]
-                    ? calculateUSDValue(
-                        selectedBet.bet_amount,
-                        Number(tokenPriceData[0])
-                      )
-                    : 0;
-
-                  // Update leaderboard for maker and taker
-                  try {
-                    const leaderboardUpdateResponse = await fetch(
-                      "/api/leaderboard",
-                      {
-                        method: "PATCH",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                          maker_fid: selectedBet.maker_fid,
-                          taker_fid: selectedBet.taker_fid,
-                          usd_volume: usdVolume,
-                        }),
-                      }
-                    );
-
-                    if (leaderboardUpdateResponse.ok) {
-                      console.log(
-                        "Leaderboard updated successfully for maker and taker"
-                      );
-                    } else {
-                      console.error("Failed to update leaderboard");
-                    }
-                  } catch (leaderboardError) {
-                    console.error(
-                      "Error updating leaderboard:",
-                      leaderboardError
-                    );
-                  }
-
-                  // Send notification to maker about arbiter acceptance
-                  if (selectedBet.maker_fid) {
-                    try {
-                      const makerNotificationResult =
-                        await notifyArbiterAccepted(selectedBet.maker_fid, {
-                          betNumber: selectedBet.bet_number,
-                          betAmount: selectedBet.bet_amount.toString(),
-                          tokenName: getTokenName(
-                            selectedBet.bet_token_address
-                          ),
-                          makerName:
-                            selectedBet.makerProfile?.display_name ||
-                            selectedBet.makerProfile?.username,
-                          takerName:
-                            selectedBet.takerProfile?.display_name ||
-                            selectedBet.takerProfile?.username,
-                          arbiterName:
-                            selectedBet.arbiterProfile?.display_name ||
-                            selectedBet.arbiterProfile?.username,
-                          betAgreement: selectedBet.bet_agreement,
-                          endTime: new Date(
-                            selectedBet.end_time * 1000
-                          ).toLocaleString(),
-                        });
-
-                      if (makerNotificationResult.success) {
-                        console.log(
-                          "Notification sent to maker about arbiter acceptance"
-                        );
-                      } else {
-                        console.error(
-                          "Failed to send notification to maker:",
-                          makerNotificationResult.error
-                        );
-                      }
-                    } catch (notificationError) {
-                      console.error(
-                        "Error sending notification to maker:",
-                        notificationError
-                      );
-                    }
-                  }
-
-                  // Send notification to taker about arbiter acceptance
-                  if (selectedBet.taker_fid) {
-                    try {
-                      const takerNotificationResult =
-                        await notifyArbiterAccepted(selectedBet.taker_fid, {
-                          betNumber: selectedBet.bet_number,
-                          betAmount: selectedBet.bet_amount.toString(),
-                          tokenName: getTokenName(
-                            selectedBet.bet_token_address
-                          ),
-                          makerName:
-                            selectedBet.makerProfile?.display_name ||
-                            selectedBet.makerProfile?.username,
-                          takerName:
-                            selectedBet.takerProfile?.display_name ||
-                            selectedBet.takerProfile?.username,
-                          arbiterName:
-                            selectedBet.arbiterProfile?.display_name ||
-                            selectedBet.arbiterProfile?.username,
-                          betAgreement: selectedBet.bet_agreement,
-                          endTime: new Date(
-                            selectedBet.end_time * 1000
-                          ).toLocaleString(),
-                        });
-
-                      if (takerNotificationResult.success) {
-                        console.log(
-                          "Notification sent to taker about arbiter acceptance"
-                        );
-                      } else {
-                        console.error(
-                          "Failed to send notification to taker:",
-                          takerNotificationResult.error
-                        );
-                      }
-                    } catch (notificationError) {
-                      console.error(
-                        "Error sending notification to taker:",
-                        notificationError
-                      );
-                    }
-                  }
+                } else {
+                  console.error(
+                    "Failed to send notification to maker:",
+                    makerNotificationResult.error
+                  );
                 }
-              } catch (error) {
-                console.error("Error updating bet status:", error);
+              } catch (notificationError) {
+                console.error(
+                  "Error sending notification to maker:",
+                  notificationError
+                );
               }
+            }
 
-              // Refresh bets list with filtering
-              await refreshBetsWithFiltering();
-            }, 2000);
-          },
-          onError: (error: Error) => {
-            console.error("Accept arbiter transaction failed:", error);
-            // setIsAcceptingArbiter(false); // Removed - using hook state
-          },
+            // Send notification to taker about arbiter acceptance
+            if (selectedBet.taker_fid) {
+              try {
+                const takerNotificationResult = await notifyArbiterAccepted(
+                  selectedBet.taker_fid,
+                  {
+                    betNumber: selectedBet.bet_number,
+                    betAmount: selectedBet.bet_amount.toString(),
+                    tokenName: getTokenName(selectedBet.bet_token_address),
+                    makerName:
+                      selectedBet.makerProfile?.display_name ||
+                      selectedBet.makerProfile?.username,
+                    takerName:
+                      selectedBet.takerProfile?.display_name ||
+                      selectedBet.takerProfile?.username,
+                    arbiterName:
+                      selectedBet.arbiterProfile?.display_name ||
+                      selectedBet.arbiterProfile?.username,
+                    betAgreement: selectedBet.bet_agreement,
+                    endTime: new Date(
+                      selectedBet.end_time * 1000
+                    ).toLocaleString(),
+                  }
+                );
+
+                if (takerNotificationResult.success) {
+                  console.log(
+                    "Notification sent to taker about arbiter acceptance"
+                  );
+                } else {
+                  console.error(
+                    "Failed to send notification to taker:",
+                    takerNotificationResult.error
+                  );
+                }
+              } catch (notificationError) {
+                console.error(
+                  "Error sending notification to taker:",
+                  notificationError
+                );
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error updating bet status:", error);
         }
-      );
+
+        // Refresh bets list with filtering
+        await refreshBetsWithFiltering();
+      }, 2000);
     } catch (error) {
       console.error("Error accepting arbiter role:", error);
-      // setIsAcceptingArbiter(false); // Removed - using hook state
     }
   };
 
@@ -1688,190 +1657,152 @@ export default function Demo(
     }
 
     try {
-      // setIsForfeiting(true); // Removed - using hook state
       console.log("Forfeiting bet #", selectedBet.bet_number);
 
-      // Encode the function call
-      const encodedData = encodeFunctionData({
-        abi: BET_MANAGEMENT_ENGINE_ABI,
-        functionName: "forfeitBet",
-        args: [BigInt(selectedBet.bet_number)],
-      });
+      // Use the hook function instead of manual transaction
+      await hookHandleForfeitBet(selectedBet);
 
-      console.log("Encoded forfeit transaction data:", encodedData);
+      // Close modal after successful transaction
+      setTimeout(async () => {
+        closeModal();
+        // Update database with the correct status based on who forfeited
+        try {
+          const updateResponse = await fetch(
+            `/api/bets?betNumber=${selectedBet.bet_number}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                status: forfeitStatus,
+                transaction_hash: forfeitTxHash,
+              }),
+            }
+          );
 
-      // Send the transaction
-      sendTransaction(
-        {
-          to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
-          data: encodedData as `0x${string}`,
-        },
-        {
-          onSuccess: async (hash: `0x${string}`) => {
-            console.log("Forfeit transaction sent successfully:", hash);
-            setForfeitTxHash(hash);
+          if (!updateResponse.ok) {
+            console.error("Failed to update bet status in database");
+          } else {
+            console.log(`Bet status updated to ${forfeitStatus} in database`);
 
-            // Close modal after successful transaction
-            setTimeout(async () => {
-              closeModal();
-              // Update database with the correct status based on who forfeited
+            // Send notification to the other party about bet forfeiture
+            let targetFid: number | null = null;
+            let forfeiterName: string = "";
+
+            if (isMaker) {
+              // Maker forfeited, notify taker
+              targetFid = selectedBet.taker_fid || null;
+              forfeiterName =
+                selectedBet.makerProfile?.display_name ||
+                selectedBet.makerProfile?.username ||
+                "The maker";
+            } else if (isTaker) {
+              // Taker forfeited, notify maker
+              targetFid = selectedBet.maker_fid || null;
+              forfeiterName =
+                selectedBet.takerProfile?.display_name ||
+                selectedBet.takerProfile?.username ||
+                "The taker";
+            }
+
+            if (targetFid) {
               try {
-                const updateResponse = await fetch(
-                  `/api/bets?betNumber=${selectedBet.bet_number}`,
-                  {
-                    method: "PATCH",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      status: forfeitStatus,
-                      transaction_hash: hash,
-                    }),
-                  }
-                );
+                const notificationResult = await notifyBetForfeited(targetFid, {
+                  betNumber: selectedBet.bet_number,
+                  betAmount: selectedBet.bet_amount.toString(),
+                  tokenName: getTokenName(selectedBet.bet_token_address),
+                  makerName:
+                    selectedBet.makerProfile?.display_name ||
+                    selectedBet.makerProfile?.username,
+                  takerName:
+                    selectedBet.takerProfile?.display_name ||
+                    selectedBet.takerProfile?.username,
+                  arbiterName:
+                    selectedBet.arbiterProfile?.display_name ||
+                    selectedBet.arbiterProfile?.username,
+                  betAgreement: selectedBet.bet_agreement,
+                  endTime: new Date(
+                    selectedBet.end_time * 1000
+                  ).toLocaleString(),
+                });
 
-                if (!updateResponse.ok) {
-                  console.error("Failed to update bet status in database");
-                } else {
+                if (notificationResult.success) {
                   console.log(
-                    `Bet status updated to ${forfeitStatus} in database`
+                    `Notification sent to other party about bet forfeiture by ${forfeiterName}`
                   );
-
-                  // Send notification to the other party about bet forfeiture
-                  let targetFid: number | null = null;
-                  let forfeiterName: string = "";
-
-                  if (isMaker) {
-                    // Maker forfeited, notify taker
-                    targetFid = selectedBet.taker_fid || null;
-                    forfeiterName =
-                      selectedBet.makerProfile?.display_name ||
-                      selectedBet.makerProfile?.username ||
-                      "The maker";
-                  } else if (isTaker) {
-                    // Taker forfeited, notify maker
-                    targetFid = selectedBet.maker_fid || null;
-                    forfeiterName =
-                      selectedBet.takerProfile?.display_name ||
-                      selectedBet.takerProfile?.username ||
-                      "The taker";
-                  }
-
-                  if (targetFid) {
-                    try {
-                      const notificationResult = await notifyBetForfeited(
-                        targetFid,
-                        {
-                          betNumber: selectedBet.bet_number,
-                          betAmount: selectedBet.bet_amount.toString(),
-                          tokenName: getTokenName(
-                            selectedBet.bet_token_address
-                          ),
-                          makerName:
-                            selectedBet.makerProfile?.display_name ||
-                            selectedBet.makerProfile?.username,
-                          takerName:
-                            selectedBet.takerProfile?.display_name ||
-                            selectedBet.takerProfile?.username,
-                          arbiterName:
-                            selectedBet.arbiterProfile?.display_name ||
-                            selectedBet.arbiterProfile?.username,
-                          betAgreement: selectedBet.bet_agreement,
-                          endTime: new Date(
-                            selectedBet.end_time * 1000
-                          ).toLocaleString(),
-                        }
-                      );
-
-                      if (notificationResult.success) {
-                        console.log(
-                          `Notification sent to other party about bet forfeiture by ${forfeiterName}`
-                        );
-                      } else {
-                        console.error(
-                          "Failed to send notification to other party:",
-                          notificationResult.error
-                        );
-                      }
-                    } catch (notificationError) {
-                      console.error(
-                        "Error sending notification:",
-                        notificationError
-                      );
-                    }
-                  }
-                }
-
-                // Update leaderboard for forfeit
-                try {
-                  let forfeiterFid: number | null = null;
-                  let winnerFid: number | null = null;
-
-                  if (isMaker) {
-                    // Maker forfeited, taker wins
-                    forfeiterFid = selectedBet.maker_fid || null;
-                    winnerFid = selectedBet.taker_fid || null;
-                  } else if (isTaker) {
-                    // Taker forfeited, maker wins
-                    forfeiterFid = selectedBet.taker_fid || null;
-                    winnerFid = selectedBet.maker_fid || null;
-                  }
-
-                  if (forfeiterFid && winnerFid) {
-                    // Calculate PnL amount (bet amount × token price)
-                    const pnlAmount = tokenPriceData?.[0]
-                      ? calculateUSDValue(
-                          selectedBet.bet_amount,
-                          Number(tokenPriceData[0])
-                        )
-                      : 0;
-
-                    const leaderboardUpdateResponse = await fetch(
-                      "/api/leaderboard",
-                      {
-                        method: "PATCH",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                          winner_fid: winnerFid,
-                          loser_fid: forfeiterFid,
-                          pnl_amount: pnlAmount,
-                        }),
-                      }
-                    );
-
-                    if (leaderboardUpdateResponse.ok) {
-                      console.log(
-                        "Leaderboard updated successfully for forfeit"
-                      );
-                    } else {
-                      console.error("Failed to update leaderboard for forfeit");
-                    }
-                  }
-                } catch (leaderboardError) {
+                } else {
                   console.error(
-                    "Error updating leaderboard for forfeit:",
-                    leaderboardError
+                    "Failed to send notification to other party:",
+                    notificationResult.error
                   );
                 }
-              } catch (error) {
-                console.error("Error updating bet status:", error);
+              } catch (notificationError) {
+                console.error("Error sending notification:", notificationError);
               }
+            }
+          }
 
-              // Refresh bets list with filtering
-              await refreshBetsWithFiltering();
-            }, 2000);
-          },
-          onError: (error: Error) => {
-            console.error("Forfeit transaction failed:", error);
-            // setIsForfeiting(false); // Removed - using hook state
-          },
+          // Update leaderboard for forfeit
+          try {
+            let forfeiterFid: number | null = null;
+            let winnerFid: number | null = null;
+
+            if (isMaker) {
+              // Maker forfeited, taker wins
+              forfeiterFid = selectedBet.maker_fid || null;
+              winnerFid = selectedBet.taker_fid || null;
+            } else if (isTaker) {
+              // Taker forfeited, maker wins
+              forfeiterFid = selectedBet.taker_fid || null;
+              winnerFid = selectedBet.maker_fid || null;
+            }
+
+            if (forfeiterFid && winnerFid) {
+              // Calculate PnL amount (bet amount × token price)
+              const pnlAmount = tokenPriceData?.[0]
+                ? calculateUSDValue(
+                    selectedBet.bet_amount,
+                    Number(tokenPriceData[0])
+                  )
+                : 0;
+
+              const leaderboardUpdateResponse = await fetch(
+                "/api/leaderboard",
+                {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    winner_fid: winnerFid,
+                    loser_fid: forfeiterFid,
+                    pnl_amount: pnlAmount,
+                  }),
+                }
+              );
+
+              if (leaderboardUpdateResponse.ok) {
+                console.log("Leaderboard updated successfully for forfeit");
+              } else {
+                console.error("Failed to update leaderboard for forfeit");
+              }
+            }
+          } catch (leaderboardError) {
+            console.error(
+              "Error updating leaderboard for forfeit:",
+              leaderboardError
+            );
+          }
+        } catch (error) {
+          console.error("Error updating bet status:", error);
         }
-      );
+
+        // Refresh bets list with filtering
+        await refreshBetsWithFiltering();
+      }, 2000);
     } catch (error) {
       console.error("Error forfeiting bet:", error);
-      // setIsForfeiting(false); // Removed - using hook state
     }
   };
 
@@ -1908,93 +1839,65 @@ export default function Demo(
     }
 
     try {
-      // setIsClaiming(true); // Removed - using hook state
       console.log("Claiming winnings for bet #", selectedBet.bet_number);
 
-      // Encode the function call
-      const encodedData = encodeFunctionData({
-        abi: BET_MANAGEMENT_ENGINE_ABI,
-        functionName: "claimBet",
-        args: [BigInt(selectedBet.bet_number)],
-      });
+      // Use the hook function instead of manual transaction
+      await hookHandleClaimWinnings(selectedBet);
 
-      console.log("Encoded claim transaction data:", encodedData);
+      // Close modal after successful transaction
+      setTimeout(async () => {
+        closeModal();
+        // Update database with the new status
+        try {
+          const updateResponse = await fetch(
+            `/api/bets?betNumber=${selectedBet.bet_number}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                status: newStatus,
+                transaction_hash: claimTxHash,
+              }),
+            }
+          );
 
-      // Send the transaction
-      sendTransaction(
-        {
-          to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
-          data: encodedData as `0x${string}`,
-        },
-        {
-          onSuccess: async (hash: `0x${string}`) => {
-            console.log("Claim transaction sent successfully:", hash);
-            setClaimTxHash(hash);
+          if (!updateResponse.ok) {
+            console.error("Failed to update bet status in database");
+          } else {
+            console.log(`Bet status updated to ${newStatus} in database`);
 
-            // Close modal after successful transaction
-            setTimeout(async () => {
-              closeModal();
-              // Update database with the new status
-              try {
-                const updateResponse = await fetch(
-                  `/api/bets?betNumber=${selectedBet.bet_number}`,
-                  {
-                    method: "PATCH",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      status: newStatus,
-                      transaction_hash: hash,
-                    }),
-                  }
-                );
+            // Set up share details for winning bet
+            const token = getTokenByAddress(selectedBet.bet_token_address);
+            const tokenEmoji = token?.image
+              ? `${token.name} 🪙`
+              : token?.name || "tokens";
 
-                if (!updateResponse.ok) {
-                  console.error("Failed to update bet status in database");
-                } else {
-                  console.log(`Bet status updated to ${newStatus} in database`);
+            // Create share text based on bet details
+            const shareText = `I just won ${selectedBet.bet_amount} ${tokenEmoji} betting on "${selectedBet.bet_agreement}" on @betcaster! 🎯💰`;
 
-                  // Set up share details for winning bet
-                  const token = getTokenByAddress(
-                    selectedBet.bet_token_address
-                  );
-                  const tokenEmoji = token?.image
-                    ? `${token.name} 🪙`
-                    : token?.name || "tokens";
-
-                  // Create share text based on bet details
-                  const shareText = `I just won ${selectedBet.bet_amount} ${tokenEmoji} betting on "${selectedBet.bet_agreement}" on @betcaster! 🎯💰`;
-
-                  // Open Warpcast with pre-filled cast
-                  window.open(
-                    `https://warpcast.com/~/compose?text=${encodeURIComponent(
-                      shareText
-                    )}&embeds[]=${encodeURIComponent(
-                      `${process.env.NEXT_PUBLIC_URL}/share/${
-                        context?.user?.fid || ""
-                      }`
-                    )}`,
-                    "_blank"
-                  );
-                }
-              } catch (error) {
-                console.error("Error updating bet status:", error);
-              }
-
-              // Refresh bets list with filtering
-              await refreshBetsWithFiltering();
-            }, 2000);
-          },
-          onError: (error: Error) => {
-            console.error("Claim transaction failed:", error);
-            // setIsClaiming(false); // Removed - using hook state
-          },
+            // Open Warpcast with pre-filled cast
+            window.open(
+              `https://warpcast.com/~/compose?text=${encodeURIComponent(
+                shareText
+              )}&embeds[]=${encodeURIComponent(
+                `${process.env.NEXT_PUBLIC_URL}/share/${
+                  context?.user?.fid || ""
+                }`
+              )}`,
+              "_blank"
+            );
+          }
+        } catch (error) {
+          console.error("Error updating bet status:", error);
         }
-      );
+
+        // Refresh bets list with filtering
+        await refreshBetsWithFiltering();
+      }, 2000);
     } catch (error) {
       console.error("Error claiming winnings:", error);
-      // setIsClaiming(false); // Removed - using hook state
     }
   };
 
@@ -2322,7 +2225,6 @@ export default function Demo(
     }
 
     try {
-      // setIsSelectingWinner(true); // Removed - using hook state
       console.log(
         "Selecting winner for bet #",
         selectedBet.bet_number,
@@ -2333,243 +2235,215 @@ export default function Demo(
       // Convert string to boolean
       const betParamsTrue = selectedWinner === "true";
 
-      // Encode the function call
-      const encodedData = encodeFunctionData({
-        abi: ARBITER_MANAGEMENT_ENGINE_ABI,
-        functionName: "selectWinner",
-        args: [BigInt(selectedBet.bet_number), betParamsTrue],
-      });
+      // Use the hook function instead of manual transaction
+      await hookHandleSelectWinner(selectedBet, betParamsTrue);
 
-      console.log("Encoded select winner transaction data:", encodedData);
+      // Close modal after successful transaction
+      setTimeout(async () => {
+        closeSelectWinnerModal();
+        // Update database with the winner status
+        try {
+          const winnerStatus = betParamsTrue ? 4 : 5; // 4 = maker wins (true), 5 = taker wins (false)
+          const updateResponse = await fetch(
+            `/api/bets?betNumber=${selectedBet.bet_number}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                status: winnerStatus,
+                transaction_hash: selectWinnerTxHash,
+              }),
+            }
+          );
 
-      // Send the transaction
-      sendTransaction(
-        {
-          to: ARBITER_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
-          data: encodedData as `0x${string}`,
-        },
-        {
-          onSuccess: async (hash: `0x${string}`) => {
-            console.log("Select winner transaction sent successfully:", hash);
-            setSelectWinnerTxHash(hash);
+          if (!updateResponse.ok) {
+            console.error("Failed to update bet status in database");
+          } else {
+            console.log(`Bet status updated to ${winnerStatus} in database`);
 
-            // Close modal after successful transaction
-            setTimeout(async () => {
-              closeSelectWinnerModal();
-              // Update database with the winner status
+            // Send notification to maker about winner selection
+            if (selectedBet.maker_fid) {
               try {
-                const winnerStatus = betParamsTrue ? 4 : 5; // 4 = maker wins (true), 5 = taker wins (false)
-                const updateResponse = await fetch(
-                  `/api/bets?betNumber=${selectedBet.bet_number}`,
+                const makerNotificationResult = await notifyWinnerSelected(
+                  selectedBet.maker_fid,
+                  {
+                    betNumber: selectedBet.bet_number,
+                    betAmount: selectedBet.bet_amount.toString(),
+                    tokenName: getTokenName(selectedBet.bet_token_address),
+                    makerName:
+                      selectedBet.makerProfile?.display_name ||
+                      selectedBet.makerProfile?.username,
+                    takerName:
+                      selectedBet.takerProfile?.display_name ||
+                      selectedBet.takerProfile?.username,
+                    arbiterName:
+                      selectedBet.arbiterProfile?.display_name ||
+                      selectedBet.arbiterProfile?.username,
+                    betAgreement: selectedBet.bet_agreement,
+                    endTime: new Date(
+                      selectedBet.end_time * 1000
+                    ).toLocaleString(),
+                  }
+                );
+
+                if (makerNotificationResult.success) {
+                  console.log(
+                    "Notification sent to maker about winner selection"
+                  );
+                } else {
+                  console.error(
+                    "Failed to send notification to maker:",
+                    makerNotificationResult.error
+                  );
+                }
+              } catch (notificationError) {
+                console.error(
+                  "Error sending notification to maker:",
+                  notificationError
+                );
+              }
+            }
+
+            // Send notification to taker about winner selection
+            if (selectedBet.taker_fid) {
+              try {
+                const takerNotificationResult = await notifyWinnerSelected(
+                  selectedBet.taker_fid,
+                  {
+                    betNumber: selectedBet.bet_number,
+                    betAmount: selectedBet.bet_amount.toString(),
+                    tokenName: getTokenName(selectedBet.bet_token_address),
+                    makerName:
+                      selectedBet.makerProfile?.display_name ||
+                      selectedBet.makerProfile?.username,
+                    takerName:
+                      selectedBet.takerProfile?.display_name ||
+                      selectedBet.takerProfile?.username,
+                    arbiterName:
+                      selectedBet.arbiterProfile?.display_name ||
+                      selectedBet.arbiterProfile?.username,
+                    betAgreement: selectedBet.bet_agreement,
+                    endTime: new Date(
+                      selectedBet.end_time * 1000
+                    ).toLocaleString(),
+                  }
+                );
+
+                if (takerNotificationResult.success) {
+                  console.log(
+                    "Notification sent to taker about winner selection"
+                  );
+                } else {
+                  console.error(
+                    "Failed to send notification to taker:",
+                    takerNotificationResult.error
+                  );
+                }
+              } catch (notificationError) {
+                console.error(
+                  "Error sending notification to taker:",
+                  notificationError
+                );
+              }
+            }
+
+            // Update leaderboard for winner selection
+            try {
+              let winnerFid: number | null = null;
+              let loserFid: number | null = null;
+
+              if (betParamsTrue) {
+                // Maker wins (true)
+                winnerFid = selectedBet.maker_fid || null;
+                loserFid = selectedBet.taker_fid || null;
+              } else {
+                // Taker wins (false)
+                winnerFid = selectedBet.taker_fid || null;
+                loserFid = selectedBet.maker_fid || null;
+              }
+
+              console.log("Demo.tsx - Leaderboard update data:", {
+                winnerFid,
+                loserFid,
+                pnlAmount: tokenPriceData?.[0]
+                  ? calculateUSDValue(
+                      selectedBet.bet_amount,
+                      Number(tokenPriceData[0])
+                    )
+                  : 0,
+                selectedBet: {
+                  maker_fid: selectedBet.maker_fid,
+                  taker_fid: selectedBet.taker_fid,
+                  bet_amount: selectedBet.bet_amount,
+                },
+              });
+
+              if (
+                winnerFid &&
+                loserFid &&
+                winnerFid !== null &&
+                loserFid !== null
+              ) {
+                // Calculate PnL amount (bet amount × token price)
+                const pnlAmount = tokenPriceData?.[0]
+                  ? calculateUSDValue(
+                      selectedBet.bet_amount,
+                      Number(tokenPriceData[0])
+                    )
+                  : 0;
+
+                const leaderboardUpdateResponse = await fetch(
+                  "/api/leaderboard",
                   {
                     method: "PATCH",
                     headers: {
                       "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                      status: winnerStatus,
-                      transaction_hash: hash,
+                      winner_fid: winnerFid,
+                      loser_fid: loserFid,
+                      pnl_amount: pnlAmount,
                     }),
                   }
                 );
 
-                if (!updateResponse.ok) {
-                  console.error("Failed to update bet status in database");
-                } else {
+                if (leaderboardUpdateResponse.ok) {
                   console.log(
-                    `Bet status updated to ${winnerStatus} in database`
+                    "Leaderboard updated successfully for winner selection"
                   );
-
-                  // Send notification to maker about winner selection
-                  if (selectedBet.maker_fid) {
-                    try {
-                      const makerNotificationResult =
-                        await notifyWinnerSelected(selectedBet.maker_fid, {
-                          betNumber: selectedBet.bet_number,
-                          betAmount: selectedBet.bet_amount.toString(),
-                          tokenName: getTokenName(
-                            selectedBet.bet_token_address
-                          ),
-                          makerName:
-                            selectedBet.makerProfile?.display_name ||
-                            selectedBet.makerProfile?.username,
-                          takerName:
-                            selectedBet.takerProfile?.display_name ||
-                            selectedBet.takerProfile?.username,
-                          arbiterName:
-                            selectedBet.arbiterProfile?.display_name ||
-                            selectedBet.arbiterProfile?.username,
-                          betAgreement: selectedBet.bet_agreement,
-                          endTime: new Date(
-                            selectedBet.end_time * 1000
-                          ).toLocaleString(),
-                        });
-
-                      if (makerNotificationResult.success) {
-                        console.log(
-                          "Notification sent to maker about winner selection"
-                        );
-                      } else {
-                        console.error(
-                          "Failed to send notification to maker:",
-                          makerNotificationResult.error
-                        );
-                      }
-                    } catch (notificationError) {
-                      console.error(
-                        "Error sending notification to maker:",
-                        notificationError
-                      );
-                    }
-                  }
-
-                  // Send notification to taker about winner selection
-                  if (selectedBet.taker_fid) {
-                    try {
-                      const takerNotificationResult =
-                        await notifyWinnerSelected(selectedBet.taker_fid, {
-                          betNumber: selectedBet.bet_number,
-                          betAmount: selectedBet.bet_amount.toString(),
-                          tokenName: getTokenName(
-                            selectedBet.bet_token_address
-                          ),
-                          makerName:
-                            selectedBet.makerProfile?.display_name ||
-                            selectedBet.makerProfile?.username,
-                          takerName:
-                            selectedBet.takerProfile?.display_name ||
-                            selectedBet.takerProfile?.username,
-                          arbiterName:
-                            selectedBet.arbiterProfile?.display_name ||
-                            selectedBet.arbiterProfile?.username,
-                          betAgreement: selectedBet.bet_agreement,
-                          endTime: new Date(
-                            selectedBet.end_time * 1000
-                          ).toLocaleString(),
-                        });
-
-                      if (takerNotificationResult.success) {
-                        console.log(
-                          "Notification sent to taker about winner selection"
-                        );
-                      } else {
-                        console.error(
-                          "Failed to send notification to taker:",
-                          takerNotificationResult.error
-                        );
-                      }
-                    } catch (notificationError) {
-                      console.error(
-                        "Error sending notification to taker:",
-                        notificationError
-                      );
-                    }
-                  }
-
-                  // Update leaderboard for winner selection
-                  try {
-                    let winnerFid: number | null = null;
-                    let loserFid: number | null = null;
-
-                    if (betParamsTrue) {
-                      // Maker wins (true)
-                      winnerFid = selectedBet.maker_fid || null;
-                      loserFid = selectedBet.taker_fid || null;
-                    } else {
-                      // Taker wins (false)
-                      winnerFid = selectedBet.taker_fid || null;
-                      loserFid = selectedBet.maker_fid || null;
-                    }
-
-                    console.log("Demo.tsx - Leaderboard update data:", {
-                      winnerFid,
-                      loserFid,
-                      pnlAmount: tokenPriceData?.[0]
-                        ? calculateUSDValue(
-                            selectedBet.bet_amount,
-                            Number(tokenPriceData[0])
-                          )
-                        : 0,
-                      selectedBet: {
-                        maker_fid: selectedBet.maker_fid,
-                        taker_fid: selectedBet.taker_fid,
-                        bet_amount: selectedBet.bet_amount,
-                      },
-                    });
-
-                    if (
-                      winnerFid &&
-                      loserFid &&
-                      winnerFid !== null &&
-                      loserFid !== null
-                    ) {
-                      // Calculate PnL amount (bet amount × token price)
-                      const pnlAmount = tokenPriceData?.[0]
-                        ? calculateUSDValue(
-                            selectedBet.bet_amount,
-                            Number(tokenPriceData[0])
-                          )
-                        : 0;
-
-                      const leaderboardUpdateResponse = await fetch(
-                        "/api/leaderboard",
-                        {
-                          method: "PATCH",
-                          headers: {
-                            "Content-Type": "application/json",
-                          },
-                          body: JSON.stringify({
-                            winner_fid: winnerFid,
-                            loser_fid: loserFid,
-                            pnl_amount: pnlAmount,
-                          }),
-                        }
-                      );
-
-                      if (leaderboardUpdateResponse.ok) {
-                        console.log(
-                          "Leaderboard updated successfully for winner selection"
-                        );
-                      } else {
-                        console.error(
-                          "Failed to update leaderboard for winner selection"
-                        );
-                        const errorData =
-                          await leaderboardUpdateResponse.json();
-                        console.error("Leaderboard error details:", errorData);
-                      }
-                    } else {
-                      console.warn("Cannot update leaderboard: missing FIDs", {
-                        winnerFid,
-                        loserFid,
-                        maker_fid: selectedBet.maker_fid,
-                        taker_fid: selectedBet.taker_fid,
-                      });
-                    }
-                  } catch (leaderboardError) {
-                    console.error(
-                      "Error updating leaderboard for winner selection:",
-                      leaderboardError
-                    );
-                  }
-
-                  // Refresh the bets list to show updated data
-                  await refreshBetsWithFiltering();
+                } else {
+                  console.error(
+                    "Failed to update leaderboard for winner selection"
+                  );
+                  const errorData = await leaderboardUpdateResponse.json();
+                  console.error("Leaderboard error details:", errorData);
                 }
-              } catch (error) {
-                console.error("Error updating bet status:", error);
+              } else {
+                console.warn("Cannot update leaderboard: missing FIDs", {
+                  winnerFid,
+                  loserFid,
+                  maker_fid: selectedBet.maker_fid,
+                  taker_fid: selectedBet.taker_fid,
+                });
               }
-            }, 2000);
-          },
-          onError: (error: Error) => {
-            console.error("Select winner transaction failed:", error);
-            // setIsSelectingWinner(false); // Removed - using hook state
-          },
+            } catch (leaderboardError) {
+              console.error(
+                "Error updating leaderboard for winner selection:",
+                leaderboardError
+              );
+            }
+
+            // Refresh the bets list to show updated data
+            await refreshBetsWithFiltering();
+          }
+        } catch (error) {
+          console.error("Error updating bet status:", error);
         }
-      );
+      }, 2000);
     } catch (error) {
       console.error("Error selecting winner:", error);
-      // setIsSelectingWinner(false); // Removed - using hook state
     }
   };
 
