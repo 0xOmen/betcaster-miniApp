@@ -20,6 +20,7 @@ import {
 import { base } from "wagmi/chains";
 import { BASE_TOKENS, Token, amountToWei } from "~/lib/tokens";
 import UserSearchDropdown from "~/components/UserSearchDropdown";
+import UserOrAddressInput from "~/components/UserOrAddressInput";
 import { ShareModal } from "~/components/ShareModal";
 import { notifyBetCreated } from "~/lib/notificationUtils";
 import { calculateUSDValue, useTokenPrice } from "~/lib/prices";
@@ -223,6 +224,10 @@ export default function CreateBet({
   const [makerFid, setMakerFid] = useState<number | null>(null);
   const [takerFid, setTakerFid] = useState<number | null>(null);
   const [arbiterFid, setArbiterFid] = useState<number | null>(null);
+
+  // Store direct addresses for taker and arbiter (when not using Farcaster users)
+  const [takerAddress, setTakerAddress] = useState<string | null>(null);
+  const [arbiterAddress, setArbiterAddress] = useState<string | null>(null);
 
   // Add state for "Anyone" checkbox
   const [isAnyoneSelected, setIsAnyoneSelected] = useState<boolean>(false);
@@ -622,7 +627,16 @@ export default function CreateBet({
   };
 
   // Helper function to build address array for transaction
-  const buildAddressArray = (user: User | null): `0x${string}`[] => {
+  const buildAddressArray = (
+    user: User | null,
+    directAddress?: string | null
+  ): `0x${string}`[] => {
+    // If we have a direct address, use it
+    if (directAddress) {
+      return [directAddress as `0x${string}`];
+    }
+
+    // Otherwise, use the user's addresses
     if (!user) return [];
 
     // If we have verified addresses array, use it
@@ -763,6 +777,13 @@ export default function CreateBet({
     }
   }, [arbiterSearchTerm]);
 
+  // Clear "Anyone" checkbox when a taker address is entered
+  useEffect(() => {
+    if (takerAddress) {
+      setIsAnyoneSelected(false);
+    }
+  }, [takerAddress]);
+
   const handleTimeOptionSelect = (option: string) => {
     setSelectedTimeOption(option);
     setShowCustomInput(option === "custom");
@@ -877,11 +898,15 @@ export default function CreateBet({
       "Selected User Primary ETH Address:",
       isAnyoneSelected
         ? "Anyone (zero address)"
-        : selectedUser?.primaryEthAddress || "Not available"
+        : takerAddress
+          ? `Direct address: ${takerAddress}`
+          : selectedUser?.primaryEthAddress || "Not available"
     );
     console.log(
       "Selected Arbiter Primary ETH Address:",
-      selectedArbiter?.primaryEthAddress || "Not available"
+      arbiterAddress
+        ? `Direct address: ${arbiterAddress}`
+        : selectedArbiter?.primaryEthAddress || "Not available"
     );
     console.log(
       "Bet Token Contract Address:",
@@ -895,18 +920,27 @@ export default function CreateBet({
     console.log("================================");
 
     try {
-      // Check if user has an ETH address (only if not "Anyone")
+      // Check if user has an ETH address or direct address (only if not "Anyone")
       if (
         !isAnyoneSelected &&
-        (!selectedUser || !selectedUser.primaryEthAddress)
+        (!selectedUser || !selectedUser.primaryEthAddress) &&
+        !takerAddress
       ) {
-        console.error("Selected user does not have a primary ETH address");
+        console.error(
+          "Selected user does not have a primary ETH address and no direct address provided"
+        );
         return;
       }
 
-      // Check if arbiter has an ETH address (if selected)
-      if (selectedArbiter && !selectedArbiter.primaryEthAddress) {
-        console.error("Selected arbiter does not have a primary ETH address");
+      // Check if arbiter has an ETH address or direct address (if selected)
+      if (
+        selectedArbiter &&
+        !selectedArbiter.primaryEthAddress &&
+        !arbiterAddress
+      ) {
+        console.error(
+          "Selected arbiter does not have a primary ETH address and no direct address provided"
+        );
         return;
       }
 
@@ -920,8 +954,8 @@ export default function CreateBet({
       const createBetParams = [
         isAnyoneSelected
           ? ["0x0000000000000000000000000000000000000000" as `0x${string}`] // _taker (zero address for "Anyone")
-          : buildAddressArray(selectedUser), // _taker (array with primary first, then all verified addresses)
-        buildAddressArray(selectedArbiter), // _arbiter (array with primary first, then all verified addresses)
+          : buildAddressArray(selectedUser, takerAddress), // _taker (array with primary first, then all verified addresses, or direct address)
+        buildAddressArray(selectedArbiter, arbiterAddress), // _arbiter (array with primary first, then all verified addresses, or direct address)
         selectedToken.address as `0x${string}`, // _betTokenAddress (zero address for native ETH)
         betAmountWei, // _betAmount
         canSettleEarly, // _canSettleEarly
@@ -1001,11 +1035,15 @@ export default function CreateBet({
       "Selected User Primary ETH Address:",
       isAnyoneSelected
         ? "Anyone (zero address)"
-        : selectedUser?.primaryEthAddress || "Not available"
+        : takerAddress
+          ? `Direct address: ${takerAddress}`
+          : selectedUser?.primaryEthAddress || "Not available"
     );
     console.log(
       "Selected Arbiter Primary ETH Address:",
-      selectedArbiter?.primaryEthAddress || "Not available"
+      arbiterAddress
+        ? `Direct address: ${arbiterAddress}`
+        : selectedArbiter?.primaryEthAddress || "Not available"
     );
     console.log(
       "Bet Token Contract Address:",
@@ -1019,18 +1057,27 @@ export default function CreateBet({
     console.log("================================");
 
     try {
-      // Check if user has an ETH address (only if not "Anyone")
+      // Check if user has an ETH address or direct address (only if not "Anyone")
       if (
         !isAnyoneSelected &&
-        (!selectedUser || !selectedUser.primaryEthAddress)
+        (!selectedUser || !selectedUser.primaryEthAddress) &&
+        !takerAddress
       ) {
-        console.error("Selected user does not have a primary ETH address");
+        console.error(
+          "Selected user does not have a primary ETH address and no direct address provided"
+        );
         return;
       }
 
-      // Check if arbiter has an ETH address (if selected)
-      if (selectedArbiter && !selectedArbiter.primaryEthAddress) {
-        console.error("Selected arbiter does not have a primary ETH address");
+      // Check if arbiter has an ETH address or direct address (if selected)
+      if (
+        selectedArbiter &&
+        !selectedArbiter.primaryEthAddress &&
+        !arbiterAddress
+      ) {
+        console.error(
+          "Selected arbiter does not have a primary ETH address and no direct address provided"
+        );
         return;
       }
 
@@ -1044,8 +1091,8 @@ export default function CreateBet({
       const createBetParams = [
         isAnyoneSelected
           ? ["0x0000000000000000000000000000000000000000" as `0x${string}`] // _taker (zero address for "Anyone")
-          : buildAddressArray(selectedUser), // _taker (array with primary first, then all verified addresses)
-        buildAddressArray(selectedArbiter), // _arbiter (array with primary first, then all verified addresses)
+          : buildAddressArray(selectedUser, takerAddress), // _taker (array with primary first, then all verified addresses, or direct address)
+        buildAddressArray(selectedArbiter, arbiterAddress), // _arbiter (array with primary first, then all verified addresses, or direct address)
         selectedToken.address as `0x${string}`, // _betTokenAddress (zero address for native ETH)
         betAmountWei, // _betAmount
         canSettleEarly, // _canSettleEarly
@@ -1138,11 +1185,12 @@ export default function CreateBet({
 
       <div className="space-y-4">
         {/* Taker Selection */}
-        <UserSearchDropdown
+        <UserOrAddressInput
           label="Select a user to bet with"
-          placeholder="Enter username or display name..."
+          placeholder="Enter username, display name, or Ethereum address..."
           selectedUser={selectedUser}
           onUserSelect={setSelectedUser}
+          onAddressSelect={setTakerAddress}
           onFidChange={setTakerFid}
           currentUserFid={userFid}
           disabled={isAnyoneSelected}
@@ -1160,6 +1208,7 @@ export default function CreateBet({
               if (e.target.checked) {
                 setSelectedUser(null);
                 setTakerFid(null);
+                setTakerAddress(null);
               }
             }}
             className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1370,11 +1419,12 @@ export default function CreateBet({
             </div>
           )}
 
-          <UserSearchDropdown
+          <UserOrAddressInput
             label=""
-            placeholder="Search for an arbiter..."
+            placeholder="Search for an arbiter or enter Ethereum address..."
             selectedUser={selectedArbiter}
             onUserSelect={setSelectedArbiter}
+            onAddressSelect={setArbiterAddress}
             onFidChange={setArbiterFid}
             currentUserFid={userFid}
           />
