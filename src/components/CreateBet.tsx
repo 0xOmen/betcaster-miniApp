@@ -1284,7 +1284,7 @@ export default function CreateBet({
             </div>
           </div>
           <textarea
-            placeholder="The Eagles will not win the next Super Bowl..."
+            placeholder="The Cowboys will win the next Super Bowl..."
             rows={3}
             value={betDescription}
             onChange={(e) => setBetDescription(e.target.value)}
