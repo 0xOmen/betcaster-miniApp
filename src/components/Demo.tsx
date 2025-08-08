@@ -3086,11 +3086,11 @@ export default function Demo(
                             </h3>
                             <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
                               <p>
-                                Alternatively, by accepting this bet, you agree
-                                that you will lose your tokens if the bet
-                                agreement is determined to be true by the
-                                arbiter. Make sure you understand the bet
-                                conditions before proceeding.
+                                By accepting this bet, you agree that you will
+                                lose your tokens if the bet agreement is
+                                determined to be true by the arbiter. Make sure
+                                you understand the bet conditions before
+                                proceeding.
                               </p>
                             </div>
                           </div>
