@@ -236,6 +236,9 @@ export default function Demo(
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedUserProfile, setSelectedUserProfile] =
     useState<UserProfile | null>(null);
+  const [selectedUserType, setSelectedUserType] = useState<
+    "taker" | "arbiter" | null
+  >(null);
 
   const [initialParamsHandled, setInitialParamsHandled] = useState(false);
   const [isLoadingSpecificBet, setIsLoadingSpecificBet] = useState(false);
@@ -1064,14 +1067,31 @@ export default function Demo(
   };
 
   // Address modal functions
-  const openAddressModal = (profile: UserProfile) => {
+  const openAddressModal = (
+    profile: UserProfile,
+    userType: "taker" | "arbiter"
+  ) => {
     setSelectedUserProfile(profile);
+    setSelectedUserType(userType);
     setShowAddressModal(true);
   };
 
   const closeAddressModal = () => {
     setShowAddressModal(false);
     setSelectedUserProfile(null);
+    setSelectedUserType(null);
+  };
+
+  // Helper function to get addresses for the selected user
+  const getAddressesForSelectedUser = () => {
+    if (!selectedBet || !selectedUserType) return [];
+
+    if (selectedUserType === "taker") {
+      return selectedBet.taker_address || [];
+    } else if (selectedUserType === "arbiter") {
+      return selectedBet.arbiter_address || [];
+    }
+    return [];
   };
 
   // Helper function to apply the same filtering logic as fetchUserBets
@@ -3296,7 +3316,7 @@ export default function Demo(
                         selectedBet.takerProfile.username) ? (
                         <button
                           onClick={() =>
-                            openAddressModal(selectedBet.takerProfile!)
+                            openAddressModal(selectedBet.takerProfile!, "taker")
                           }
                           className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline cursor-pointer"
                         >
@@ -3318,7 +3338,10 @@ export default function Demo(
                         selectedBet.arbiterProfile.username ? (
                           <button
                             onClick={() =>
-                              openAddressModal(selectedBet.arbiterProfile!)
+                              openAddressModal(
+                                selectedBet.arbiterProfile!,
+                                "arbiter"
+                              )
                             }
                             className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline cursor-pointer"
                           >
@@ -3971,8 +3994,8 @@ export default function Demo(
 
                 <div className="space-y-4">
                   <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    These are the verified addresses associated with this user
-                    that can be used for bet interactions:
+                    These are the addresses associated with this user that can
+                    be used for bet interactions:
                   </div>
 
                   {/* Primary Ethereum Address */}
@@ -4099,12 +4122,71 @@ export default function Demo(
                       </div>
                     )}
 
+                  {/* Bet Addresses - Show addresses from the bet data */}
+                  {(() => {
+                    const betAddresses = getAddressesForSelectedUser();
+                    const hasProfileAddresses =
+                      selectedUserProfile.primaryEthAddress ||
+                      selectedUserProfile.primarySolanaAddress ||
+                      (selectedUserProfile.verifiedEthAddresses &&
+                        selectedUserProfile.verifiedEthAddresses.length > 0);
+
+                    // Show bet addresses if no profile addresses or as additional addresses
+                    if (betAddresses.length > 0) {
+                      return (
+                        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                            {hasProfileAddresses ? "Additional " : ""}
+                            {selectedUserType === "taker"
+                              ? "Taker"
+                              : "Arbiter"}{" "}
+                            Addresses from Bet ({betAddresses.length})
+                          </h3>
+                          <div className="space-y-2">
+                            {betAddresses.map((address, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded p-2"
+                              >
+                                <p className="text-sm text-gray-600 dark:text-gray-400 font-mono break-all flex-1">
+                                  {address}
+                                </p>
+                                <button
+                                  onClick={() =>
+                                    navigator.clipboard.writeText(address)
+                                  }
+                                  className="ml-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  title="Copy address"
+                                >
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+
                   {/* Show message if no addresses available */}
                   {!selectedUserProfile.primaryEthAddress &&
                     !selectedUserProfile.primarySolanaAddress &&
                     (!selectedUserProfile.verifiedEthAddresses ||
-                      selectedUserProfile.verifiedEthAddresses.length ===
-                        0) && (
+                      selectedUserProfile.verifiedEthAddresses.length === 0) &&
+                    getAddressesForSelectedUser().length === 0 && (
                       <div className="text-center py-8">
                         <div className="text-gray-400 dark:text-gray-500 mb-2">
                           <svg
