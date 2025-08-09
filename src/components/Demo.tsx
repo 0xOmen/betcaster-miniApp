@@ -231,6 +231,12 @@ export default function Demo(
     taker: string;
     arbiter?: string;
   } | null>(null);
+
+  // Address modal state
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [selectedUserProfile, setSelectedUserProfile] =
+    useState<UserProfile | null>(null);
+
   const [initialParamsHandled, setInitialParamsHandled] = useState(false);
   const [isLoadingSpecificBet, setIsLoadingSpecificBet] = useState(false);
   // Get token price for selected bet
@@ -1055,6 +1061,17 @@ export default function Demo(
     setEditTxHash(undefined);
     setSelectWinnerTxHash(undefined);
     setShowApprovalSuccess(false);
+  };
+
+  // Address modal functions
+  const openAddressModal = (profile: UserProfile) => {
+    setSelectedUserProfile(profile);
+    setShowAddressModal(true);
+  };
+
+  const closeAddressModal = () => {
+    setShowAddressModal(false);
+    setSelectedUserProfile(null);
   };
 
   // Helper function to apply the same filtering logic as fetchUserBets
@@ -3274,21 +3291,45 @@ export default function Demo(
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         Taker:
                       </span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {selectedBet.takerProfile?.display_name ||
-                          selectedBet.takerProfile?.username ||
-                          "Unknown"}
-                      </span>
+                      {selectedBet.takerProfile &&
+                      (selectedBet.takerProfile.display_name ||
+                        selectedBet.takerProfile.username) ? (
+                        <button
+                          onClick={() =>
+                            openAddressModal(selectedBet.takerProfile!)
+                          }
+                          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline cursor-pointer"
+                        >
+                          {selectedBet.takerProfile.display_name ||
+                            selectedBet.takerProfile.username}
+                        </button>
+                      ) : (
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          Unknown
+                        </span>
+                      )}
                     </div>
                     {selectedBet.arbiterProfile && (
                       <div className="flex items-center space-x-2">
                         <span className="text-sm text-gray-600 dark:text-gray-400">
                           Arbiter:
                         </span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {selectedBet.arbiterProfile.display_name ||
-                            selectedBet.arbiterProfile.username}
-                        </span>
+                        {selectedBet.arbiterProfile.display_name ||
+                        selectedBet.arbiterProfile.username ? (
+                          <button
+                            onClick={() =>
+                              openAddressModal(selectedBet.arbiterProfile!)
+                            }
+                            className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline cursor-pointer"
+                          >
+                            {selectedBet.arbiterProfile.display_name ||
+                              selectedBet.arbiterProfile.username}
+                          </button>
+                        ) : (
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            Unknown
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -3895,6 +3936,209 @@ export default function Demo(
             betDetails={shareBetDetails}
             userFid={context?.user?.fid || null}
           />
+        )}
+
+        {/* Address Modal */}
+        {showAddressModal && selectedUserProfile && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    {selectedUserProfile.display_name ||
+                      selectedUserProfile.username}{" "}
+                    Addresses
+                  </h2>
+                  <button
+                    onClick={closeAddressModal}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    These are the verified addresses associated with this user
+                    that can be used for bet interactions:
+                  </div>
+
+                  {/* Primary Ethereum Address */}
+                  {selectedUserProfile.primaryEthAddress && (
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                            Primary Ethereum Address
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 font-mono break-all">
+                            {selectedUserProfile.primaryEthAddress}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            navigator.clipboard.writeText(
+                              selectedUserProfile.primaryEthAddress!
+                            )
+                          }
+                          className="ml-2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          title="Copy address"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Primary Solana Address */}
+                  {selectedUserProfile.primarySolanaAddress && (
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                            Primary Solana Address
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 font-mono break-all">
+                            {selectedUserProfile.primarySolanaAddress}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            navigator.clipboard.writeText(
+                              selectedUserProfile.primarySolanaAddress!
+                            )
+                          }
+                          className="ml-2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          title="Copy address"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Verified Ethereum Addresses */}
+                  {selectedUserProfile.verifiedEthAddresses &&
+                    selectedUserProfile.verifiedEthAddresses.length > 0 && (
+                      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                          Verified Ethereum Addresses (
+                          {selectedUserProfile.verifiedEthAddresses.length})
+                        </h3>
+                        <div className="space-y-2">
+                          {selectedUserProfile.verifiedEthAddresses.map(
+                            (address, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded p-2"
+                              >
+                                <p className="text-sm text-gray-600 dark:text-gray-400 font-mono break-all flex-1">
+                                  {address}
+                                </p>
+                                <button
+                                  onClick={() =>
+                                    navigator.clipboard.writeText(address)
+                                  }
+                                  className="ml-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                  title="Copy address"
+                                >
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Show message if no addresses available */}
+                  {!selectedUserProfile.primaryEthAddress &&
+                    !selectedUserProfile.primarySolanaAddress &&
+                    (!selectedUserProfile.verifiedEthAddresses ||
+                      selectedUserProfile.verifiedEthAddresses.length ===
+                        0) && (
+                      <div className="text-center py-8">
+                        <div className="text-gray-400 dark:text-gray-500 mb-2">
+                          <svg
+                            className="w-12 h-12 mx-auto"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          No verified addresses found for this user.
+                        </p>
+                      </div>
+                    )}
+                </div>
+
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={closeAddressModal}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
