@@ -380,18 +380,11 @@ export default function UserOrAddressInput({
                   ETH: {selectedUser.primaryEthAddress}
                 </div>
               )}
-              {!isLoadingUserDetails && selectedUser.primarySolanaAddress && (
-                <div className="text-xs text-gray-500 dark:text-gray-500 truncate">
-                  SOL: {selectedUser.primarySolanaAddress}
+              {!isLoadingUserDetails && !selectedUser.primaryEthAddress && (
+                <div className="text-xs text-gray-500 dark:text-gray-500">
+                  No Ethereum address found
                 </div>
               )}
-              {!isLoadingUserDetails &&
-                !selectedUser.primaryEthAddress &&
-                !selectedUser.primarySolanaAddress && (
-                  <div className="text-xs text-gray-500 dark:text-gray-500">
-                    No wallet addresses found
-                  </div>
-                )}
             </div>
           </div>
         </div>
