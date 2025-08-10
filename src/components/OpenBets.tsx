@@ -38,90 +38,92 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
 
   const { address, isConnected } = useAccount();
 
-  const { isApproving, isAccepting, handleAcceptBet, acceptTxHash } =
-    useBetActions({
-      onSuccess: async () => {
-        console.log("Bet accepted successfully!");
-        setShowApprovalSuccess(true);
+  const {
+    isApproving,
+    isAccepting,
+    handleAcceptBet,
+    acceptReceipt,
+    isAcceptReceiptSuccess,
+  } = useBetActions();
 
-        // Update database to mark bet as accepted
-        if (selectedBet && acceptTxHash) {
-          try {
-            const updateResponse = await fetch(
-              `/api/bets?betNumber=${selectedBet.bet_number}`,
-              {
-                method: "PATCH",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  status: 1,
-                  transaction_hash: acceptTxHash,
-                  taker_address: [address],
-                }),
-              }
-            );
+  // Handle accept bet transaction confirmation
+  useEffect(() => {
+    if (acceptReceipt && isAcceptReceiptSuccess && selectedBet) {
+      console.log("Bet accepted successfully!");
+      setShowApprovalSuccess(true);
 
-            if (!updateResponse.ok) {
-              console.error("Failed to update bet status in database");
-            } else {
-              console.log("Bet status updated to accepted in database");
+      // Update database to mark bet as accepted
+      const updateDatabase = async () => {
+        try {
+          const updateResponse = await fetch(
+            `/api/bets?betNumber=${selectedBet.bet_number}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                status: 1,
+                transaction_hash: acceptReceipt.transactionHash,
+                taker_address: [address],
+              }),
+            }
+          );
 
-              // Send notification to arbiter about being invited
-              if (selectedBet.arbiter_fid) {
-                try {
-                  const notificationResult = await notifyInviteArbiter(
-                    selectedBet.arbiter_fid,
-                    {
-                      betNumber: selectedBet.bet_number,
-                      betAmount: selectedBet.bet_amount.toString(),
-                      tokenName: getTokenName(selectedBet.bet_token_address),
-                      makerName:
-                        selectedBet.makerProfile?.display_name ||
-                        selectedBet.makerProfile?.username,
-                      takerName: "You", // Since the current user is the taker
-                      arbiterName:
-                        selectedBet.arbiterProfile?.display_name ||
-                        selectedBet.arbiterProfile?.username,
-                      betAgreement: selectedBet.bet_agreement,
-                      endTime: new Date(
-                        selectedBet.end_time * 1000
-                      ).toLocaleString(),
-                    }
-                  );
+          if (!updateResponse.ok) {
+            console.error("Failed to update bet status in database");
+          } else {
+            console.log("Bet status updated to accepted in database");
 
-                  if (notificationResult.success) {
-                    console.log(
-                      "Notification sent to arbiter about invitation"
-                    );
-                  } else {
-                    console.error(
-                      "Failed to send notification to arbiter:",
-                      notificationResult.error
-                    );
+            // Send notification to arbiter about being invited
+            if (selectedBet.arbiter_fid) {
+              try {
+                const notificationResult = await notifyInviteArbiter(
+                  selectedBet.arbiter_fid,
+                  {
+                    betNumber: selectedBet.bet_number,
+                    betAmount: selectedBet.bet_amount.toString(),
+                    tokenName: getTokenName(selectedBet.bet_token_address),
+                    makerName:
+                      selectedBet.makerProfile?.display_name ||
+                      selectedBet.makerProfile?.username,
+                    takerName: "You", // Since the current user is the taker
+                    arbiterName:
+                      selectedBet.arbiterProfile?.display_name ||
+                      selectedBet.arbiterProfile?.username,
+                    betAgreement: selectedBet.bet_agreement,
+                    endTime: new Date(
+                      selectedBet.end_time * 1000
+                    ).toLocaleString(),
                   }
-                } catch (notificationError) {
+                );
+
+                if (notificationResult.success) {
+                  console.log("Notification sent to arbiter about invitation");
+                } else {
                   console.error(
-                    "Error sending notification:",
-                    notificationError
+                    "Failed to send notification to arbiter:",
+                    notificationResult.error
                   );
                 }
+              } catch (notificationError) {
+                console.error("Error sending notification:", notificationError);
               }
             }
-          } catch (error) {
-            console.error("Error updating bet status:", error);
           }
+        } catch (error) {
+          console.error("Error updating bet status:", error);
         }
 
         setTimeout(() => {
           setShowApprovalSuccess(false);
           fetchOpenBets(); // Refresh the bets list
         }, 3000);
-      },
-      onError: (error) => {
-        console.error("Error accepting bet:", error);
-      },
-    });
+      };
+
+      updateDatabase();
+    }
+  }, [acceptReceipt, isAcceptReceiptSuccess, selectedBet, address]);
 
   const getTokenName = (tokenAddress: string): string => {
     if (tokenAddress === "0x0000000000000000000000000000000000000000") {
