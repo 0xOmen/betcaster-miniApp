@@ -146,7 +146,7 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
               },
               body: JSON.stringify({
                 status: forfeitStatus,
-                transaction_hash: forfeitTxHash,
+                transaction_hash: forfeitReceipt?.transactionHash,
               }),
             }
           );
@@ -222,7 +222,7 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
               },
               body: JSON.stringify({
                 status: 2,
-                transaction_hash: acceptArbiterTxHash,
+                transaction_hash: acceptArbiterReceipt?.transactionHash,
               }),
             }
           );
@@ -390,13 +390,21 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
     isAcceptingArbiter,
     isSelectingWinner,
     isEmergencyCancelling,
-    approvalTxHash,
-    acceptTxHash,
-    cancelTxHash,
-    forfeitTxHash,
-    claimTxHash,
-    acceptArbiterTxHash,
-    selectWinnerTxHash,
+    // Transaction receipts
+    acceptReceipt,
+    isAcceptReceiptSuccess,
+    cancelReceipt,
+    isCancelReceiptSuccess,
+    forfeitReceipt,
+    isForfeitReceiptSuccess,
+    claimReceipt,
+    isClaimReceiptSuccess,
+    acceptArbiterReceipt,
+    isAcceptArbiterReceiptSuccess,
+    selectWinnerReceipt,
+    isSelectWinnerReceiptSuccess,
+    emergencyCancelReceipt,
+    isEmergencyCancelReceiptSuccess,
     handleAcceptBet,
     handleCancelBet,
     handleForfeitBet: originalHandleForfeitBet,
@@ -404,9 +412,59 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
     handleAcceptArbiterRole: originalHandleAcceptArbiterRole,
     handleSelectWinner,
     handleEmergencyCancel,
-  } = useBetActions({
-    onSuccess: fetchRecentBets,
-  });
+  } = useBetActions();
+
+  // Handle transaction confirmations
+  useEffect(() => {
+    if (acceptReceipt && isAcceptReceiptSuccess) {
+      console.log("=== ACCEPT BET TRANSACTION CONFIRMED IN EXPLORE ===");
+      fetchRecentBets();
+    }
+  }, [acceptReceipt, isAcceptReceiptSuccess]);
+
+  useEffect(() => {
+    if (cancelReceipt && isCancelReceiptSuccess) {
+      console.log("=== CANCEL BET TRANSACTION CONFIRMED IN EXPLORE ===");
+      fetchRecentBets();
+    }
+  }, [cancelReceipt, isCancelReceiptSuccess]);
+
+  useEffect(() => {
+    if (forfeitReceipt && isForfeitReceiptSuccess) {
+      console.log("=== FORFEIT BET TRANSACTION CONFIRMED IN EXPLORE ===");
+      fetchRecentBets();
+    }
+  }, [forfeitReceipt, isForfeitReceiptSuccess]);
+
+  useEffect(() => {
+    if (claimReceipt && isClaimReceiptSuccess) {
+      console.log("=== CLAIM WINNINGS TRANSACTION CONFIRMED IN EXPLORE ===");
+      fetchRecentBets();
+    }
+  }, [claimReceipt, isClaimReceiptSuccess]);
+
+  useEffect(() => {
+    if (acceptArbiterReceipt && isAcceptArbiterReceiptSuccess) {
+      console.log(
+        "=== ACCEPT ARBITER ROLE TRANSACTION CONFIRMED IN EXPLORE ==="
+      );
+      fetchRecentBets();
+    }
+  }, [acceptArbiterReceipt, isAcceptArbiterReceiptSuccess]);
+
+  useEffect(() => {
+    if (selectWinnerReceipt && isSelectWinnerReceiptSuccess) {
+      console.log("=== SELECT WINNER TRANSACTION CONFIRMED IN EXPLORE ===");
+      fetchRecentBets();
+    }
+  }, [selectWinnerReceipt, isSelectWinnerReceiptSuccess]);
+
+  useEffect(() => {
+    if (emergencyCancelReceipt && isEmergencyCancelReceiptSuccess) {
+      console.log("=== EMERGENCY CANCEL TRANSACTION CONFIRMED IN EXPLORE ===");
+      fetchRecentBets();
+    }
+  }, [emergencyCancelReceipt, isEmergencyCancelReceiptSuccess]);
 
   // Setup contract read for getBet
   const { data: betFromChain, refetch: refetchBet } = useContractRead({
@@ -881,7 +939,7 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
               },
               body: JSON.stringify({
                 status: winnerStatus,
-                transaction_hash: selectWinnerTxHash,
+                transaction_hash: selectWinnerReceipt?.transactionHash,
               }),
             }
           );
