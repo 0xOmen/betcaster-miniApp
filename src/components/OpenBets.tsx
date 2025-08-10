@@ -35,6 +35,10 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedBet, setSelectedBet] = useState<BetWithProfiles | null>(null);
   const [showApprovalSuccess, setShowApprovalSuccess] = useState(false);
+  // Track processed receipts to prevent duplicate processing
+  const [processedReceipts, setProcessedReceipts] = useState<Set<string>>(
+    new Set()
+  );
 
   const { address, isConnected } = useAccount();
 
@@ -49,7 +53,18 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
   // Handle accept bet transaction confirmation
   useEffect(() => {
     if (acceptReceipt && isAcceptReceiptSuccess && selectedBet) {
+      // Check if this receipt has already been processed
+      const receiptKey = `accept-${acceptReceipt.transactionHash}`;
+      if (processedReceipts.has(receiptKey)) {
+        console.log("Receipt already processed, skipping");
+        return;
+      }
+
       console.log("Bet accepted successfully!");
+
+      // Mark this receipt as processed
+      setProcessedReceipts((prev) => new Set([...prev, receiptKey]));
+
       setShowApprovalSuccess(true);
 
       // Update database to mark bet as accepted
@@ -117,13 +132,21 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
 
         setTimeout(() => {
           setShowApprovalSuccess(false);
+          // Clear processed receipts after showing success message
+          setProcessedReceipts(new Set());
           fetchOpenBets(); // Refresh the bets list
         }, 3000);
       };
 
       updateDatabase();
     }
-  }, [acceptReceipt, isAcceptReceiptSuccess, selectedBet, address]);
+  }, [
+    acceptReceipt,
+    isAcceptReceiptSuccess,
+    selectedBet,
+    address,
+    processedReceipts,
+  ]);
 
   const getTokenName = (tokenAddress: string): string => {
     if (tokenAddress === "0x0000000000000000000000000000000000000000") {
@@ -197,6 +220,8 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
 
   const handleAcceptBetClick = async (bet: BetWithProfiles) => {
     setSelectedBet(bet);
+    // Clear processed receipts to allow fresh processing
+    setProcessedReceipts(new Set());
     await handleAcceptBet(bet);
   };
 

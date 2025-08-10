@@ -96,6 +96,10 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
 
   const [selectedWinner, setSelectedWinner] = useState<string | null>(null); // Add state for winner selection
   const [isSelectWinnerModalOpen, setIsSelectWinnerModalOpen] = useState(false); // Add state for winner selection modal
+  // Track processed receipts to prevent duplicate processing
+  const [processedReceipts, setProcessedReceipts] = useState<Set<string>>(
+    new Set()
+  );
   const { address } = useAccount();
 
   const { switchChain } = useSwitchChain();
@@ -265,7 +269,17 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
 
   useEffect(() => {
     if (forfeitReceipt && isForfeitReceiptSuccess) {
+      // Check if this receipt has already been processed
+      const receiptKey = `forfeit-${forfeitReceipt.transactionHash}`;
+      if (processedReceipts.has(receiptKey)) {
+        console.log("Receipt already processed, skipping");
+        return;
+      }
+
       console.log("=== FORFEIT BET TRANSACTION CONFIRMED IN EXPLORE ===");
+
+      // Mark this receipt as processed
+      setProcessedReceipts((prev) => new Set([...prev, receiptKey]));
 
       // Find the bet that was forfeited (we need to get this from the selected bet or recent bets)
       const forfeitedBet =
@@ -377,6 +391,7 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
     recentBets,
     address,
     tokenPriceData,
+    processedReceipts,
   ]);
 
   useEffect(() => {
@@ -388,9 +403,19 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
 
   useEffect(() => {
     if (acceptArbiterReceipt && isAcceptArbiterReceiptSuccess) {
+      // Check if this receipt has already been processed
+      const receiptKey = `acceptArbiter-${acceptArbiterReceipt.transactionHash}`;
+      if (processedReceipts.has(receiptKey)) {
+        console.log("Receipt already processed, skipping");
+        return;
+      }
+
       console.log(
         "=== ACCEPT ARBITER ROLE TRANSACTION CONFIRMED IN EXPLORE ==="
       );
+
+      // Mark this receipt as processed
+      setProcessedReceipts((prev) => new Set([...prev, receiptKey]));
 
       // Find the bet that had arbiter role accepted
       const arbiterBet =
@@ -476,11 +501,22 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
     recentBets,
     address,
     tokenPriceData,
+    processedReceipts,
   ]);
 
   useEffect(() => {
     if (selectWinnerReceipt && isSelectWinnerReceiptSuccess && selectedBet) {
+      // Check if this receipt has already been processed
+      const receiptKey = `selectWinner-${selectWinnerReceipt.transactionHash}`;
+      if (processedReceipts.has(receiptKey)) {
+        console.log("Receipt already processed, skipping");
+        return;
+      }
+
       console.log("=== SELECT WINNER TRANSACTION CONFIRMED IN EXPLORE ===");
+
+      // Mark this receipt as processed
+      setProcessedReceipts((prev) => new Set([...prev, receiptKey]));
 
       // Close the select winner modal
       closeSelectWinnerModal();
@@ -672,6 +708,7 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
     selectedBet,
     selectedWinner,
     tokenPriceData,
+    processedReceipts,
   ]);
 
   useEffect(() => {
@@ -1094,6 +1131,8 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
   const handleModalClose = () => {
     setSelectedBet(null);
     setShowApprovalSuccess(false);
+    // Clear processed receipts to allow fresh processing
+    setProcessedReceipts(new Set());
   };
 
   // Helper function to get token name
@@ -1113,6 +1152,8 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
   const closeSelectWinnerModal = () => {
     setIsSelectWinnerModalOpen(false);
     setSelectedWinner(null);
+    // Clear processed receipts to allow fresh processing
+    setProcessedReceipts(new Set());
   };
 
   // Function to handle winner selection

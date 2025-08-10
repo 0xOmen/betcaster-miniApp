@@ -240,6 +240,11 @@ export default function Demo(
     "taker" | "arbiter" | null
   >(null);
 
+  // Track processed receipts to prevent duplicate processing
+  const [processedReceipts, setProcessedReceipts] = useState<Set<string>>(
+    new Set()
+  );
+
   const [initialParamsHandled, setInitialParamsHandled] = useState(false);
   const [isLoadingSpecificBet, setIsLoadingSpecificBet] = useState(false);
   // Get token price for selected bet
@@ -868,8 +873,18 @@ export default function Demo(
   // Handle forfeit bet transaction confirmation
   useEffect(() => {
     if (forfeitReceipt && isForfeitReceiptSuccess && selectedBet) {
+      // Check if this receipt has already been processed
+      const receiptKey = `forfeit-${forfeitReceipt.transactionHash}`;
+      if (processedReceipts.has(receiptKey)) {
+        console.log("Receipt already processed, skipping");
+        return;
+      }
+
       console.log("=== FORFEIT BET TRANSACTION CONFIRMED ===");
       console.log("Transaction Hash:", forfeitReceipt.transactionHash);
+
+      // Mark this receipt as processed
+      setProcessedReceipts((prev) => new Set([...prev, receiptKey]));
 
       // Determine who forfeited and who wins
       const isMaker =
@@ -1045,13 +1060,24 @@ export default function Demo(
     address,
     context?.user?.fid,
     tokenPriceData,
+    processedReceipts,
   ]);
 
   // Handle accept arbiter role transaction confirmation
   useEffect(() => {
     if (acceptArbiterReceipt && isAcceptArbiterReceiptSuccess && selectedBet) {
+      // Check if this receipt has already been processed
+      const receiptKey = `acceptArbiter-${acceptArbiterReceipt.transactionHash}`;
+      if (processedReceipts.has(receiptKey)) {
+        console.log("Receipt already processed, skipping");
+        return;
+      }
+
       console.log("=== ACCEPT ARBITER ROLE TRANSACTION CONFIRMED ===");
       console.log("Transaction Hash:", acceptArbiterReceipt.transactionHash);
+
+      // Mark this receipt as processed
+      setProcessedReceipts((prev) => new Set([...prev, receiptKey]));
 
       // Update database and handle notifications
       const updateDatabase = async () => {
@@ -1215,13 +1241,24 @@ export default function Demo(
     isAcceptArbiterReceiptSuccess,
     selectedBet,
     tokenPriceData,
+    processedReceipts,
   ]);
 
   // Handle select winner transaction confirmation
   useEffect(() => {
     if (selectWinnerReceipt && isSelectWinnerReceiptSuccess && selectedBet) {
+      // Check if this receipt has already been processed
+      const receiptKey = `selectWinner-${selectWinnerReceipt.transactionHash}`;
+      if (processedReceipts.has(receiptKey)) {
+        console.log("Receipt already processed, skipping");
+        return;
+      }
+
       console.log("=== SELECT WINNER TRANSACTION CONFIRMED ===");
       console.log("Transaction Hash:", selectWinnerReceipt.transactionHash);
+
+      // Mark this receipt as processed
+      setProcessedReceipts((prev) => new Set([...prev, receiptKey]));
 
       // Close the select winner modal
       closeSelectWinnerModal();
@@ -1418,6 +1455,7 @@ export default function Demo(
     selectedBet,
     selectedWinner,
     tokenPriceData,
+    processedReceipts,
   ]);
 
   // Handle emergency cancel transaction confirmation
@@ -1753,6 +1791,8 @@ export default function Demo(
     setEditTxHash(undefined);
     setSelectWinnerTxHash(undefined);
     setShowApprovalSuccess(false);
+    // Clear processed receipts to allow fresh processing
+    setProcessedReceipts(new Set());
   };
 
   // Address modal functions
