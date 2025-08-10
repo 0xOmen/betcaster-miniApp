@@ -294,7 +294,12 @@ export default function CreateBet({
         selectedToken,
       });
 
-      if (receipt && isReceiptSuccess && selectedUser && selectedToken) {
+      if (
+        receipt &&
+        isReceiptSuccess &&
+        (selectedUser || isAnyoneSelected) &&
+        selectedToken
+      ) {
         try {
           // Parse all events from the transaction receipt
           const parsedEvents = parseEventLogs({
