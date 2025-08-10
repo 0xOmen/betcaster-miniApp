@@ -6,6 +6,7 @@ import {
   useSendTransaction,
   useSwitchChain,
   useWriteContract,
+  useWaitForTransactionReceipt,
 } from "wagmi";
 import { base } from "wagmi/chains";
 import { encodeFunctionData } from "viem";
@@ -22,11 +23,10 @@ import { BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
 import { amountToWei } from "~/lib/tokens";
 
 interface UseBetActionsProps {
-  onSuccess?: () => void;
   onError?: (error: Error) => void;
 }
 
-export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
+export function useBetActions({ onError }: UseBetActionsProps = {}) {
   const [isApproving, setIsApproving] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -59,6 +59,46 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
   const { switchChain } = useSwitchChain();
   const { sendTransaction } = useSendTransaction();
   const { writeContractAsync: writeApproveAsync } = useWriteContract();
+
+  // Transaction receipt hooks
+  const { data: acceptReceipt, isSuccess: isAcceptReceiptSuccess } =
+    useWaitForTransactionReceipt({
+      hash: acceptTxHash,
+    });
+
+  const { data: cancelReceipt, isSuccess: isCancelReceiptSuccess } =
+    useWaitForTransactionReceipt({
+      hash: cancelTxHash,
+    });
+
+  const { data: forfeitReceipt, isSuccess: isForfeitReceiptSuccess } =
+    useWaitForTransactionReceipt({
+      hash: forfeitTxHash,
+    });
+
+  const { data: claimReceipt, isSuccess: isClaimReceiptSuccess } =
+    useWaitForTransactionReceipt({
+      hash: claimTxHash,
+    });
+
+  const {
+    data: acceptArbiterReceipt,
+    isSuccess: isAcceptArbiterReceiptSuccess,
+  } = useWaitForTransactionReceipt({
+    hash: acceptArbiterTxHash,
+  });
+
+  const { data: selectWinnerReceipt, isSuccess: isSelectWinnerReceiptSuccess } =
+    useWaitForTransactionReceipt({
+      hash: selectWinnerTxHash,
+    });
+
+  const {
+    data: emergencyCancelReceipt,
+    isSuccess: isEmergencyCancelReceiptSuccess,
+  } = useWaitForTransactionReceipt({
+    hash: emergencyCancelTxHash,
+  });
 
   const ensureBaseChain = async () => {
     if (!isConnected) {
@@ -128,7 +168,6 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
           onSuccess: (hash: `0x${string}`) => {
             console.log("Accept transaction sent successfully:", hash);
             setAcceptTxHash(hash);
-            if (onSuccess) onSuccess();
           },
           onError: (error: Error) => {
             console.error("Accept transaction failed:", error);
@@ -170,7 +209,6 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
           onSuccess: (hash: `0x${string}`) => {
             console.log("Cancel transaction sent successfully:", hash);
             setCancelTxHash(hash);
-            if (onSuccess) onSuccess();
           },
           onError: (error: Error) => {
             console.error("Cancel transaction failed:", error);
@@ -212,7 +250,6 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
           onSuccess: (hash: `0x${string}`) => {
             console.log("Forfeit transaction sent successfully:", hash);
             setForfeitTxHash(hash);
-            if (onSuccess) onSuccess();
           },
           onError: (error: Error) => {
             console.error("Forfeit transaction failed:", error);
@@ -254,7 +291,6 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
           onSuccess: (hash: `0x${string}`) => {
             console.log("Claim transaction sent successfully:", hash);
             setClaimTxHash(hash);
-            if (onSuccess) onSuccess();
           },
           onError: (error: Error) => {
             console.error("Claim transaction failed:", error);
@@ -296,7 +332,6 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
           onSuccess: (hash: `0x${string}`) => {
             console.log("Accept arbiter transaction sent successfully:", hash);
             setAcceptArbiterTxHash(hash);
-            if (onSuccess) onSuccess();
           },
           onError: (error: Error) => {
             console.error("Accept arbiter transaction failed:", error);
@@ -343,7 +378,6 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
           onSuccess: (hash: `0x${string}`) => {
             console.log("Select winner transaction sent successfully:", hash);
             setSelectWinnerTxHash(hash);
-            if (onSuccess) onSuccess();
           },
           onError: (error: Error) => {
             console.error("Select winner transaction failed:", error);
@@ -388,7 +422,6 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
               hash
             );
             setEmergencyCancelTxHash(hash);
-            if (onSuccess) onSuccess();
           },
           onError: (error: Error) => {
             console.error("Emergency cancel transaction failed:", error);
@@ -421,6 +454,21 @@ export function useBetActions({ onSuccess, onError }: UseBetActionsProps = {}) {
     acceptArbiterTxHash,
     selectWinnerTxHash,
     emergencyCancelTxHash,
+    // Transaction receipts
+    acceptReceipt,
+    isAcceptReceiptSuccess,
+    cancelReceipt,
+    isCancelReceiptSuccess,
+    forfeitReceipt,
+    isForfeitReceiptSuccess,
+    claimReceipt,
+    isClaimReceiptSuccess,
+    acceptArbiterReceipt,
+    isAcceptArbiterReceiptSuccess,
+    selectWinnerReceipt,
+    isSelectWinnerReceiptSuccess,
+    emergencyCancelReceipt,
+    isEmergencyCancelReceiptSuccess,
     handleAcceptBet,
     handleCancelBet,
     handleForfeitBet,

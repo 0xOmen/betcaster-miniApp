@@ -261,6 +261,21 @@ export default function Demo(
     isAcceptingArbiter,
     isSelectingWinner,
     isEmergencyCancelling,
+    // Transaction receipts
+    acceptReceipt,
+    isAcceptReceiptSuccess,
+    cancelReceipt,
+    isCancelReceiptSuccess,
+    forfeitReceipt,
+    isForfeitReceiptSuccess,
+    claimReceipt,
+    isClaimReceiptSuccess,
+    acceptArbiterReceipt,
+    isAcceptArbiterReceiptSuccess,
+    selectWinnerReceipt,
+    isSelectWinnerReceiptSuccess,
+    emergencyCancelReceipt,
+    isEmergencyCancelReceiptSuccess,
     handleAcceptBet: hookHandleAcceptBet,
     handleCancelBet: hookHandleCancelBet,
     handleForfeitBet: hookHandleForfeitBet,
@@ -268,9 +283,7 @@ export default function Demo(
     handleAcceptArbiterRole: hookHandleAcceptArbiterRole,
     handleSelectWinner: hookHandleSelectWinner,
     handleEmergencyCancel,
-  } = useBetActions({
-    onSuccess: () => refreshBetsWithFiltering(),
-  });
+  } = useBetActions();
 
   // Add state for edit can settle early
   const [editCanSettleEarly, setEditCanSettleEarly] = useState<boolean>(true);
@@ -751,9 +764,9 @@ export default function Demo(
 
   // Handle claim winnings transaction confirmation
   useEffect(() => {
-    if (claimTxHash && selectedBet) {
+    if (claimReceipt && isClaimReceiptSuccess && selectedBet) {
       console.log("=== CLAIM WINNINGS TRANSACTION CONFIRMED ===");
-      console.log("Transaction Hash:", claimTxHash);
+      console.log("Transaction Hash:", claimReceipt.transactionHash);
 
       // Determine the new status based on current status
       let newStatus: number;
@@ -783,7 +796,7 @@ export default function Demo(
               },
               body: JSON.stringify({
                 status: newStatus,
-                transaction_hash: claimTxHash,
+                transaction_hash: claimReceipt.transactionHash,
               }),
             }
           );
@@ -822,7 +835,95 @@ export default function Demo(
         await refreshBetsWithFiltering();
       }, 2000);
     }
-  }, [claimTxHash, selectedBet, context?.user?.fid]);
+  }, [claimReceipt, isClaimReceiptSuccess, selectedBet, context?.user?.fid]);
+
+  // Handle accept bet transaction confirmation
+  useEffect(() => {
+    if (acceptReceipt && isAcceptReceiptSuccess && selectedBet) {
+      console.log("=== ACCEPT BET TRANSACTION CONFIRMED ===");
+      console.log("Transaction Hash:", acceptReceipt.transactionHash);
+
+      // Close modal and refresh bets list
+      setTimeout(async () => {
+        closeModal();
+        await refreshBetsWithFiltering();
+      }, 2000);
+    }
+  }, [acceptReceipt, isAcceptReceiptSuccess, selectedBet]);
+
+  // Handle cancel bet transaction confirmation
+  useEffect(() => {
+    if (cancelReceipt && isCancelReceiptSuccess && selectedBet) {
+      console.log("=== CANCEL BET TRANSACTION CONFIRMED ===");
+      console.log("Transaction Hash:", cancelReceipt.transactionHash);
+
+      // Close modal and refresh bets list
+      setTimeout(async () => {
+        closeModal();
+        await refreshBetsWithFiltering();
+      }, 2000);
+    }
+  }, [cancelReceipt, isCancelReceiptSuccess, selectedBet]);
+
+  // Handle forfeit bet transaction confirmation
+  useEffect(() => {
+    if (forfeitReceipt && isForfeitReceiptSuccess && selectedBet) {
+      console.log("=== FORFEIT BET TRANSACTION CONFIRMED ===");
+      console.log("Transaction Hash:", forfeitReceipt.transactionHash);
+
+      // Close modal and refresh bets list
+      setTimeout(async () => {
+        closeModal();
+        await refreshBetsWithFiltering();
+      }, 2000);
+    }
+  }, [forfeitReceipt, isForfeitReceiptSuccess, selectedBet]);
+
+  // Handle accept arbiter role transaction confirmation
+  useEffect(() => {
+    if (acceptArbiterReceipt && isAcceptArbiterReceiptSuccess && selectedBet) {
+      console.log("=== ACCEPT ARBITER ROLE TRANSACTION CONFIRMED ===");
+      console.log("Transaction Hash:", acceptArbiterReceipt.transactionHash);
+
+      // Close modal and refresh bets list
+      setTimeout(async () => {
+        closeModal();
+        await refreshBetsWithFiltering();
+      }, 2000);
+    }
+  }, [acceptArbiterReceipt, isAcceptArbiterReceiptSuccess, selectedBet]);
+
+  // Handle select winner transaction confirmation
+  useEffect(() => {
+    if (selectWinnerReceipt && isSelectWinnerReceiptSuccess && selectedBet) {
+      console.log("=== SELECT WINNER TRANSACTION CONFIRMED ===");
+      console.log("Transaction Hash:", selectWinnerReceipt.transactionHash);
+
+      // Close modal and refresh bets list
+      setTimeout(async () => {
+        closeModal();
+        await refreshBetsWithFiltering();
+      }, 2000);
+    }
+  }, [selectWinnerReceipt, isSelectWinnerReceiptSuccess, selectedBet]);
+
+  // Handle emergency cancel transaction confirmation
+  useEffect(() => {
+    if (
+      emergencyCancelReceipt &&
+      isEmergencyCancelReceiptSuccess &&
+      selectedBet
+    ) {
+      console.log("=== EMERGENCY CANCEL TRANSACTION CONFIRMED ===");
+      console.log("Transaction Hash:", emergencyCancelReceipt.transactionHash);
+
+      // Close modal and refresh bets list
+      setTimeout(async () => {
+        closeModal();
+        await refreshBetsWithFiltering();
+      }, 2000);
+    }
+  }, [emergencyCancelReceipt, isEmergencyCancelReceiptSuccess, selectedBet]);
 
   const { disconnect } = useDisconnect();
 
