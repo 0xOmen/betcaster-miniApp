@@ -107,176 +107,6 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
   );
   const { context } = useMiniApp();
 
-  // Custom handler for forfeiting bet that includes leaderboard update
-  const handleForfeitBet = async (bet: Bet) => {
-    try {
-      // Call the original handler from the hook
-      await originalHandleForfeitBet(bet);
-
-      // After successful transaction, update database and leaderboard
-      setTimeout(async () => {
-        try {
-          // Determine who forfeited and who wins
-          let forfeiterFid: number | null = null;
-          let winnerFid: number | null = null;
-          let forfeitStatus: number;
-
-          if (address === bet.maker_address) {
-            // Maker forfeited, taker wins
-            forfeiterFid = bet.maker_fid || null;
-            winnerFid = bet.taker_fid || null;
-            forfeitStatus = 5; // Taker wins
-          } else if (bet.taker_address.includes(address || "")) {
-            // Taker forfeited, maker wins
-            forfeiterFid = bet.taker_fid || null;
-            winnerFid = bet.maker_fid || null;
-            forfeitStatus = 4; // Maker wins
-          } else {
-            console.error("Current user is not a participant in this bet");
-            return;
-          }
-
-          // Update database to mark bet as forfeited
-          const updateResponse = await fetch(
-            `/api/bets?betNumber=${bet.bet_number}`,
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                status: forfeitStatus,
-                transaction_hash: forfeitReceipt?.transactionHash,
-              }),
-            }
-          );
-
-          if (!updateResponse.ok) {
-            console.error("Failed to update bet status in database");
-          } else {
-            console.log("Bet status updated to forfeited in database");
-
-            // Calculate PnL amount for leaderboard update
-            const pnlAmount = tokenPriceData?.[0]
-              ? calculateUSDValue(bet.bet_amount, Number(tokenPriceData[0]))
-              : 0;
-
-            // Update leaderboard for winner and loser
-            try {
-              const leaderboardUpdateResponse = await fetch(
-                "/api/leaderboard",
-                {
-                  method: "PATCH",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    winner_fid: winnerFid,
-                    loser_fid: forfeiterFid,
-                    pnl_amount: pnlAmount,
-                  }),
-                }
-              );
-
-              if (leaderboardUpdateResponse.ok) {
-                console.log(
-                  "Leaderboard updated successfully for forfeit in Explore"
-                );
-              } else {
-                console.error(
-                  "Failed to update leaderboard for forfeit in Explore"
-                );
-              }
-            } catch (leaderboardError) {
-              console.error(
-                "Error updating leaderboard for forfeit in Explore:",
-                leaderboardError
-              );
-            }
-          }
-        } catch (error) {
-          console.error("Error updating database and leaderboard:", error);
-        }
-      }, 2000); // Wait 2 seconds for transaction to be processed
-    } catch (error) {
-      console.error("Error in custom handleForfeitBet:", error);
-    }
-  };
-
-  // Custom handler for accepting arbiter role that includes leaderboard update
-  const handleAcceptArbiterRole = async (bet: Bet) => {
-    try {
-      // Call the original handler from the hook
-      await originalHandleAcceptArbiterRole(bet);
-
-      // After successful transaction, update database and leaderboard
-      setTimeout(async () => {
-        try {
-          // Update database to mark bet as arbiter accepted
-          const updateResponse = await fetch(
-            `/api/bets?betNumber=${bet.bet_number}`,
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                status: 2,
-                transaction_hash: acceptArbiterReceipt?.transactionHash,
-              }),
-            }
-          );
-
-          if (!updateResponse.ok) {
-            console.error("Failed to update bet status in database");
-          } else {
-            console.log("Bet status updated to arbiter accepted in database");
-
-            // Calculate USD volume for leaderboard update
-            const usdVolume = tokenPriceData?.[0]
-              ? calculateUSDValue(bet.bet_amount, Number(tokenPriceData[0]))
-              : 0;
-
-            // Update leaderboard for maker and taker
-            try {
-              const leaderboardUpdateResponse = await fetch(
-                "/api/leaderboard",
-                {
-                  method: "PATCH",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    maker_fid: bet.maker_fid,
-                    taker_fid: bet.taker_fid,
-                    usd_volume: usdVolume,
-                  }),
-                }
-              );
-
-              if (leaderboardUpdateResponse.ok) {
-                console.log(
-                  "Leaderboard updated successfully for maker and taker in Explore"
-                );
-              } else {
-                console.error("Failed to update leaderboard in Explore");
-              }
-            } catch (leaderboardError) {
-              console.error(
-                "Error updating leaderboard in Explore:",
-                leaderboardError
-              );
-            }
-          }
-        } catch (error) {
-          console.error("Error updating database and leaderboard:", error);
-        }
-      }, 2000); // Wait 2 seconds for transaction to be processed
-    } catch (error) {
-      console.error("Error in custom handleAcceptArbiterRole:", error);
-    }
-  };
-
   // Add useEffect to check for bet number in URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -414,6 +244,10 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
     handleEmergencyCancel,
   } = useBetActions();
 
+  // Use the original handlers directly - let useEffect handle confirmations
+  const handleForfeitBet = originalHandleForfeitBet;
+  const handleAcceptArbiterRole = originalHandleAcceptArbiterRole;
+
   // Handle transaction confirmations
   useEffect(() => {
     if (acceptReceipt && isAcceptReceiptSuccess) {
@@ -432,9 +266,118 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
   useEffect(() => {
     if (forfeitReceipt && isForfeitReceiptSuccess) {
       console.log("=== FORFEIT BET TRANSACTION CONFIRMED IN EXPLORE ===");
+
+      // Find the bet that was forfeited (we need to get this from the selected bet or recent bets)
+      const forfeitedBet =
+        selectedBet ||
+        recentBets.find(
+          (bet) =>
+            bet.maker_address === address ||
+            bet.taker_address.includes(address || "")
+        );
+
+      if (forfeitedBet) {
+        // Determine who forfeited and who wins
+        let forfeiterFid: number | null = null;
+        let winnerFid: number | null = null;
+        let forfeitStatus: number;
+
+        if (address === forfeitedBet.maker_address) {
+          // Maker forfeited, taker wins
+          forfeiterFid = forfeitedBet.maker_fid || null;
+          winnerFid = forfeitedBet.taker_fid || null;
+          forfeitStatus = 5; // Taker wins
+        } else if (forfeitedBet.taker_address.includes(address || "")) {
+          // Taker forfeited, maker wins
+          forfeiterFid = forfeitedBet.taker_fid || null;
+          winnerFid = forfeitedBet.maker_fid || null;
+          forfeitStatus = 4; // Maker wins
+        } else {
+          console.error("Current user is not a participant in this bet");
+          return;
+        }
+
+        // Update database to mark bet as forfeited
+        const updateDatabase = async () => {
+          try {
+            const updateResponse = await fetch(
+              `/api/bets?betNumber=${forfeitedBet.bet_number}`,
+              {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  status: forfeitStatus,
+                  transaction_hash: forfeitReceipt.transactionHash,
+                }),
+              }
+            );
+
+            if (!updateResponse.ok) {
+              console.error("Failed to update bet status in database");
+            } else {
+              console.log("Bet status updated to forfeited in database");
+
+              // Calculate PnL amount for leaderboard update
+              const pnlAmount = tokenPriceData?.[0]
+                ? calculateUSDValue(
+                    forfeitedBet.bet_amount,
+                    Number(tokenPriceData[0])
+                  )
+                : 0;
+
+              // Update leaderboard for winner and loser
+              try {
+                const leaderboardUpdateResponse = await fetch(
+                  "/api/leaderboard",
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      winner_fid: winnerFid,
+                      loser_fid: forfeiterFid,
+                      pnl_amount: pnlAmount,
+                    }),
+                  }
+                );
+
+                if (leaderboardUpdateResponse.ok) {
+                  console.log(
+                    "Leaderboard updated successfully for forfeit in Explore"
+                  );
+                } else {
+                  console.error(
+                    "Failed to update leaderboard for forfeit in Explore"
+                  );
+                }
+              } catch (leaderboardError) {
+                console.error(
+                  "Error updating leaderboard for forfeit in Explore:",
+                  leaderboardError
+                );
+              }
+            }
+          } catch (error) {
+            console.error("Error updating database and leaderboard:", error);
+          }
+        };
+
+        updateDatabase();
+      }
+
       fetchRecentBets();
     }
-  }, [forfeitReceipt, isForfeitReceiptSuccess]);
+  }, [
+    forfeitReceipt,
+    isForfeitReceiptSuccess,
+    selectedBet,
+    recentBets,
+    address,
+    tokenPriceData,
+  ]);
 
   useEffect(() => {
     if (claimReceipt && isClaimReceiptSuccess) {
@@ -448,16 +391,288 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
       console.log(
         "=== ACCEPT ARBITER ROLE TRANSACTION CONFIRMED IN EXPLORE ==="
       );
+
+      // Find the bet that had arbiter role accepted
+      const arbiterBet =
+        selectedBet ||
+        recentBets.find((bet) => bet.arbiter_address?.includes(address || ""));
+
+      if (arbiterBet) {
+        // Update database to mark bet as arbiter accepted
+        const updateDatabase = async () => {
+          try {
+            const updateResponse = await fetch(
+              `/api/bets?betNumber=${arbiterBet.bet_number}`,
+              {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  status: 2,
+                  transaction_hash: acceptArbiterReceipt.transactionHash,
+                }),
+              }
+            );
+
+            if (!updateResponse.ok) {
+              console.error("Failed to update bet status in database");
+            } else {
+              console.log("Bet status updated to arbiter accepted in database");
+
+              // Calculate USD volume for leaderboard update
+              const usdVolume = tokenPriceData?.[0]
+                ? calculateUSDValue(
+                    arbiterBet.bet_amount,
+                    Number(tokenPriceData[0])
+                  )
+                : 0;
+
+              // Update leaderboard for maker and taker
+              try {
+                const leaderboardUpdateResponse = await fetch(
+                  "/api/leaderboard",
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      maker_fid: arbiterBet.maker_fid,
+                      taker_fid: arbiterBet.taker_fid,
+                      usd_volume: usdVolume,
+                    }),
+                  }
+                );
+
+                if (leaderboardUpdateResponse.ok) {
+                  console.log(
+                    "Leaderboard updated successfully for maker and taker in Explore"
+                  );
+                } else {
+                  console.error("Failed to update leaderboard in Explore");
+                }
+              } catch (leaderboardError) {
+                console.error(
+                  "Error updating leaderboard in Explore:",
+                  leaderboardError
+                );
+              }
+            }
+          } catch (error) {
+            console.error("Error updating database and leaderboard:", error);
+          }
+        };
+
+        updateDatabase();
+      }
+
       fetchRecentBets();
     }
-  }, [acceptArbiterReceipt, isAcceptArbiterReceiptSuccess]);
+  }, [
+    acceptArbiterReceipt,
+    isAcceptArbiterReceiptSuccess,
+    selectedBet,
+    recentBets,
+    address,
+    tokenPriceData,
+  ]);
 
   useEffect(() => {
-    if (selectWinnerReceipt && isSelectWinnerReceiptSuccess) {
+    if (selectWinnerReceipt && isSelectWinnerReceiptSuccess && selectedBet) {
       console.log("=== SELECT WINNER TRANSACTION CONFIRMED IN EXPLORE ===");
+
+      // Close the select winner modal
+      closeSelectWinnerModal();
+
+      // Update database with the winner status
+      const updateDatabase = async () => {
+        try {
+          // Determine winner status based on the selected winner
+          const winnerStatus = selectedWinner === "true" ? 4 : 5; // 4 = maker wins (true), 5 = taker wins (false)
+          const updateResponse = await fetch(
+            `/api/bets?betNumber=${selectedBet.bet_number}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                status: winnerStatus,
+                transaction_hash: selectWinnerReceipt.transactionHash,
+              }),
+            }
+          );
+
+          if (!updateResponse.ok) {
+            console.error("Failed to update bet status in database");
+          } else {
+            console.log(`Bet status updated to ${winnerStatus} in database`);
+
+            // Send notification to maker about winner selection
+            if (selectedBet.maker_fid) {
+              try {
+                const makerNotificationResult = await notifyWinnerSelected(
+                  selectedBet.maker_fid,
+                  {
+                    betNumber: selectedBet.bet_number,
+                    betAmount: selectedBet.bet_amount.toString(),
+                    tokenName: getTokenName(selectedBet.bet_token_address),
+                    makerName:
+                      selectedBet.makerProfile?.display_name ||
+                      selectedBet.makerProfile?.username,
+                    takerName:
+                      selectedBet.takerProfile?.display_name ||
+                      selectedBet.takerProfile?.username,
+                    arbiterName:
+                      selectedBet.arbiterProfile?.display_name ||
+                      selectedBet.arbiterProfile?.username,
+                    betAgreement: selectedBet.bet_agreement,
+                    endTime: new Date(
+                      selectedBet.end_time * 1000
+                    ).toLocaleString(),
+                  }
+                );
+
+                if (makerNotificationResult.success) {
+                  console.log(
+                    "Notification sent to maker about winner selection"
+                  );
+                } else {
+                  console.error(
+                    "Failed to send notification to maker:",
+                    makerNotificationResult.error
+                  );
+                }
+              } catch (notificationError) {
+                console.error(
+                  "Error sending notification to maker:",
+                  notificationError
+                );
+              }
+            }
+
+            // Send notification to taker about winner selection
+            if (selectedBet.taker_fid) {
+              try {
+                const takerNotificationResult = await notifyWinnerSelected(
+                  selectedBet.taker_fid,
+                  {
+                    betNumber: selectedBet.bet_number,
+                    betAmount: selectedBet.bet_amount.toString(),
+                    tokenName: getTokenName(selectedBet.bet_token_address),
+                    makerName:
+                      selectedBet.makerProfile?.display_name ||
+                      selectedBet.makerProfile?.username,
+                    takerName:
+                      selectedBet.takerProfile?.display_name ||
+                      selectedBet.takerProfile?.username,
+                    arbiterName:
+                      selectedBet.arbiterProfile?.display_name ||
+                      selectedBet.arbiterProfile?.username,
+                    betAgreement: selectedBet.bet_agreement,
+                    endTime: new Date(
+                      selectedBet.end_time * 1000
+                    ).toLocaleString(),
+                  }
+                );
+
+                if (takerNotificationResult.success) {
+                  console.log(
+                    "Notification sent to taker about winner selection"
+                  );
+                } else {
+                  console.error(
+                    "Failed to send notification to taker:",
+                    takerNotificationResult.error
+                  );
+                }
+              } catch (notificationError) {
+                console.error(
+                  "Error sending notification to taker:",
+                  notificationError
+                );
+              }
+            }
+
+            // Update leaderboard for winner selection
+            try {
+              let winnerFid: number | null = null;
+              let loserFid: number | null = null;
+
+              if (selectedWinner === "true") {
+                // Maker wins (true)
+                winnerFid = selectedBet.maker_fid || null;
+                loserFid = selectedBet.taker_fid || null;
+              } else {
+                // Taker wins (false)
+                winnerFid = selectedBet.taker_fid || null;
+                loserFid = selectedBet.maker_fid || null;
+              }
+
+              if (winnerFid && loserFid) {
+                // Calculate PnL amount (bet amount × token price)
+                const pnlAmount = tokenPriceData?.[0]
+                  ? calculateUSDValue(
+                      selectedBet.bet_amount,
+                      Number(tokenPriceData[0])
+                    )
+                  : 0;
+
+                const leaderboardUpdateResponse = await fetch(
+                  "/api/leaderboard",
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      winner_fid: winnerFid,
+                      loser_fid: loserFid,
+                      pnl_amount: pnlAmount,
+                    }),
+                  }
+                );
+
+                if (leaderboardUpdateResponse.ok) {
+                  console.log(
+                    "Leaderboard updated successfully for winner selection"
+                  );
+                } else {
+                  console.error(
+                    "Failed to update leaderboard for winner selection"
+                  );
+                }
+              } else {
+                console.warn("Cannot update leaderboard: missing FIDs", {
+                  winnerFid,
+                  loserFid,
+                  maker_fid: selectedBet.maker_fid,
+                  taker_fid: selectedBet.taker_fid,
+                });
+              }
+            } catch (leaderboardError) {
+              console.error(
+                "Error updating leaderboard for winner selection:",
+                leaderboardError
+              );
+            }
+          }
+        } catch (error) {
+          console.error("Error updating bet status:", error);
+        }
+      };
+
+      updateDatabase();
       fetchRecentBets();
     }
-  }, [selectWinnerReceipt, isSelectWinnerReceiptSuccess]);
+  }, [
+    selectWinnerReceipt,
+    isSelectWinnerReceiptSuccess,
+    selectedBet,
+    selectedWinner,
+    tokenPriceData,
+  ]);
 
   useEffect(() => {
     if (emergencyCancelReceipt && isEmergencyCancelReceiptSuccess) {
@@ -910,7 +1125,6 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
     }
 
     try {
-      // setIsSelectingWinner(true); // Removed - using hook state
       console.log(
         "Selecting winner for bet #",
         selectedBet.bet_number,
@@ -924,211 +1138,9 @@ export const Explore: FC<ExploreProps> = ({ userCache }) => {
       // Use the hook's handleSelectWinner function
       await handleSelectWinner(selectedBet, betParamsTrue);
 
-      // Close modal after successful transaction
-      setTimeout(async () => {
-        closeSelectWinnerModal();
-        // Update database with the winner status
-        try {
-          const winnerStatus = betParamsTrue ? 4 : 5; // 4 = maker wins (true), 5 = taker wins (false)
-          const updateResponse = await fetch(
-            `/api/bets?betNumber=${selectedBet.bet_number}`,
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                status: winnerStatus,
-                transaction_hash: selectWinnerReceipt?.transactionHash,
-              }),
-            }
-          );
-
-          if (!updateResponse.ok) {
-            console.error("Failed to update bet status in database");
-          } else {
-            console.log(`Bet status updated to ${winnerStatus} in database`);
-
-            // Send notification to maker about winner selection
-            if (selectedBet.maker_fid) {
-              try {
-                const makerNotificationResult = await notifyWinnerSelected(
-                  selectedBet.maker_fid,
-                  {
-                    betNumber: selectedBet.bet_number,
-                    betAmount: selectedBet.bet_amount.toString(),
-                    tokenName: getTokenName(selectedBet.bet_token_address),
-                    makerName:
-                      selectedBet.makerProfile?.display_name ||
-                      selectedBet.makerProfile?.username,
-                    takerName:
-                      selectedBet.takerProfile?.display_name ||
-                      selectedBet.takerProfile?.username,
-                    arbiterName:
-                      selectedBet.arbiterProfile?.display_name ||
-                      selectedBet.arbiterProfile?.username,
-                    betAgreement: selectedBet.bet_agreement,
-                    endTime: new Date(
-                      selectedBet.end_time * 1000
-                    ).toLocaleString(),
-                  }
-                );
-
-                if (makerNotificationResult.success) {
-                  console.log(
-                    "Notification sent to maker about winner selection"
-                  );
-                } else {
-                  console.error(
-                    "Failed to send notification to maker:",
-                    makerNotificationResult.error
-                  );
-                }
-              } catch (notificationError) {
-                console.error(
-                  "Error sending notification to maker:",
-                  notificationError
-                );
-              }
-            }
-
-            // Send notification to taker about winner selection
-            if (selectedBet.taker_fid) {
-              try {
-                const takerNotificationResult = await notifyWinnerSelected(
-                  selectedBet.taker_fid,
-                  {
-                    betNumber: selectedBet.bet_number,
-                    betAmount: selectedBet.bet_amount.toString(),
-                    tokenName: getTokenName(selectedBet.bet_token_address),
-                    makerName:
-                      selectedBet.makerProfile?.display_name ||
-                      selectedBet.makerProfile?.username,
-                    takerName:
-                      selectedBet.takerProfile?.display_name ||
-                      selectedBet.takerProfile?.username,
-                    arbiterName:
-                      selectedBet.arbiterProfile?.display_name ||
-                      selectedBet.arbiterProfile?.username,
-                    betAgreement: selectedBet.bet_agreement,
-                    endTime: new Date(
-                      selectedBet.end_time * 1000
-                    ).toLocaleString(),
-                  }
-                );
-
-                if (takerNotificationResult.success) {
-                  console.log(
-                    "Notification sent to taker about winner selection"
-                  );
-                } else {
-                  console.error(
-                    "Failed to send notification to taker:",
-                    takerNotificationResult.error
-                  );
-                }
-              } catch (notificationError) {
-                console.error(
-                  "Error sending notification to taker:",
-                  notificationError
-                );
-              }
-            }
-
-            // Update leaderboard for winner selection
-            try {
-              let winnerFid: number | null = null;
-              let loserFid: number | null = null;
-
-              if (betParamsTrue) {
-                // Maker wins (true)
-                winnerFid = selectedBet.maker_fid || null;
-                loserFid = selectedBet.taker_fid || null;
-              } else {
-                // Taker wins (false)
-                winnerFid = selectedBet.taker_fid || null;
-                loserFid = selectedBet.maker_fid || null;
-              }
-
-              console.log("Leaderboard update data:", {
-                winnerFid,
-                loserFid,
-                pnlAmount: tokenPriceData?.[0]
-                  ? calculateUSDValue(
-                      selectedBet.bet_amount,
-                      Number(tokenPriceData[0])
-                    )
-                  : 0,
-                selectedBet: {
-                  maker_fid: selectedBet.maker_fid,
-                  taker_fid: selectedBet.taker_fid,
-                  bet_amount: selectedBet.bet_amount,
-                },
-              });
-
-              if (
-                winnerFid &&
-                loserFid &&
-                winnerFid !== null &&
-                loserFid !== null
-              ) {
-                // Calculate PnL amount (bet amount × token price)
-                const pnlAmount = tokenPriceData?.[0]
-                  ? calculateUSDValue(
-                      selectedBet.bet_amount,
-                      Number(tokenPriceData[0])
-                    )
-                  : 0;
-
-                const leaderboardUpdateResponse = await fetch(
-                  "/api/leaderboard",
-                  {
-                    method: "PATCH",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      winner_fid: winnerFid,
-                      loser_fid: loserFid,
-                      pnl_amount: pnlAmount,
-                    }),
-                  }
-                );
-
-                if (leaderboardUpdateResponse.ok) {
-                  console.log(
-                    "Leaderboard updated successfully for winner selection"
-                  );
-                } else {
-                  console.error(
-                    "Failed to update leaderboard for winner selection"
-                  );
-                }
-              } else {
-                console.warn("Cannot update leaderboard: missing FIDs", {
-                  winnerFid,
-                  loserFid,
-                  maker_fid: selectedBet.maker_fid,
-                  taker_fid: selectedBet.taker_fid,
-                });
-              }
-            } catch (leaderboardError) {
-              console.error(
-                "Error updating leaderboard for winner selection:",
-                leaderboardError
-              );
-            }
-
-            // Refresh the bets list to show updated data
-            await fetchRecentBets();
-          }
-        } catch (error) {
-          console.error("Error updating bet status:", error);
-        }
-      }, 2000);
+      // The useEffect will handle the transaction confirmation and database updates
     } catch (error) {
       console.error("Error selecting winner:", error);
-      // setIsSelectingWinner(false); // Removed - using hook state
     }
   };
 
