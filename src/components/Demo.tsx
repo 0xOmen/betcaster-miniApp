@@ -749,6 +749,81 @@ export default function Demo(
     selectedBet,
   ]);
 
+  // Handle claim winnings transaction confirmation
+  useEffect(() => {
+    if (claimTxHash && selectedBet) {
+      console.log("=== CLAIM WINNINGS TRANSACTION CONFIRMED ===");
+      console.log("Transaction Hash:", claimTxHash);
+
+      // Determine the new status based on current status
+      let newStatus: number;
+      if (selectedBet.status === 4) {
+        newStatus = 6; // Maker claimed winnings
+        console.log("Maker claimed winnings - updating to status 6");
+      } else if (selectedBet.status === 5) {
+        newStatus = 7; // Taker claimed winnings
+        console.log("Taker claimed winnings - updating to status 7");
+      } else {
+        console.error("Invalid bet status for claiming:", selectedBet.status);
+        return;
+      }
+
+      // Close modal and update database
+      setTimeout(async () => {
+        closeModal();
+
+        // Update database with the new status
+        try {
+          const updateResponse = await fetch(
+            `/api/bets?betNumber=${selectedBet.bet_number}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                status: newStatus,
+                transaction_hash: claimTxHash,
+              }),
+            }
+          );
+
+          if (!updateResponse.ok) {
+            console.error("Failed to update bet status in database");
+          } else {
+            console.log(`Bet status updated to ${newStatus} in database`);
+
+            // Set up share details for winning bet
+            const token = getTokenByAddress(selectedBet.bet_token_address);
+            const tokenEmoji = token?.image
+              ? `${token.name} 🪙`
+              : token?.name || "tokens";
+
+            // Create share text based on bet details
+            const shareText = `I just won ${selectedBet.bet_amount} ${tokenEmoji} betting on "${selectedBet.bet_agreement}" on @betcaster! 🎯💰`;
+
+            // Open Warpcast with pre-filled cast
+            window.open(
+              `https://warpcast.com/~/compose?text=${encodeURIComponent(
+                shareText
+              )}&embeds[]=${encodeURIComponent(
+                `${process.env.NEXT_PUBLIC_URL}/share/${
+                  context?.user?.fid || ""
+                }`
+              )}`,
+              "_blank"
+            );
+          }
+        } catch (error) {
+          console.error("Error updating bet status:", error);
+        }
+
+        // Refresh bets list with filtering
+        await refreshBetsWithFiltering();
+      }, 2000);
+    }
+  }, [claimTxHash, selectedBet, context?.user?.fid]);
+
   const { disconnect } = useDisconnect();
 
   const {
@@ -1881,58 +1956,9 @@ export default function Demo(
       // Use the hook function instead of manual transaction
       await hookHandleClaimWinnings(selectedBet);
 
-      // Close modal after successful transaction
-      setTimeout(async () => {
-        closeModal();
-        // Update database with the new status
-        try {
-          const updateResponse = await fetch(
-            `/api/bets?betNumber=${selectedBet.bet_number}`,
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                status: newStatus,
-                transaction_hash: claimTxHash,
-              }),
-            }
-          );
-
-          if (!updateResponse.ok) {
-            console.error("Failed to update bet status in database");
-          } else {
-            console.log(`Bet status updated to ${newStatus} in database`);
-
-            // Set up share details for winning bet
-            const token = getTokenByAddress(selectedBet.bet_token_address);
-            const tokenEmoji = token?.image
-              ? `${token.name} 🪙`
-              : token?.name || "tokens";
-
-            // Create share text based on bet details
-            const shareText = `I just won ${selectedBet.bet_amount} ${tokenEmoji} betting on "${selectedBet.bet_agreement}" on @betcaster! 🎯💰`;
-
-            // Open Warpcast with pre-filled cast
-            window.open(
-              `https://warpcast.com/~/compose?text=${encodeURIComponent(
-                shareText
-              )}&embeds[]=${encodeURIComponent(
-                `${process.env.NEXT_PUBLIC_URL}/share/${
-                  context?.user?.fid || ""
-                }`
-              )}`,
-              "_blank"
-            );
-          }
-        } catch (error) {
-          console.error("Error updating bet status:", error);
-        }
-
-        // Refresh bets list with filtering
-        await refreshBetsWithFiltering();
-      }, 2000);
+      // The modal will stay open and the transaction will be handled by the hook
+      // The onSuccess callback in useBetActions will trigger refreshBetsWithFiltering()
+      // We'll handle the database update and share logic in a separate effect that watches for claimTxHash
     } catch (error) {
       console.error("Error claiming winnings:", error);
     }
