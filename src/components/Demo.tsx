@@ -2123,6 +2123,21 @@ export default function Demo(
       selectedBet.bet_token_address
     );
 
+    // Add logging to debug batch transaction condition
+    console.log("=== BATCH TRANSACTION DEBUG ===");
+    console.log("supportsBatchTransactions():", supportsBatchTransactions());
+    console.log("allowance:", allowance);
+    console.log("betAmountWei:", betAmountWei);
+    console.log("allowance < betAmountWei:", allowance < betAmountWei);
+    console.log(
+      "!allowance || allowance < betAmountWei:",
+      !allowance || allowance < betAmountWei
+    );
+    console.log(
+      "supportsBatchTransactions() && (!allowance || allowance < betAmountWei):",
+      supportsBatchTransactions() && (!allowance || allowance < betAmountWei)
+    );
+
     // Check if wallet supports batch transactions and if approval is needed
     if (
       supportsBatchTransactions() &&
