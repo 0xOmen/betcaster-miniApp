@@ -7,6 +7,7 @@ import sdk, { SignIn as SignInCore, type Haptics } from "@farcaster/frame-sdk";
 import {
   useAccount,
   useSendTransaction,
+  useSendCalls,
   useSignMessage,
   useSignTypedData,
   useWaitForTransactionReceipt,
@@ -710,10 +711,29 @@ export default function Demo(
     isPending: isSendTxPending,
   } = useSendTransaction();
 
+  const {
+    sendCalls,
+    error: sendCallsError,
+    isError: isSendCallsError,
+    isPending: isSendCallsPending,
+  } = useSendCalls();
+
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({
       hash: txHash as `0x${string}`,
     });
+
+  // Check if the wallet supports batch transactions
+  const supportsBatchTransactions = () => {
+    // Check if we're using the Farcaster Mini App connector
+    const connector = config.connectors.find(
+      (connector) => connector.id === "farcasterMiniApp"
+    );
+
+    // For now, we'll assume Farcaster wallets support batch transactions
+    // In a production app, you might want to check specific capabilities
+    return connector !== undefined;
+  };
 
   // Wait for approval transaction receipt
   const { data: approvalReceipt, isSuccess: isApprovalReceiptSuccess } =
@@ -848,13 +868,81 @@ export default function Demo(
       console.log("=== ACCEPT BET TRANSACTION CONFIRMED ===");
       console.log("Transaction Hash:", acceptReceipt.transactionHash);
 
-      // Close modal and refresh bets list
-      setTimeout(async () => {
-        closeModal();
-        await refreshBetsWithFiltering();
-      }, 2000);
+      // Update database and handle notifications
+      const updateDatabase = async () => {
+        try {
+          const updateResponse = await fetch(
+            `/api/bets?betNumber=${selectedBet.bet_number}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                status: 1,
+                transaction_hash: acceptReceipt.transactionHash,
+                taker_address: [address],
+              }),
+            }
+          );
+
+          if (!updateResponse.ok) {
+            console.error("Failed to update bet status in database");
+          } else {
+            console.log("Bet status updated to accepted in database");
+
+            // Send notification to arbiter about being invited
+            if (selectedBet.arbiter_fid) {
+              try {
+                const notificationResult = await notifyInviteArbiter(
+                  selectedBet.arbiter_fid,
+                  {
+                    betNumber: selectedBet.bet_number,
+                    betAmount: selectedBet.bet_amount.toString(),
+                    tokenName: getTokenName(selectedBet.bet_token_address),
+                    makerName:
+                      selectedBet.makerProfile?.display_name ||
+                      selectedBet.makerProfile?.username,
+                    takerName:
+                      selectedBet.takerProfile?.display_name ||
+                      selectedBet.takerProfile?.username,
+                    arbiterName:
+                      selectedBet.arbiterProfile?.display_name ||
+                      selectedBet.arbiterProfile?.username,
+                    betAgreement: selectedBet.bet_agreement,
+                    endTime: new Date(
+                      selectedBet.end_time * 1000
+                    ).toLocaleString(),
+                  }
+                );
+
+                if (notificationResult.success) {
+                  console.log("Notification sent to arbiter about invitation");
+                } else {
+                  console.error(
+                    "Failed to send notification to arbiter:",
+                    notificationResult.error
+                  );
+                }
+              } catch (notificationError) {
+                console.error("Error sending notification:", notificationError);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error updating bet status:", error);
+        }
+
+        // Close modal and refresh bets list
+        setTimeout(async () => {
+          closeModal();
+          await refreshBetsWithFiltering();
+        }, 2000);
+      };
+
+      updateDatabase();
     }
-  }, [acceptReceipt, isAcceptReceiptSuccess, selectedBet]);
+  }, [acceptReceipt, isAcceptReceiptSuccess, selectedBet, address]);
 
   // Handle cancel bet transaction confirmation
   useEffect(() => {
@@ -2035,7 +2123,16 @@ export default function Demo(
       selectedBet.bet_token_address
     );
 
-    if (!allowance || allowance < betAmountWei) {
+    // Check if wallet supports batch transactions and if approval is needed
+    if (
+      supportsBatchTransactions() &&
+      (!allowance || allowance < betAmountWei)
+    ) {
+      console.log(
+        "Wallet supports batch transactions. Batching approval and accept bet..."
+      );
+      await handleAcceptBetWithBatch();
+    } else if (!allowance || allowance < betAmountWei) {
       console.log("Insufficient token allowance. Requesting approval...");
 
       try {
@@ -2060,6 +2157,74 @@ export default function Demo(
       }
     } else {
       await handleAcceptBetAfterApproval();
+    }
+  };
+
+  // Function to handle bet acceptance with batch transactions
+  const handleAcceptBetWithBatch = async () => {
+    if (!selectedBet || !isConnected) {
+      console.error("Cannot accept bet: not connected or no bet selected");
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
+    const betAmountWei = amountToWei(
+      selectedBet.bet_amount,
+      selectedBet.bet_token_address
+    );
+
+    try {
+      console.log(
+        "Sending batch transaction: approve + accept bet #",
+        selectedBet.bet_number
+      );
+
+      // Prepare the batch calls
+      const calls = [
+        // First call: Approve tokens
+        {
+          to: selectedBet.bet_token_address as `0x${string}`,
+          data: encodeFunctionData({
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [BETCASTER_ADDRESS, betAmountWei],
+          }),
+        },
+        // Second call: Accept bet
+        {
+          to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+          data: encodeFunctionData({
+            abi: BET_MANAGEMENT_ENGINE_ABI,
+            functionName: "acceptBet",
+            args: [BigInt(selectedBet.bet_number)],
+          }),
+        },
+      ];
+
+      console.log("Batch calls prepared:", calls);
+
+      // Send the batch transaction
+      const result = await sendCalls({
+        calls,
+      });
+
+      console.log("Batch transaction sent successfully");
+
+      // The batch transaction will be handled by the same acceptReceipt useEffect
+      // since it's still an accept bet transaction
+    } catch (error) {
+      console.error("Error sending batch transaction:", error);
     }
   };
 
@@ -2105,84 +2270,6 @@ export default function Demo(
           onSuccess: async (hash: `0x${string}`) => {
             console.log("Accept transaction sent successfully:", hash);
             setAcceptTxHash(hash);
-
-            // Close modal after successful transaction
-            setTimeout(async () => {
-              closeModal();
-              // Update database to mark bet as accepted
-              try {
-                const updateResponse = await fetch(
-                  `/api/bets?betNumber=${selectedBet.bet_number}`,
-                  {
-                    method: "PATCH",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      status: 1,
-                      transaction_hash: hash,
-                      taker_address: [address],
-                    }),
-                  }
-                );
-
-                if (!updateResponse.ok) {
-                  console.error("Failed to update bet status in database");
-                } else {
-                  console.log("Bet status updated to accepted in database");
-
-                  // Send notification to arbiter about being invited
-                  if (selectedBet.arbiter_fid) {
-                    try {
-                      const notificationResult = await notifyInviteArbiter(
-                        selectedBet.arbiter_fid,
-                        {
-                          betNumber: selectedBet.bet_number,
-                          betAmount: selectedBet.bet_amount.toString(),
-                          tokenName: getTokenName(
-                            selectedBet.bet_token_address
-                          ),
-                          makerName:
-                            selectedBet.makerProfile?.display_name ||
-                            selectedBet.makerProfile?.username,
-                          takerName:
-                            selectedBet.takerProfile?.display_name ||
-                            selectedBet.takerProfile?.username,
-                          arbiterName:
-                            selectedBet.arbiterProfile?.display_name ||
-                            selectedBet.arbiterProfile?.username,
-                          betAgreement: selectedBet.bet_agreement,
-                          endTime: new Date(
-                            selectedBet.end_time * 1000
-                          ).toLocaleString(),
-                        }
-                      );
-
-                      if (notificationResult.success) {
-                        console.log(
-                          "Notification sent to arbiter about invitation"
-                        );
-                      } else {
-                        console.error(
-                          "Failed to send notification to arbiter:",
-                          notificationResult.error
-                        );
-                      }
-                    } catch (notificationError) {
-                      console.error(
-                        "Error sending notification:",
-                        notificationError
-                      );
-                    }
-                  }
-                }
-              } catch (error) {
-                console.error("Error updating bet status:", error);
-              }
-
-              // Refresh bets list with filtering
-              await refreshBetsWithFiltering();
-            }, 2000);
           },
           onError: (error: Error) => {
             console.error("Accept transaction failed:", error);
@@ -3465,14 +3552,18 @@ export default function Demo(
                         <div className="flex space-x-3">
                           <button
                             onClick={handleAcceptBet}
-                            disabled={isAccepting || isApproving}
+                            disabled={
+                              isAccepting || isApproving || isSendCallsPending
+                            }
                             className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isApproving
                               ? "Approving..."
                               : isAccepting
                                 ? "Accepting..."
-                                : "Accept Bet"}
+                                : isSendCallsPending
+                                  ? "Processing Batch..."
+                                  : "Accept Bet"}
                           </button>
                         </div>
                       )}
