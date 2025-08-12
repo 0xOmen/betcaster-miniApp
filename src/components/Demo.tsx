@@ -3323,7 +3323,10 @@ export default function Demo(
                       currentUserAddress={address}
                       currentUserFid={context?.user?.fid}
                       onBetSelect={handleBetSelect}
-                      onRejectBet={handleRejectBet}
+                      onRejectBet={(bet) => {
+                        setSelectedBet(bet);
+                        setIsModalOpen(true);
+                      }}
                       onEditBet={openEditModal}
                       onSelectWinner={openSelectWinnerModal}
                       onForfeit={(bet) => {
