@@ -725,14 +725,28 @@ export default function Demo(
 
   // Check if the wallet supports batch transactions
   const supportsBatchTransactions = () => {
+    // Temporarily disable checking - always return true to test batch transactions
+    console.log("=== SUPPORTS BATCH TRANSACTIONS DEBUG ===");
+    console.log(
+      "Available connectors:",
+      config.connectors.map((c) => c.id)
+    );
+
     // Check if we're using the Farcaster Mini App connector
     const connector = config.connectors.find(
       (connector) => connector.id === "farcasterMiniApp"
     );
 
+    console.log("Found farcasterMiniApp connector:", connector);
+
     // For now, we'll assume Farcaster wallets support batch transactions
     // In a production app, you might want to check specific capabilities
-    return connector !== undefined;
+    const result = connector !== undefined;
+    console.log("Original result:", result);
+
+    // Temporarily force return true to test batch transactions
+    console.log("Forcing return true for batch transaction testing");
+    return true;
   };
 
   // Wait for approval transaction receipt
