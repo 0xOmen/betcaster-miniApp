@@ -2128,7 +2128,6 @@ export default function Demo(
     console.log("supportsBatchTransactions():", supportsBatchTransactions());
     console.log("allowance:", allowance);
     console.log("betAmountWei:", betAmountWei);
-    console.log("allowance < betAmountWei:", allowance < betAmountWei);
     console.log(
       "!allowance || allowance < betAmountWei:",
       !allowance || allowance < betAmountWei
