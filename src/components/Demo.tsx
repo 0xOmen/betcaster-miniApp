@@ -2270,6 +2270,84 @@ export default function Demo(
           onSuccess: async (hash: `0x${string}`) => {
             console.log("Accept transaction sent successfully:", hash);
             setAcceptTxHash(hash);
+
+            // Close modal after successful transaction
+            setTimeout(async () => {
+              closeModal();
+              // Update database to mark bet as accepted
+              try {
+                const updateResponse = await fetch(
+                  `/api/bets?betNumber=${selectedBet.bet_number}`,
+                  {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      status: 1,
+                      transaction_hash: hash,
+                      taker_address: [address],
+                    }),
+                  }
+                );
+
+                if (!updateResponse.ok) {
+                  console.error("Failed to update bet status in database");
+                } else {
+                  console.log("Bet status updated to accepted in database");
+
+                  // Send notification to arbiter about being invited
+                  if (selectedBet.arbiter_fid) {
+                    try {
+                      const notificationResult = await notifyInviteArbiter(
+                        selectedBet.arbiter_fid,
+                        {
+                          betNumber: selectedBet.bet_number,
+                          betAmount: selectedBet.bet_amount.toString(),
+                          tokenName: getTokenName(
+                            selectedBet.bet_token_address
+                          ),
+                          makerName:
+                            selectedBet.makerProfile?.display_name ||
+                            selectedBet.makerProfile?.username,
+                          takerName:
+                            selectedBet.takerProfile?.display_name ||
+                            selectedBet.takerProfile?.username,
+                          arbiterName:
+                            selectedBet.arbiterProfile?.display_name ||
+                            selectedBet.arbiterProfile?.username,
+                          betAgreement: selectedBet.bet_agreement,
+                          endTime: new Date(
+                            selectedBet.end_time * 1000
+                          ).toLocaleString(),
+                        }
+                      );
+
+                      if (notificationResult.success) {
+                        console.log(
+                          "Notification sent to arbiter about invitation"
+                        );
+                      } else {
+                        console.error(
+                          "Failed to send notification to arbiter:",
+                          notificationResult.error
+                        );
+                      }
+                    } catch (notificationError) {
+                      console.error(
+                        "Error sending notification:",
+                        notificationError
+                      );
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error("Error updating bet status:", error);
+              }
+
+              // Refresh bets list with filtering
+              await refreshBetsWithFiltering();
+            }, 2000);
           },
           onError: (error: Error) => {
             console.error("Accept transaction failed:", error);
