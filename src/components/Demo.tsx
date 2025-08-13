@@ -732,15 +732,20 @@ export default function Demo(
       config.connectors.map((c) => c.id)
     );
 
-    // Check if we're using the Farcaster Frame connector (which supports batch transactions)
-    const connector = config.connectors.find(
+    // Check if we're using the Farcaster Frame connector or Coinbase Wallet SDK
+    const farcasterConnector = config.connectors.find(
       (connector) => connector.id === "farcaster"
     );
+    const coinbaseConnector = config.connectors.find(
+      (connector) => connector.id === "coinbaseWalletSDK"
+    );
 
-    console.log("Found farcaster connector:", connector);
+    console.log("Found farcaster connector:", farcasterConnector);
+    console.log("Found coinbaseWalletSDK connector:", coinbaseConnector);
 
-    // Farcaster Frame connector supports batch transactions
-    const result = connector !== undefined;
+    // Both Farcaster Frame connector and Coinbase Wallet SDK support batch transactions
+    const result =
+      farcasterConnector !== undefined || coinbaseConnector !== undefined;
     console.log("Result:", result);
 
     return result;
