@@ -713,6 +713,7 @@ export default function Demo(
 
   const {
     sendCalls,
+    sendCallsAsync,
     error: sendCallsError,
     isError: isSendCallsError,
     isPending: isSendCallsPending,
@@ -2241,16 +2242,76 @@ export default function Demo(
 
       console.log("Batch calls prepared:", calls);
 
-      // Send the batch transaction
-      await sendCalls({
+      // Send the batch transaction and wait for it to complete
+      const result = await sendCallsAsync({
         calls,
       });
 
-      console.log("Batch transaction sent successfully");
+      console.log("Batch transaction sent successfully:", result);
 
-      // Manually trigger database update and notification since sendCalls doesn't return hash
-      // This will be handled by the existing acceptReceipt useEffect when the transaction is confirmed
-      // For now, we'll rely on the transaction being detected by the blockchain
+      // Update database and send notifications after successful submission
+      try {
+        const updateResponse = await fetch(
+          `/api/bets?betNumber=${selectedBet.bet_number}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              status: 1,
+              taker_address: [address],
+            }),
+          }
+        );
+
+        if (!updateResponse.ok) {
+          console.error("Failed to update bet status in database");
+        } else {
+          console.log("Bet status updated to accepted in database");
+
+          // Send notification to arbiter about being invited
+          if (selectedBet.arbiter_fid) {
+            try {
+              const notificationResult = await notifyInviteArbiter(
+                selectedBet.arbiter_fid,
+                {
+                  betNumber: selectedBet.bet_number,
+                  betAmount: selectedBet.bet_amount.toString(),
+                  tokenName: getTokenName(selectedBet.bet_token_address),
+                  makerName:
+                    selectedBet.makerProfile?.display_name ||
+                    selectedBet.makerProfile?.username,
+                  takerName:
+                    selectedBet.takerProfile?.display_name ||
+                    selectedBet.takerProfile?.username,
+                  betAgreement: selectedBet.bet_agreement,
+                  endTime: new Date(
+                    selectedBet.end_time * 1000
+                  ).toLocaleString(),
+                }
+              );
+
+              if (notificationResult.success) {
+                console.log("Notification sent to arbiter about invitation");
+              } else {
+                console.error(
+                  "Failed to send notification to arbiter:",
+                  notificationResult.error
+                );
+              }
+            } catch (notificationError) {
+              console.error("Error sending notification:", notificationError);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error updating bet status:", error);
+      }
+
+      // Close modal and refresh bets list
+      closeModal();
+      await refreshBetsWithFiltering();
     } catch (error) {
       console.error("Error sending batch transaction:", error);
     }
