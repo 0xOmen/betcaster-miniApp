@@ -16,6 +16,7 @@ import {
   useWriteContract,
   useAccount,
   useWaitForTransactionReceipt,
+  useConnect,
 } from "wagmi";
 import { base } from "wagmi/chains";
 import { BASE_TOKENS, Token, amountToWei } from "~/lib/tokens";
@@ -27,6 +28,7 @@ import { calculateUSDValue, useTokenPrice } from "~/lib/prices";
 import { type Bet } from "~/types/bet";
 import { getTokenByAddress } from "~/lib/tokens";
 import { getTimeRemaining } from "~/lib/utils";
+import { config } from "~/components/providers/WagmiProvider";
 
 interface User {
   fid: number;
@@ -236,6 +238,27 @@ export default function CreateBet({
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
   const { writeContractAsync: writeApproveAsync } = useWriteContract();
+
+  // Auto-connect to wallet if "farcaster" connector is available
+  const { connect, connectors } = useConnect();
+
+  useEffect(() => {
+    if (!isConnected && connectors.length > 0) {
+      // Check if "farcaster" connector is available
+      const farcasterConnector = connectors.find(
+        (connector) => connector.id === "farcaster"
+      );
+
+      if (farcasterConnector) {
+        console.log("Found farcaster connector, attempting to connect...");
+        try {
+          connect({ connector: farcasterConnector });
+        } catch (error) {
+          console.warn("Failed to connect with farcaster connector:", error);
+        }
+      }
+    }
+  }, [isConnected, connectors, connect]);
 
   // Read allowance for the selected token
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
