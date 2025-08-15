@@ -303,6 +303,9 @@ export default function Demo(
   // Add state for edit can settle early
   const [editCanSettleEarly, setEditCanSettleEarly] = useState<boolean>(true);
 
+  // Add a new state to track if we should show a specific bet after user bets load
+  const [pendingBetNumber, setPendingBetNumber] = useState<string | null>(null);
+
   // Function to fetch and display a specific bet
   const fetchAndDisplayBet = async (betNumber: string) => {
     console.log("Demo: Fetching bet", betNumber);
@@ -394,19 +397,31 @@ export default function Demo(
     },
   });
 
-  // Handle URL parameters
+  // Handle URL parameters - store the bet number but don't fetch immediately
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const betNumber = urlParams.get("betNumber");
 
     console.log("Demo: URL params", { betNumber });
     if (betNumber) {
-      fetchAndDisplayBet(betNumber);
+      setPendingBetNumber(betNumber);
       // Clean URL without waiting for SDK
       const newUrl = window.location.pathname;
       window.history.replaceState({}, "", newUrl);
     }
   }, []); // Run once on mount
+
+  // Handle pending bet number after user bets are loaded
+  useEffect(() => {
+    if (pendingBetNumber && !isLoadingBets && userBets.length > 0) {
+      console.log(
+        "Demo: User bets loaded, now fetching specific bet",
+        pendingBetNumber
+      );
+      fetchAndDisplayBet(pendingBetNumber);
+      setPendingBetNumber(null); // Clear the pending bet number
+    }
+  }, [pendingBetNumber, isLoadingBets, userBets.length]);
 
   // Set initial tab based on URL parameter
   useEffect(() => {
