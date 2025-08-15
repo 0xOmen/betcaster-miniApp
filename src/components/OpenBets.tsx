@@ -2,12 +2,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount } from "wagmi";
+import {
+  useAccount,
+  useSendCalls,
+  useReadContract,
+  useWriteContract,
+  useSwitchChain,
+  useChainId,
+} from "wagmi";
 import { amountToWei, getTokenByAddress } from "~/lib/tokens";
 import { fetchUserWithCache } from "./Demo";
 import { useBetActions } from "~/hooks/useBetActions";
 import { type Bet } from "~/types/bet";
 import { notifyInviteArbiter } from "~/lib/notificationUtils";
+import { config } from "~/components/providers/WagmiProvider";
+import { base } from "wagmi/chains";
+import { encodeFunctionData } from "viem";
+import {
+  BET_MANAGEMENT_ENGINE_ABI,
+  BET_MANAGEMENT_ENGINE_ADDRESS,
+} from "~/lib/contracts";
+import { BETCASTER_ADDRESS } from "~/lib/betcasterAbi";
+import { ERC20_ABI } from "~/lib/erc20Abi";
 
 interface UserProfile {
   fid: number;
@@ -41,6 +57,14 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
   );
 
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
+  const { writeContractAsync: writeApproveAsync } = useWriteContract();
+  const {
+    sendCalls,
+    sendCallsAsync,
+    isPending: isSendCallsPending,
+  } = useSendCalls();
 
   const {
     isApproving,
@@ -49,6 +73,48 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
     acceptReceipt,
     isAcceptReceiptSuccess,
   } = useBetActions();
+
+  // Check if the wallet supports batch transactions
+  const supportsBatchTransactions = () => {
+    console.log("=== SUPPORTS BATCH TRANSACTIONS DEBUG ===");
+    console.log(
+      "Available connectors:",
+      config.connectors.map((c) => c.id)
+    );
+
+    // Check if we're using the Farcaster Frame connector or Coinbase Wallet SDK
+    const farcasterConnector = config.connectors.find(
+      (connector) => connector.id === "farcaster"
+    );
+    const coinbaseConnector = config.connectors.find(
+      (connector) => connector.id === "coinbaseWalletSDK"
+    );
+
+    console.log("Found farcaster connector:", farcasterConnector);
+    console.log("Found coinbaseWalletSDK connector:", coinbaseConnector);
+
+    // Both Farcaster Frame connector and Coinbase Wallet SDK support batch transactions
+    const result =
+      farcasterConnector !== undefined || coinbaseConnector !== undefined;
+    console.log("Result:", result);
+
+    return result;
+  };
+
+  // Read allowance for the selected bet's token
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: selectedBet?.bet_token_address as `0x${string}`,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: [address as `0x${string}`, BETCASTER_ADDRESS],
+    query: {
+      enabled:
+        !!selectedBet?.bet_token_address &&
+        !!address &&
+        selectedBet.bet_token_address !==
+          "0x0000000000000000000000000000000000000000",
+    },
+  });
 
   // Handle accept bet transaction confirmation
   useEffect(() => {
@@ -218,11 +284,171 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
     fetchOpenBets();
   }, []);
 
+  // Function to handle bet acceptance with batch transactions
+  const handleAcceptBetWithBatch = async (bet: BetWithProfiles) => {
+    if (!bet || !isConnected) {
+      console.error("Cannot accept bet: not connected or no bet selected");
+      return;
+    }
+
+    // Check if we're on the correct chain (Base)
+    if (chainId !== base.id) {
+      console.log("Switching to Base network...");
+      try {
+        await switchChain({ chainId: base.id });
+        return;
+      } catch (error) {
+        console.error("Failed to switch to Base network:", error);
+        return;
+      }
+    }
+
+    const betAmountWei = amountToWei(bet.bet_amount, bet.bet_token_address);
+
+    try {
+      console.log(
+        "Sending batch transaction: approve + accept bet #",
+        bet.bet_number
+      );
+
+      // Prepare the batch calls
+      const calls = [
+        // First call: Approve tokens
+        {
+          to: bet.bet_token_address as `0x${string}`,
+          data: encodeFunctionData({
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [BETCASTER_ADDRESS, betAmountWei],
+          }),
+        },
+        // Second call: Accept bet
+        {
+          to: BET_MANAGEMENT_ENGINE_ADDRESS as `0x${string}`,
+          data: encodeFunctionData({
+            abi: BET_MANAGEMENT_ENGINE_ABI,
+            functionName: "acceptBet",
+            args: [BigInt(bet.bet_number)],
+          }),
+        },
+      ];
+
+      console.log("Batch calls prepared:", calls);
+
+      // Send the batch transaction and wait for it to complete
+      const result = await sendCallsAsync({
+        calls,
+      });
+
+      console.log("Batch transaction sent successfully:", result);
+
+      // Update database and send notifications after successful submission
+      try {
+        const updateResponse = await fetch(
+          `/api/bets?betNumber=${bet.bet_number}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              status: 1,
+              taker_address: [address],
+            }),
+          }
+        );
+
+        if (!updateResponse.ok) {
+          console.error("Failed to update bet status in database");
+        } else {
+          console.log("Bet status updated to accepted in database");
+
+          // Send notification to arbiter about being invited
+          if (bet.arbiter_fid) {
+            try {
+              const notificationResult = await notifyInviteArbiter(
+                bet.arbiter_fid,
+                {
+                  betNumber: bet.bet_number,
+                  betAmount: bet.bet_amount.toString(),
+                  tokenName: getTokenName(bet.bet_token_address),
+                  makerName:
+                    bet.makerProfile?.display_name ||
+                    bet.makerProfile?.username,
+                  takerName: "You", // Since the current user is the taker
+                  arbiterName:
+                    bet.arbiterProfile?.display_name ||
+                    bet.arbiterProfile?.username,
+                  betAgreement: bet.bet_agreement,
+                  endTime: new Date(bet.end_time * 1000).toLocaleString(),
+                }
+              );
+
+              if (notificationResult.success) {
+                console.log("Notification sent to arbiter about invitation");
+              } else {
+                console.error(
+                  "Failed to send notification to arbiter:",
+                  notificationResult.error
+                );
+              }
+            } catch (notificationError) {
+              console.error("Error sending notification:", notificationError);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error updating bet status:", error);
+      }
+
+      // Show success message and refresh bets list
+      setShowApprovalSuccess(true);
+      setTimeout(() => {
+        setShowApprovalSuccess(false);
+        fetchOpenBets(); // Refresh the bets list
+      }, 3000);
+    } catch (error) {
+      console.error("Error sending batch transaction:", error);
+    }
+  };
+
   const handleAcceptBetClick = async (bet: BetWithProfiles) => {
     setSelectedBet(bet);
     // Clear processed receipts to allow fresh processing
     setProcessedReceipts(new Set());
-    await handleAcceptBet(bet);
+
+    // Check if wallet supports batch transactions and if approval is needed
+    const betAmountWei = amountToWei(bet.bet_amount, bet.bet_token_address);
+
+    console.log("=== BATCH TRANSACTION DEBUG ===");
+    console.log("supportsBatchTransactions():", supportsBatchTransactions());
+    console.log("allowance:", allowance);
+    console.log("betAmountWei:", betAmountWei);
+    console.log(
+      "!allowance || allowance < betAmountWei:",
+      !allowance || allowance < betAmountWei
+    );
+    console.log(
+      "supportsBatchTransactions() && (!allowance || allowance < betAmountWei):",
+      supportsBatchTransactions() && (!allowance || allowance < betAmountWei)
+    );
+
+    if (
+      supportsBatchTransactions() &&
+      (!allowance || allowance < betAmountWei)
+    ) {
+      console.log(
+        "Wallet supports batch transactions. Batching approval and accept bet..."
+      );
+      await handleAcceptBetWithBatch(bet);
+    } else if (!allowance || allowance < betAmountWei) {
+      console.log("Insufficient token allowance. Requesting approval...");
+      // Use the original handleAcceptBet for non-batch transactions
+      await handleAcceptBet(bet);
+    } else {
+      // Use the original handleAcceptBet for non-batch transactions
+      await handleAcceptBet(bet);
+    }
   };
 
   if (isLoading) {
@@ -329,14 +555,22 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
               </button>
               <button
                 onClick={() => handleAcceptBetClick(bet)}
-                disabled={!isConnected || isApproving || isAccepting}
+                disabled={
+                  !isConnected ||
+                  isApproving ||
+                  isAccepting ||
+                  isSendCallsPending
+                }
                 className="flex-1 px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isApproving && selectedBet?.bet_number === bet.bet_number
                   ? "Approving..."
                   : isAccepting && selectedBet?.bet_number === bet.bet_number
                     ? "Accepting..."
-                    : "Accept Bet"}
+                    : isSendCallsPending &&
+                        selectedBet?.bet_number === bet.bet_number
+                      ? "Processing Batch..."
+                      : "Accept Bet"}
               </button>
             </div>
 
