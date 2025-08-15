@@ -243,19 +243,33 @@ export default function CreateBet({
   const { connect, connectors } = useConnect();
 
   useEffect(() => {
+    console.log("=== CREATEBET AUTO-CONNECTION DEBUG ===");
+    console.log("isConnected:", isConnected);
+    console.log("connectors.length:", connectors.length);
+    console.log(
+      "Available connectors:",
+      connectors.map((c) => c.id)
+    );
+
     if (!isConnected && connectors.length > 0) {
       // Check if "farcaster" connector is available
       const farcasterConnector = connectors.find(
         (connector) => connector.id === "farcaster"
       );
 
+      console.log("Found farcaster connector:", farcasterConnector);
+
       if (farcasterConnector) {
         console.log("Found farcaster connector, attempting to connect...");
-        try {
-          connect({ connector: farcasterConnector });
-        } catch (error) {
-          console.warn("Failed to connect with farcaster connector:", error);
-        }
+        // Add a small delay to ensure the connector is fully ready
+        setTimeout(() => {
+          try {
+            connect({ connector: farcasterConnector });
+            console.log("Connect call completed");
+          } catch (error) {
+            console.warn("Failed to connect with farcaster connector:", error);
+          }
+        }, 500);
       }
     }
   }, [isConnected, connectors, connect]);
