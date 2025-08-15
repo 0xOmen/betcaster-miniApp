@@ -136,6 +136,21 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
       // Update database to mark bet as accepted
       const updateDatabase = async () => {
         try {
+          // Look up taker's FID using their address
+          let takerFid = null;
+          if (address) {
+            try {
+              const takerRes = await fetch(`/api/users?address=${address}`);
+              if (takerRes?.ok) {
+                const takerData = await takerRes.json();
+                takerFid = takerData.users?.[0]?.fid || null;
+                console.log("Found taker FID:", takerFid);
+              }
+            } catch (error) {
+              console.error("Error looking up taker FID:", error);
+            }
+          }
+
           const updateResponse = await fetch(
             `/api/bets?betNumber=${selectedBet.bet_number}`,
             {
@@ -147,6 +162,7 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
                 status: 1,
                 transaction_hash: acceptReceipt.transactionHash,
                 taker_address: [address],
+                taker_fid: takerFid, // Include taker FID if found
               }),
             }
           );
@@ -344,6 +360,21 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
 
       // Update database and send notifications after successful submission
       try {
+        // Look up taker's FID using their address
+        let takerFid = null;
+        if (address) {
+          try {
+            const takerRes = await fetch(`/api/users?address=${address}`);
+            if (takerRes?.ok) {
+              const takerData = await takerRes.json();
+              takerFid = takerData.users?.[0]?.fid || null;
+              console.log("Found taker FID:", takerFid);
+            }
+          } catch (error) {
+            console.error("Error looking up taker FID:", error);
+          }
+        }
+
         const updateResponse = await fetch(
           `/api/bets?betNumber=${bet.bet_number}`,
           {
@@ -354,6 +385,7 @@ export default function OpenBets({ onBetSelect }: OpenBetsProps) {
             body: JSON.stringify({
               status: 1,
               taker_address: [address],
+              taker_fid: takerFid, // Include taker FID if found
             }),
           }
         );
