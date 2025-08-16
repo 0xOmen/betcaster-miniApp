@@ -128,7 +128,7 @@ export default function Leaderboard() {
   }
 
   return (
-    <div className="space-y-4 px-6 w-full max-w-4xl mx-auto">
+    <div className="space-y-4 px-4 w-full max-w-4xl mx-auto">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
           Leaderboard
@@ -143,35 +143,35 @@ export default function Leaderboard() {
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Rank
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   User
                 </th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                   onClick={() => handleSort("total_bets")}
                 >
                   Total Bets {getSortIcon("total_bets")}
                 </th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                   onClick={() => handleSort("wins")}
                 >
-                  Wins {getSortIcon("total_wins")}
+                  Wins {getSortIcon("wins")}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Losses
                 </th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                   onClick={() => handleSort("pnl")}
                 >
                   PNL {getSortIcon("pnl")}
                 </th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                   onClick={() => handleSort("total_volume")}
                 >
                   Total Volume {getSortIcon("total_volume")}
@@ -184,44 +184,39 @@ export default function Leaderboard() {
                   key={entry.fid}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                     #{index + 1}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {entry.pfp_url && (
                         <img
                           src={entry.pfp_url}
                           alt={entry.display_name || entry.username || "User"}
-                          className="w-8 h-8 rounded-full mr-3"
+                          className="w-8 h-8 rounded-full mr-2"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = "none";
                           }}
                         />
                       )}
-                      <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {entry.display_name ||
-                            entry.username ||
-                            `User ${entry.fid}`}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          FID: {entry.fid}
-                        </div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {entry.display_name ||
+                          entry.username ||
+                          `User ${entry.fid}`}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                     {entry.total_bets}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400 font-medium">
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400 font-medium">
                     {entry.wins}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 dark:text-red-400">
+                  <td className="px-3 py-4 whitespace-nowrap text-sm text-red-600 dark:text-red-400">
                     {entry.losses}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
                     {entry.pnl !== undefined && entry.pnl !== null ? (
                       <span
                         className={
@@ -238,7 +233,7 @@ export default function Leaderboard() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
                     {entry.total_volume !== undefined &&
                     entry.total_volume !== null ? (
                       <span className="text-gray-900 dark:text-gray-100">
