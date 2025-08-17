@@ -188,9 +188,14 @@ export function getStatusInfo(
         bgColor:
           "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
       };
+    case 9:
+      return {
+        text: `${takerProfile?.username || "Taker"} Rejected`,
+        bgColor: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+      };
     case 10:
       return {
-        text: "Rejected",
+        text: "Arbiter Rejected",
         bgColor: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
       };
     default:

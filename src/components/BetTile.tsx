@@ -27,6 +27,7 @@ interface BetTileProps {
   currentUserFid?: number | null;
   onBetSelect: (bet: Bet) => void;
   onRejectBet?: (bet: Bet) => void;
+  onRejectArbiterRole?: (bet: Bet) => void;
   onEditBet?: (bet: Bet) => void;
   onSelectWinner?: (bet: Bet) => void;
   onForfeit?: (bet: Bet) => void;
@@ -42,6 +43,7 @@ export function BetTile({
   currentUserFid,
   onBetSelect,
   onRejectBet,
+  onRejectArbiterRole,
   onEditBet,
   onSelectWinner,
   onForfeit,
@@ -314,7 +316,7 @@ export function BetTile({
               <button
                 onClick={async (e) => {
                   e.stopPropagation();
-                  onRejectBet?.(bet);
+                  onRejectArbiterRole?.(bet);
                 }}
                 className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
               >

@@ -3052,6 +3052,7 @@ export default function Demo(
                       currentUserFid={context?.user?.fid}
                       onBetSelect={handleBetSelect}
                       onRejectBet={handleRejectBet}
+                      onRejectArbiterRole={handleRejectArbiterRole}
                       onEditBet={openEditModal}
                       onSelectWinner={openSelectWinnerModal}
                       onForfeit={(bet) => {
