@@ -3563,7 +3563,9 @@ export default function Demo(
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         Maker:
                       </span>
-                      {selectedBet.maker_fid ? (
+                      {selectedBet.maker_fid &&
+                      selectedBet.maker_address !==
+                        "0x0000000000000000000000000000000000000000" ? (
                         <button
                           onClick={() =>
                             handleUserClick(
@@ -3593,7 +3595,10 @@ export default function Demo(
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         Taker:
                       </span>
-                      {selectedBet.taker_fid ? (
+                      {selectedBet.taker_fid &&
+                      !selectedBet.taker_address.includes(
+                        "0x0000000000000000000000000000000000000000"
+                      ) ? (
                         <button
                           onClick={() =>
                             handleUserClick(
@@ -3624,7 +3629,11 @@ export default function Demo(
                         <span className="text-sm text-gray-600 dark:text-gray-400">
                           Arbiter:
                         </span>
-                        {selectedBet.arbiter_fid ? (
+                        {selectedBet.arbiter_fid &&
+                        selectedBet.arbiter_address &&
+                        !selectedBet.arbiter_address.includes(
+                          "0x0000000000000000000000000000000000000000"
+                        ) ? (
                           <button
                             onClick={() =>
                               handleUserClick(
