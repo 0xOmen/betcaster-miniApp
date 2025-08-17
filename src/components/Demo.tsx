@@ -251,6 +251,72 @@ export default function Demo(
   // Add state for edit can settle early
   const [editCanSettleEarly, setEditCanSettleEarly] = useState<boolean>(true);
 
+  // Add state for address modal
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [selectedUserForAddresses, setSelectedUserForAddresses] = useState<{
+    fid: number;
+    displayName: string;
+    username: string;
+    addresses: string[];
+  } | null>(null);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
+  const [showCopyNotification, setShowCopyNotification] = useState(false);
+
+  // Function to fetch user addresses from database
+  const fetchUserAddresses = async (fid: number) => {
+    setIsLoadingAddresses(true);
+    try {
+      const response = await fetch(`/api/users?fids=${fid}`);
+      if (response.ok) {
+        const data = await response.json();
+        const user = data.users?.[0];
+        if (user) {
+          const addresses: string[] = [];
+
+          // Add primary eth address if available
+          if (user.verified_addresses?.primary?.eth_address) {
+            addresses.push(user.verified_addresses.primary.eth_address);
+          }
+
+          // Add all other verified eth addresses
+          if (user.verified_addresses?.eth_addresses) {
+            user.verified_addresses.eth_addresses.forEach((address: string) => {
+              if (!addresses.includes(address)) {
+                addresses.push(address);
+              }
+            });
+          }
+
+          return {
+            fid: user.fid,
+            displayName: user.display_name || user.username,
+            username: user.username,
+            addresses: addresses,
+          };
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching user addresses:", error);
+      return null;
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  };
+
+  // Function to handle user click for address display
+  const handleUserClick = async (
+    fid: number,
+    displayName: string,
+    username: string
+  ) => {
+    const userData = await fetchUserAddresses(fid);
+    if (userData) {
+      setSelectedUserForAddresses(userData);
+      setIsAddressModalOpen(true);
+    }
+  };
+
   // Function to fetch and display a specific bet
   const fetchAndDisplayBet = async (betNumber: string) => {
     console.log("Demo: Fetching bet", betNumber);
@@ -3456,31 +3522,88 @@ export default function Demo(
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         Maker:
                       </span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {selectedBet.makerProfile?.display_name ||
-                          selectedBet.makerProfile?.username ||
-                          "Unknown"}
-                      </span>
+                      {selectedBet.maker_fid ? (
+                        <button
+                          onClick={() =>
+                            handleUserClick(
+                              selectedBet.maker_fid!,
+                              selectedBet.makerProfile?.display_name ||
+                                selectedBet.makerProfile?.username ||
+                                "Unknown",
+                              selectedBet.makerProfile?.username || "unknown"
+                            )
+                          }
+                          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline cursor-pointer"
+                        >
+                          {selectedBet.makerProfile?.display_name ||
+                            selectedBet.makerProfile?.username ||
+                            "Unknown"}
+                        </button>
+                      ) : (
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {selectedBet.makerProfile?.display_name ||
+                            selectedBet.makerProfile?.username ||
+                            "Unknown"}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         Taker:
                       </span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {selectedBet.takerProfile?.display_name ||
-                          selectedBet.takerProfile?.username ||
-                          "Unknown"}
-                      </span>
+                      {selectedBet.taker_fid ? (
+                        <button
+                          onClick={() =>
+                            handleUserClick(
+                              selectedBet.taker_fid!,
+                              selectedBet.takerProfile?.display_name ||
+                                selectedBet.takerProfile?.username ||
+                                "Unknown",
+                              selectedBet.takerProfile?.username || "unknown"
+                            )
+                          }
+                          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline cursor-pointer"
+                        >
+                          {selectedBet.takerProfile?.display_name ||
+                            selectedBet.takerProfile?.username ||
+                            "Unknown"}
+                        </button>
+                      ) : (
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {selectedBet.takerProfile?.display_name ||
+                            selectedBet.takerProfile?.username ||
+                            "Unknown"}
+                        </span>
+                      )}
                     </div>
                     {selectedBet.arbiterProfile && (
                       <div className="flex items-center space-x-2">
                         <span className="text-sm text-gray-600 dark:text-gray-400">
                           Arbiter:
                         </span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {selectedBet.arbiterProfile.display_name ||
-                            selectedBet.arbiterProfile.username}
-                        </span>
+                        {selectedBet.arbiter_fid ? (
+                          <button
+                            onClick={() =>
+                              handleUserClick(
+                                selectedBet.arbiter_fid!,
+                                selectedBet.arbiterProfile?.display_name ||
+                                  selectedBet.arbiterProfile?.username ||
+                                  "Unknown",
+                                selectedBet.arbiterProfile?.username ||
+                                  "unknown"
+                              )
+                            }
+                            className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline cursor-pointer"
+                          >
+                            {selectedBet.arbiterProfile.display_name ||
+                              selectedBet.arbiterProfile.username}
+                          </button>
+                        ) : (
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {selectedBet.arbiterProfile.display_name ||
+                              selectedBet.arbiterProfile.username}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -4038,6 +4161,130 @@ export default function Demo(
             betDetails={shareBetDetails}
             userFid={context?.user?.fid || null}
           />
+        )}
+
+        {/* Address Modal */}
+        {isAddressModalOpen && selectedUserForAddresses && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    {selectedUserForAddresses.displayName} (@
+                    {selectedUserForAddresses.username})
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setIsAddressModalOpen(false);
+                      setSelectedUserForAddresses(null);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="mb-4">
+                  {showCopyNotification && (
+                    <div className="mb-3 p-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-lg text-sm text-center">
+                      ✅ Address copied to clipboard!
+                    </div>
+                  )}
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Ethereum Addresses
+                  </h3>
+                  {isLoadingAddresses ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
+                      <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                        Loading addresses...
+                      </span>
+                    </div>
+                  ) : selectedUserForAddresses.addresses.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedUserForAddresses.addresses.map(
+                        (address, index) => (
+                          <div
+                            key={index}
+                            className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-mono text-gray-900 dark:text-gray-100 break-all">
+                                  {address}
+                                </div>
+                                {index === 0 && (
+                                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                    Primary Address
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(address);
+                                  setShowCopyNotification(true);
+                                  setTimeout(
+                                    () => setShowCopyNotification(false),
+                                    2000
+                                  );
+                                }}
+                                className="ml-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                title="Copy address"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <div className="text-gray-500 dark:text-gray-400">
+                        No Ethereum addresses found for this user.
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => {
+                      setIsAddressModalOpen(false);
+                      setSelectedUserForAddresses(null);
+                    }}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
