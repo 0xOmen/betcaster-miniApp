@@ -230,6 +230,7 @@ export default function Demo(
 
   // Add state near other state declarations
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showShareAfterWinModal, setShowShareAfterWinModal] = useState(false);
   const [shareBetDetails, setShareBetDetails] = useState<{
     amount: string;
     token: string;
@@ -2128,28 +2129,8 @@ export default function Demo(
                 } else {
                   console.log(`Bet status updated to ${newStatus} in database`);
 
-                  // Set up share details for winning bet
-                  const token = getTokenByAddress(
-                    selectedBet.bet_token_address
-                  );
-                  const tokenEmoji = token?.image
-                    ? `${token.name} 🪙`
-                    : token?.name || "tokens";
-
-                  // Create share text based on bet details
-                  const shareText = `I just won ${selectedBet.bet_amount} ${tokenEmoji} betting on "${selectedBet.bet_agreement}" on @betcaster! 🎯💰`;
-
-                  // Open Warpcast with pre-filled cast
-                  window.open(
-                    `https://warpcast.com/~/compose?text=${encodeURIComponent(
-                      shareText
-                    )}&embeds[]=${encodeURIComponent(
-                      `${process.env.NEXT_PUBLIC_URL}/share/${
-                        context?.user?.fid || ""
-                      }`
-                    )}`,
-                    "_blank"
-                  );
+                  // Show share modal instead of automatically opening Warpcast
+                  setShowShareAfterWinModal(true);
                 }
               } catch (error) {
                 console.error("Error updating bet status:", error);
@@ -2169,6 +2150,33 @@ export default function Demo(
       console.error("Error claiming winnings:", error);
       setIsClaiming(false);
     }
+  };
+
+  // Function to handle sharing after winning
+  const handleShareAfterWin = () => {
+    if (!selectedBet) return;
+
+    // Set up share details for winning bet
+    const token = getTokenByAddress(selectedBet.bet_token_address);
+    const tokenEmoji = token?.image
+      ? `${token.name} 🪙`
+      : token?.name || "tokens";
+
+    // Create share text based on bet details
+    const shareText = `I just won ${selectedBet.bet_amount} ${tokenEmoji} betting on "${selectedBet.bet_agreement}" on @betcaster! 🎯💰`;
+
+    // Open Warpcast with pre-filled cast
+    window.open(
+      `https://warpcast.com/~/compose?text=${encodeURIComponent(
+        shareText
+      )}&embeds[]=${encodeURIComponent(
+        `${process.env.NEXT_PUBLIC_URL}/share/${context?.user?.fid || ""}`
+      )}`,
+      "_blank"
+    );
+
+    // Close the modal
+    setShowShareAfterWinModal(false);
   };
 
   // Helper function to get token name from address
@@ -4280,6 +4288,73 @@ export default function Demo(
             betDetails={shareBetDetails}
             userFid={context?.user?.fid || null}
           />
+        )}
+
+        {/* Share After Win Modal */}
+        {showShareAfterWinModal && selectedBet && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    🎉 Congratulations! You Won!
+                  </h2>
+                  <button
+                    onClick={() => setShowShareAfterWinModal(false)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="mb-6">
+                  <div className="text-center mb-4">
+                    <div className="text-4xl mb-2">💰</div>
+                    <p className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      You won {selectedBet.bet_amount}{" "}
+                      {getTokenName(selectedBet.bet_token_address)}!
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Share your victory on Farcaster?
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg mb-4">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      <strong>Bet:</strong> {selectedBet.bet_agreement}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleShareAfterWin}
+                    className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                  >
+                    Share on Farcaster
+                  </button>
+                  <button
+                    onClick={() => setShowShareAfterWinModal(false)}
+                    className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                  >
+                    Maybe Later
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Address Modal */}
