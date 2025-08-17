@@ -878,6 +878,12 @@ export default function CreateBet({
       return;
     }
 
+    // Recheck token allowance to ensure we have up-to-date data
+    if (selectedToken.address !== "") {
+      console.log("Refreshing token allowance data...");
+      await refetchAllowance();
+    }
+
     // Check token allowance for ERC20 tokens (skip for native ETH)
     if (selectedToken.address !== "") {
       const betAmountWei = amountToWei(
@@ -1346,7 +1352,7 @@ export default function CreateBet({
             </div>
           </div>
           <textarea
-            placeholder="The Eagles will not win the next Super Bowl..."
+            placeholder="The Cowboys will win the next Super Bowl..."
             rows={3}
             value={betDescription}
             onChange={(e) => setBetDescription(e.target.value)}
