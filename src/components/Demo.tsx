@@ -263,39 +263,79 @@ export default function Demo(
   const [showCopyNotification, setShowCopyNotification] = useState(false);
 
   // Function to fetch user addresses from database
-  const fetchUserAddresses = async (fid: number) => {
+  const fetchUserAddresses = async (
+    fid: number,
+    role: "maker" | "taker" | "arbiter"
+  ) => {
     setIsLoadingAddresses(true);
     try {
-      const response = await fetch(`/api/users?fids=${fid}`);
-      if (response.ok) {
-        const data = await response.json();
-        const user = data.users?.[0];
-        if (user) {
-          const addresses: string[] = [];
+      // Get addresses from the selected bet data
+      if (!selectedBet) return null;
 
-          // Add primary eth address if available
-          if (user.verified_addresses?.primary?.eth_address) {
-            addresses.push(user.verified_addresses.primary.eth_address);
-          }
+      let addresses: string[] = [];
 
-          // Add all other verified eth addresses
-          if (user.verified_addresses?.eth_addresses) {
-            user.verified_addresses.eth_addresses.forEach((address: string) => {
-              if (!addresses.includes(address)) {
-                addresses.push(address);
-              }
-            });
-          }
-
-          return {
-            fid: user.fid,
-            displayName: user.display_name || user.username,
-            username: user.username,
-            addresses: addresses,
-          };
-        }
+      switch (role) {
+        case "maker":
+          addresses = Array.isArray(selectedBet.maker_address)
+            ? selectedBet.maker_address
+            : [selectedBet.maker_address];
+          break;
+        case "taker":
+          addresses = Array.isArray(selectedBet.taker_address)
+            ? selectedBet.taker_address
+            : [selectedBet.taker_address];
+          break;
+        case "arbiter":
+          addresses = selectedBet.arbiter_address
+            ? Array.isArray(selectedBet.arbiter_address)
+              ? selectedBet.arbiter_address
+              : [selectedBet.arbiter_address]
+            : [];
+          break;
       }
-      return null;
+
+      // Filter out zero addresses and empty strings
+      addresses = addresses.filter(
+        (addr) =>
+          addr &&
+          addr !== "0x0000000000000000000000000000000000000000" &&
+          addr !== ""
+      );
+
+      // Get user profile for display name
+      let displayName = "Unknown";
+      let username = "unknown";
+
+      switch (role) {
+        case "maker":
+          displayName =
+            selectedBet.makerProfile?.display_name ||
+            selectedBet.makerProfile?.username ||
+            "Unknown";
+          username = selectedBet.makerProfile?.username || "unknown";
+          break;
+        case "taker":
+          displayName =
+            selectedBet.takerProfile?.display_name ||
+            selectedBet.takerProfile?.username ||
+            "Unknown";
+          username = selectedBet.takerProfile?.username || "unknown";
+          break;
+        case "arbiter":
+          displayName =
+            selectedBet.arbiterProfile?.display_name ||
+            selectedBet.arbiterProfile?.username ||
+            "Unknown";
+          username = selectedBet.arbiterProfile?.username || "unknown";
+          break;
+      }
+
+      return {
+        fid: fid,
+        displayName: displayName,
+        username: username,
+        addresses: addresses,
+      };
     } catch (error) {
       console.error("Error fetching user addresses:", error);
       return null;
@@ -308,9 +348,10 @@ export default function Demo(
   const handleUserClick = async (
     fid: number,
     displayName: string,
-    username: string
+    username: string,
+    role: "maker" | "taker" | "arbiter"
   ) => {
-    const userData = await fetchUserAddresses(fid);
+    const userData = await fetchUserAddresses(fid, role);
     if (userData) {
       setSelectedUserForAddresses(userData);
       setIsAddressModalOpen(true);
@@ -3530,7 +3571,8 @@ export default function Demo(
                               selectedBet.makerProfile?.display_name ||
                                 selectedBet.makerProfile?.username ||
                                 "Unknown",
-                              selectedBet.makerProfile?.username || "unknown"
+                              selectedBet.makerProfile?.username || "unknown",
+                              "maker"
                             )
                           }
                           className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline cursor-pointer"
@@ -3559,7 +3601,8 @@ export default function Demo(
                               selectedBet.takerProfile?.display_name ||
                                 selectedBet.takerProfile?.username ||
                                 "Unknown",
-                              selectedBet.takerProfile?.username || "unknown"
+                              selectedBet.takerProfile?.username || "unknown",
+                              "taker"
                             )
                           }
                           className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline cursor-pointer"
@@ -3590,7 +3633,8 @@ export default function Demo(
                                   selectedBet.arbiterProfile?.username ||
                                   "Unknown",
                                 selectedBet.arbiterProfile?.username ||
-                                  "unknown"
+                                  "unknown",
+                                "arbiter"
                               )
                             }
                             className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline cursor-pointer"
