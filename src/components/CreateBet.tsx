@@ -520,7 +520,10 @@ export default function CreateBet({
             selectedTimeOption
           ) {
             console.log("Auto-triggering bet creation after approval");
-            handleCreateBetAfterApproval();
+            // Add additional delay to ensure approval is registered on chain
+            setTimeout(() => {
+              handleCreateBetAfterApproval();
+            }, 200);
           }
         }, 1000);
       } else {
