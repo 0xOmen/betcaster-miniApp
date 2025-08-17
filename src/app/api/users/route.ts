@@ -56,6 +56,23 @@ export async function GET(request: NextRequest) {
     console.log("🌐 Users API: Neynar response status:", response.status);
 
     if (!response.ok) {
+      if (response.status === 404 && address) {
+        console.log(
+          " Users API: Address not found in Neynar, returning unknown user"
+        );
+        const unknownUser = {
+          fid: null,
+          username: "Unknown",
+          display_name: "Unknown",
+          pfp_url: "/unknownEntity.png",
+          verified_addresses: {
+            primary: {
+              eth_address: address,
+            },
+          },
+        };
+        return NextResponse.json({ users: [unknownUser] });
+      }
       console.error(
         "❌ Users API: Neynar API error:",
         response.status,
