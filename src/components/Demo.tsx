@@ -2948,53 +2948,9 @@ export default function Demo(
     }
   };
 
-  const handleRejectArbiterRole = async (bet: Bet) => {
-    try {
-      // Update database to mark bet as arbiter rejected (status 10)
-      const updateResponse = await fetch(
-        `/api/bets?betNumber=${bet.bet_number}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: 10 }),
-        }
-      );
-
-      if (!updateResponse.ok) {
-        console.error("Failed to update bet status in database");
-      } else {
-        console.log("Bet status updated to arbiter rejected in database");
-        // Notify both Maker and Taker
-        const notify = async (fid: number | null | undefined) => {
-          if (fid) {
-            try {
-              await notifyArbiterRejected(fid, {
-                betNumber: bet.bet_number,
-                betAmount: bet.bet_amount.toString(),
-                tokenName: getTokenName(bet.bet_token_address),
-                makerName:
-                  bet.makerProfile?.display_name || bet.makerProfile?.username,
-                takerName:
-                  bet.takerProfile?.display_name || bet.takerProfile?.username,
-                arbiterName:
-                  bet.arbiterProfile?.display_name ||
-                  bet.arbiterProfile?.username,
-                betAgreement: bet.bet_agreement,
-                endTime: new Date(bet.end_time * 1000).toLocaleString(),
-              });
-            } catch (e) {
-              console.error("Notification error", e);
-            }
-          }
-        };
-        // Refresh bets list with filtering
-        await refreshBetsWithFiltering();
-        // Optionally close modal if in modal
-        setIsModalOpen(false);
-      }
-    } catch (error) {
-      console.error("Error rejecting arbiter role:", error);
-    }
+  const handleRejectArbiterRole = (bet: Bet) => {
+    setSelectedBet(bet);
+    setIsModalOpen(true);
   };
 
   if (!isSDKLoaded) {
@@ -3544,7 +3500,80 @@ export default function Demo(
                         </button>
                         {/* Reject Arbiter Role Button */}
                         <button
-                          onClick={() => handleRejectArbiterRole(selectedBet)}
+                          onClick={async () => {
+                            try {
+                              // Update database to mark bet as arbiter rejected (status 10)
+                              const updateResponse = await fetch(
+                                `/api/bets?betNumber=${selectedBet.bet_number}`,
+                                {
+                                  method: "PATCH",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({ status: 10 }),
+                                }
+                              );
+
+                              if (!updateResponse.ok) {
+                                console.error(
+                                  "Failed to update bet status in database"
+                                );
+                              } else {
+                                console.log(
+                                  "Bet status updated to arbiter rejected in database"
+                                );
+                                // Notify both Maker and Taker
+                                const notify = async (
+                                  fid: number | null | undefined
+                                ) => {
+                                  if (fid) {
+                                    try {
+                                      await notifyArbiterRejected(fid, {
+                                        betNumber: selectedBet.bet_number,
+                                        betAmount:
+                                          selectedBet.bet_amount.toString(),
+                                        tokenName: getTokenName(
+                                          selectedBet.bet_token_address
+                                        ),
+                                        makerName:
+                                          selectedBet.makerProfile
+                                            ?.display_name ||
+                                          selectedBet.makerProfile?.username,
+                                        takerName:
+                                          selectedBet.takerProfile
+                                            ?.display_name ||
+                                          selectedBet.takerProfile?.username,
+                                        arbiterName:
+                                          selectedBet.arbiterProfile
+                                            ?.display_name ||
+                                          selectedBet.arbiterProfile?.username,
+                                        betAgreement: selectedBet.bet_agreement,
+                                        endTime: new Date(
+                                          selectedBet.end_time * 1000
+                                        ).toLocaleString(),
+                                      });
+                                    } catch (e) {
+                                      console.error("Notification error", e);
+                                    }
+                                  }
+                                };
+
+                                await Promise.all([
+                                  notify(selectedBet.maker_fid),
+                                  notify(selectedBet.taker_fid),
+                                ]);
+
+                                // Close modal and refresh bets
+                                closeModal();
+                                await refreshBetsWithFiltering();
+                              }
+                            } catch (error) {
+                              console.error(
+                                "Error rejecting arbiter role:",
+                                error
+                              );
+                            }
+                          }}
                           className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                         >
                           Reject Arbiter Role
@@ -4256,7 +4285,7 @@ export default function Demo(
                     </div>
                   )}
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Ethereum Addresses
+                    Ethereum Addresses that can be used for this bet
                   </h3>
                   {isLoadingAddresses ? (
                     <div className="flex items-center justify-center py-4">

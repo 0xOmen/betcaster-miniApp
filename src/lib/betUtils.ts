@@ -188,6 +188,11 @@ export function getStatusInfo(
         bgColor:
           "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
       };
+    case 10:
+      return {
+        text: "Rejected",
+        bgColor: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+      };
     default:
       return {
         text: "Unknown",
