@@ -2810,17 +2810,53 @@ export default function Demo(
   };
 
   // Add this function near other state management functions
-  const handleShareBet = (bet: Bet) => {
-    setShareBetDetails({
-      amount: bet.bet_amount.toString(),
-      token: getTokenName(bet.bet_token_address),
-      taker:
-        bet.takerProfile?.display_name ||
-        bet.takerProfile?.username ||
-        "Unknown",
-      arbiter: bet.arbiterProfile?.display_name || bet.arbiterProfile?.username,
-    });
-    setShowShareModal(true);
+  const handleShareBet = async (bet: Bet) => {
+    const baseUrl = window.location.origin;
+    // Change the URL format to use 'B' prefix for bet numbers
+    const shareUrl = `${baseUrl}/share/B${bet.bet_number}`;
+    const shareText = `Check out this bet on Betcaster!\nBet #${bet.bet_number}`;
+    const betAmount = bet.bet_amount.toString();
+    const tokenName = getTokenByAddress(bet.bet_token_address)?.symbol || "ETH";
+
+    // Create frame metadata
+    const frameMetadata = {
+      buttons: [{ label: "View Bet", action: "link" }],
+      image: {
+        src: `${baseUrl}/api/og?betNumber=${bet.bet_number}&amount=${betAmount}&token=${tokenName}`,
+        aspectRatio: "1.91:1",
+      },
+      post: {
+        title: `Betcaster Bet #${bet.bet_number}`,
+        description: `${betAmount} ${tokenName} bet. Click to view details!`,
+      },
+    };
+
+    if (context?.client) {
+      try {
+        const frameUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(
+          shareText
+        )}&embeds[]=${encodeURIComponent(shareUrl)}&frames=${encodeURIComponent(
+          JSON.stringify(frameMetadata)
+        )}`;
+        window.open(frameUrl);
+      } catch (error) {
+        console.error("Error casting:", error);
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          alert("Share link copied to clipboard!");
+        } catch (clipError) {
+          console.error("Error copying to clipboard:", clipError);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert("Share link copied to clipboard!");
+      } catch (error) {
+        console.error("Error copying to clipboard:", error);
+      }
+    }
+
     closeModal();
   };
 
