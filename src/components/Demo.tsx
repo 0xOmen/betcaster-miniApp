@@ -1332,6 +1332,9 @@ export default function Demo(
       selectedBet.bet_token_address
     );
 
+    console.log("Bet Amount Wei:", betAmountWei);
+    console.log("Allowance:", allowance);
+
     if (!allowance || allowance < betAmountWei) {
       console.log("Insufficient token allowance. Requesting approval...");
 
