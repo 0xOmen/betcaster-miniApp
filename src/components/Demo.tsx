@@ -2105,40 +2105,36 @@ export default function Demo(
             console.log("Claim transaction sent successfully:", hash);
             setClaimTxHash(hash);
 
-            // Close modal after successful transaction
-            setTimeout(async () => {
-              closeModal();
-              // Update database with the new status
-              try {
-                const updateResponse = await fetch(
-                  `/api/bets?betNumber=${selectedBet.bet_number}`,
-                  {
-                    method: "PATCH",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      status: newStatus,
-                      transaction_hash: hash,
-                    }),
-                  }
-                );
-
-                if (!updateResponse.ok) {
-                  console.error("Failed to update bet status in database");
-                } else {
-                  console.log(`Bet status updated to ${newStatus} in database`);
-
-                  // Show share modal instead of automatically opening Warpcast
-                  setShowShareAfterWinModal(true);
+            // Update database with the new status first
+            try {
+              const updateResponse = await fetch(
+                `/api/bets?betNumber=${selectedBet.bet_number}`,
+                {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    status: newStatus,
+                    transaction_hash: hash,
+                  }),
                 }
-              } catch (error) {
-                console.error("Error updating bet status:", error);
-              }
+              );
 
-              // Refresh bets list with filtering
-              await refreshBetsWithFiltering();
-            }, 2000);
+              if (!updateResponse.ok) {
+                console.error("Failed to update bet status in database");
+              } else {
+                console.log(`Bet status updated to ${newStatus} in database`);
+
+                // Show share modal before closing the bet modal
+                setShowShareAfterWinModal(true);
+              }
+            } catch (error) {
+              console.error("Error updating bet status:", error);
+            }
+
+            // Refresh bets list with filtering
+            await refreshBetsWithFiltering();
           },
           onError: (error: Error) => {
             console.error("Claim transaction failed:", error);
@@ -2175,8 +2171,9 @@ export default function Demo(
       "_blank"
     );
 
-    // Close the modal
+    // Close both modals
     setShowShareAfterWinModal(false);
+    closeModal();
   };
 
   // Helper function to get token name from address
@@ -4300,7 +4297,10 @@ export default function Demo(
                     🎉 Congratulations! You Won!
                   </h2>
                   <button
-                    onClick={() => setShowShareAfterWinModal(false)}
+                    onClick={() => {
+                      setShowShareAfterWinModal(false);
+                      closeModal();
+                    }}
                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
                     <svg
@@ -4346,7 +4346,10 @@ export default function Demo(
                     Share on Farcaster
                   </button>
                   <button
-                    onClick={() => setShowShareAfterWinModal(false)}
+                    onClick={() => {
+                      setShowShareAfterWinModal(false);
+                      closeModal();
+                    }}
                     className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
                   >
                     Maybe Later
