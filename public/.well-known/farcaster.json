@@ -37,5 +37,10 @@
         ],
         "noindex": false,
         "buttonTitle": "Bet with Friends!"
+    },
+    "baseBuilder": {
+        "allowedAddresses": [
+            "0x592F7806279e4593908b9feee017092C6fEa4CBD"
+        ]
     }
 }
